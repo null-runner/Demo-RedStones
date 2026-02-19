@@ -4,6 +4,7 @@ import { companies, enrichmentStatusEnum } from "./companies";
 import { contactsToTags } from "./contacts-to-tags";
 import { contacts } from "./contacts";
 import { deals } from "./deals";
+import { pipelineStages } from "./pipeline-stages";
 import { tags } from "./tags";
 import { timelineEntries, timelineEntryTypeEnum } from "./timeline-entries";
 import { userRoleEnum, users } from "./users";
@@ -14,6 +15,7 @@ export {
   contactsToTags,
   contacts,
   deals,
+  pipelineStages,
   tags,
   timelineEntries,
   timelineEntryTypeEnum,
@@ -24,6 +26,7 @@ export {
 export type { Company, NewCompany } from "./companies";
 export type { Contact, NewContact } from "./contacts";
 export type { Deal, NewDeal } from "./deals";
+export type { NewPipelineStageRow, PipelineStageRow } from "./pipeline-stages";
 export type { NewTag, Tag } from "./tags";
 export type { NewTimelineEntry, TimelineEntry } from "./timeline-entries";
 export type { NewUser, User } from "./users";

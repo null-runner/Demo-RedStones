@@ -6,6 +6,7 @@ import {
   contacts,
   contactsToTags,
   deals,
+  pipelineStages,
   tags,
   timelineEntries,
   users,
@@ -681,8 +682,27 @@ export function generateSeedData(): SeedData {
   };
 }
 
+async function seedPipelineStages(): Promise<void> {
+  const defaultStages = [
+    { name: "Lead", sortOrder: 1, isProtected: false },
+    { name: "Qualificato", sortOrder: 2, isProtected: false },
+    { name: "Demo", sortOrder: 3, isProtected: false },
+    { name: "Proposta", sortOrder: 4, isProtected: false },
+    { name: "Negoziazione", sortOrder: 5, isProtected: false },
+    { name: "Chiuso Vinto", sortOrder: 6, isProtected: true },
+    { name: "Chiuso Perso", sortOrder: 7, isProtected: true },
+  ];
+
+  await db
+    .insert(pipelineStages)
+    .values(defaultStages)
+    .onConflictDoNothing({ target: pipelineStages.name });
+}
+
 export async function resetDatabase(): Promise<void> {
   const data = generateSeedData();
+
+  await seedPipelineStages();
 
   await db.transaction(async (tx) => {
     await tx.delete(timelineEntries);

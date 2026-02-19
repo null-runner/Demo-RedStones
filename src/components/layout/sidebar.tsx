@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, LayoutDashboard, TrendingUp, Users } from "lucide-react";
+import { Building2, LayoutDashboard, Settings, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: "Contatti", href: "/contacts", icon: Users },
   { label: "Aziende", href: "/companies", icon: Building2 },
   { label: "Pipeline", href: "/deals", icon: TrendingUp },
+  { label: "Impostazioni", href: "/settings", icon: Settings },
 ] as const;
 
 export function Sidebar() {

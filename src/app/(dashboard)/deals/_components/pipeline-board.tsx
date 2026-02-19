@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { updateDeal } from "../_lib/deals.actions";
 import { DealCard } from "./deal-card";
 
-import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
 import type { PipelineStage } from "@/lib/constants/pipeline";
 import { formatEUR } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
@@ -26,16 +25,17 @@ type PipelineBoardProps = {
   deals: Deal[];
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   onLostReasonNeeded: (dealId: string, oldStage: PipelineStage) => void;
+  stages: string[];
 };
 
 type KanbanColumn = {
-  stage: PipelineStage;
+  stage: string;
   deals: Deal[];
   totalValue: number;
 };
 
-function buildColumns(deals: Deal[]): KanbanColumn[] {
-  return PIPELINE_STAGES.map((stage) => {
+function buildColumns(deals: Deal[], stages: string[]): KanbanColumn[] {
+  return stages.map((stage) => {
     const stageDeals = deals.filter((d) => d.stage === stage);
     const totalValue = stageDeals.reduce((sum, d) => sum + parseFloat(d.value), 0);
     return { stage, deals: stageDeals, totalValue };
@@ -83,18 +83,18 @@ function DroppableColumn({
   );
 }
 
-export function PipelineBoard({ deals, contacts, onLostReasonNeeded }: PipelineBoardProps) {
+export function PipelineBoard({ deals, contacts, onLostReasonNeeded, stages }: PipelineBoardProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
 
   const [optimisticDeals, addOptimisticMove] = useOptimistic(
     deals,
-    (state: Deal[], { dealId, newStage }: { dealId: string; newStage: PipelineStage }) =>
-      state.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)),
+    (state: Deal[], { dealId, newStage }: { dealId: string; newStage: string }) =>
+      state.map((d) => (d.id === dealId ? { ...d, stage: newStage as PipelineStage } : d)),
   );
 
-  const columns = buildColumns(optimisticDeals);
+  const columns = buildColumns(optimisticDeals, stages);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -116,7 +116,7 @@ export function PipelineBoard({ deals, contacts, onLostReasonNeeded }: PipelineB
     const currentDeal = deals.find((d) => d.id === dealId);
     if (!currentDeal) return;
 
-    const targetStage: PipelineStage = PIPELINE_STAGES.includes(over.id as PipelineStage)
+    const targetStage: PipelineStage = stages.includes(over.id as string)
       ? (over.id as PipelineStage)
       : (deals.find((d) => d.id === over.id)?.stage ?? currentDeal.stage);
 

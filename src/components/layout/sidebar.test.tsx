@@ -20,6 +20,7 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: /contatti/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /aziende/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /pipeline/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /impostazioni/i })).toBeInTheDocument();
   });
 
   it("dashboard link has correct href", () => {

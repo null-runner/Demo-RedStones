@@ -17,7 +17,12 @@ const { mockTransaction } = vi.hoisted(() => {
 vi.mock("@/server/db", () => ({
   db: {
     delete: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnValue({ values: vi.fn() }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockResolvedValue([]),
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    }),
     transaction: mockTransaction,
   },
 }));

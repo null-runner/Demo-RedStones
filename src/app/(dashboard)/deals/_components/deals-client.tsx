@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
 import type { PipelineStage } from "@/lib/constants/pipeline";
 import type { Deal } from "@/server/db/schema";
 
@@ -38,9 +37,10 @@ type DealsClientProps = {
   companies: Array<{ id: string; name: string }>;
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   users: Array<{ id: string; name: string }>;
+  stages: string[];
 };
 
-export function DealsClient({ deals, companies, contacts, users }: DealsClientProps) {
+export function DealsClient({ deals, companies, contacts, users, stages }: DealsClientProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
@@ -197,7 +197,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tutti gli stage</SelectItem>
-                  {PIPELINE_STAGES.map((s) => (
+                  {stages.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
                     </SelectItem>
@@ -272,6 +272,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
           deals={filtered}
           contacts={contacts}
           onLostReasonNeeded={handleLostReasonNeeded}
+          stages={stages}
         />
       ) : (
         <DealTable

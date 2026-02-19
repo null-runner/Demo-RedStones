@@ -15,6 +15,13 @@
       "when": 1771504817716,
       "tag": "0001_first_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771529583182,
+      "tag": "0002_melted_hannibal_king",
+      "breakpoints": true
     }
   ]
 }
