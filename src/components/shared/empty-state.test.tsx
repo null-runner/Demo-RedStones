@@ -6,8 +6,11 @@ import { describe, expect, it, vi } from "vitest";
 import { EmptyState } from "./empty-state";
 
 describe("EmptyState", () => {
-  it("renders title and description", () => {
-    render(<EmptyState icon={Users} title="Nessun contatto" description="Aggiungi il primo" />);
+  it("renders icon, title and description", () => {
+    const { container } = render(
+      <EmptyState icon={Users} title="Nessun contatto" description="Aggiungi il primo" />,
+    );
+    expect(container.querySelector("svg")).toBeInTheDocument();
     expect(screen.getByText("Nessun contatto")).toBeInTheDocument();
     expect(screen.getByText("Aggiungi il primo")).toBeInTheDocument();
   });

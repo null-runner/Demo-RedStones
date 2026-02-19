@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { PageHeader } from "./page-header";
 
 describe("PageHeader", () => {
-  it("renders title", () => {
+  it("renders title as heading", () => {
     render(<PageHeader title="Contatti" />);
-    expect(screen.getByText("Contatti")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Contatti" })).toBeInTheDocument();
   });
 
   it("renders description when provided", () => {

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConfirmDialog } from "./confirm-dialog";
 
@@ -12,6 +12,10 @@ describe("ConfirmDialog", () => {
     title: "Elimina contatto",
     description: "Questa azione non può essere annullata.",
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders title and description when open", () => {
     render(<ConfirmDialog {...defaultProps} />);
@@ -48,5 +52,17 @@ describe("ConfirmDialog", () => {
   it("renders custom confirmLabel when provided", () => {
     render(<ConfirmDialog {...defaultProps} confirmLabel="Rimuovi" />);
     expect(screen.getByRole("button", { name: "Rimuovi" })).toBeInTheDocument();
+  });
+
+  it("disables both buttons when isLoading is true", () => {
+    render(<ConfirmDialog {...defaultProps} isLoading />);
+    expect(screen.getByRole("button", { name: "Annulla" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Eliminazione..." })).toBeDisabled();
+  });
+
+  it("shows loading text on confirm button when isLoading is true", () => {
+    render(<ConfirmDialog {...defaultProps} isLoading />);
+    expect(screen.getByRole("button", { name: "Eliminazione..." })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Elimina" })).not.toBeInTheDocument();
   });
 });
