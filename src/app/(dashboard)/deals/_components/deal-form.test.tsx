@@ -141,6 +141,61 @@ describe("DealForm", () => {
     expect(screen.getByDisplayValue("Deal Test")).toBeInTheDocument();
   });
 
+  it("shows lostReason and notes fields when stage is Chiuso Perso", () => {
+    const lostDeal: Deal = { ...mockDeal, stage: "Chiuso Perso", lostReason: "Prezzo troppo alto" };
+    render(
+      <DealForm
+        initialData={lostDeal}
+        companies={mockCompanies}
+        contacts={mockContacts}
+        users={mockUsers}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Motivo perdita/)).toBeInTheDocument();
+    expect(screen.getByText(/Note \(opzionale\)/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Aggiungi dettagli...")).toBeInTheDocument();
+  });
+
+  it("does not show lostReason fields for non-lost stages", () => {
+    render(
+      <DealForm
+        initialData={mockDeal}
+        companies={mockCompanies}
+        contacts={mockContacts}
+        users={mockUsers}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/Motivo perdita/)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Aggiungi dettagli...")).not.toBeInTheDocument();
+  });
+
+  it("shows validation error when submitting Chiuso Perso without reason", async () => {
+    const user = userEvent.setup();
+    const lostDeal: Deal = { ...mockDeal, stage: "Chiuso Perso", lostReason: null };
+    render(
+      <DealForm
+        initialData={lostDeal}
+        companies={mockCompanies}
+        contacts={mockContacts}
+        users={mockUsers}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /aggiorna deal/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Seleziona un motivo di perdita")).toBeInTheDocument();
+    });
+  });
+
   it("calls onCancel when cancel button clicked", async () => {
     const onCancel = vi.fn();
     const user = userEvent.setup();

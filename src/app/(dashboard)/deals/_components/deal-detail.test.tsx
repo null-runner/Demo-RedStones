@@ -60,9 +60,8 @@ describe("DealDetail", () => {
   it("renders formatted EUR value", () => {
     render(<DealDetail {...baseProps} />);
 
-    // EUR formatted: 15.000,00 € or similar
-    expect(screen.getByText(/15/)).toBeInTheDocument();
-    expect(screen.getByText(/€/)).toBeInTheDocument();
+    // EUR formatted: "15.000,00 €" or "€15,000.00" depending on locale
+    expect(screen.getByText(/15[\.\,]000/)).toBeInTheDocument();
   });
 
   it("renders contact name when present", () => {

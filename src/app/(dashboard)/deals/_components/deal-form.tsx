@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -49,7 +50,15 @@ export function DealForm({
   onCancel,
   isLoading,
 }: DealFormProps) {
-  const [lostReason, setLostReason] = useState<string>(initialData?.lostReason ?? "");
+  // Parse stored "reason: notes" format back into separate fields
+  const storedLostReason = initialData?.lostReason ?? "";
+  const matchedReason = LOST_REASONS.find((r) => storedLostReason.startsWith(r));
+  const [lostReason, setLostReason] = useState<string>(matchedReason ?? "");
+  const [lostReasonNotes, setLostReasonNotes] = useState<string>(
+    matchedReason && storedLostReason.startsWith(`${matchedReason}: `)
+      ? storedLostReason.slice(matchedReason.length + 2)
+      : "",
+  );
   const [lostReasonError, setLostReasonError] = useState<string | null>(null);
 
   const form = useForm<CreateDealInput>({
@@ -71,9 +80,11 @@ export function DealForm({
       setLostReasonError("Seleziona un motivo di perdita");
       return;
     }
+    const trimmedNotes = lostReasonNotes.trim();
+    const fullLostReason = trimmedNotes ? `${lostReason}: ${trimmedNotes}` : lostReason;
     void onSubmit({
       ...data,
-      lostReason: data.stage === "Chiuso Perso" ? lostReason : null,
+      lostReason: data.stage === "Chiuso Perso" ? fullLostReason : null,
     });
   };
 
@@ -134,9 +145,10 @@ export function DealForm({
               <Select
                 onValueChange={(val) => {
                   field.onChange(val);
-                  // Reset lostReason when leaving "Chiuso Perso"
+                  // Reset lostReason fields when leaving "Chiuso Perso"
                   if (val !== "Chiuso Perso") {
                     setLostReason("");
+                    setLostReasonNotes("");
                     setLostReasonError(null);
                   }
                 }}
@@ -186,6 +198,19 @@ export function DealForm({
               </SelectContent>
             </Select>
             {lostReasonError && <p className="text-destructive text-sm">{lostReasonError}</p>}
+            <div className="mt-3 space-y-1.5">
+              <Label htmlFor="deal-form-lost-notes">Note (opzionale)</Label>
+              <Textarea
+                id="deal-form-lost-notes"
+                placeholder="Aggiungi dettagli..."
+                value={lostReasonNotes}
+                onChange={(e) => {
+                  setLostReasonNotes(e.target.value);
+                }}
+                rows={3}
+                disabled={isLoading ?? false}
+              />
+            </div>
           </div>
         )}
 
