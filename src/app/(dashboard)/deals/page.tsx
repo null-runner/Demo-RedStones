@@ -1,17 +1,17 @@
-export default function DealsPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Pipeline</h1>
-        <p className="text-muted-foreground">Gestisci le opportunità commerciali</p>
-      </div>
-      <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-dashed">
-        <div className="text-center">
-          <p className="text-muted-foreground text-sm">
-            Nessun deal ancora. Il Kanban verrà aggiunto in Epic 3.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+import { DealsClient } from "./_components/deals-client";
+import { dealsService } from "./_lib/deals.service";
+
+import { getCompaniesForSelect } from "@/server/services/companies.service";
+import { getContactsForSelect } from "@/server/services/contacts.service";
+import { getUsersForSelect } from "@/server/services/users.service";
+
+export default async function DealsPage() {
+  const [deals, companies, contacts, users] = await Promise.all([
+    dealsService.getAll(),
+    getCompaniesForSelect(),
+    getContactsForSelect(),
+    getUsersForSelect(),
+  ]);
+
+  return <DealsClient deals={deals} companies={companies} contacts={contacts} users={users} />;
 }
