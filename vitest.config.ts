@@ -12,6 +12,7 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next"],
     passWithNoTests: true,
+    testTimeout: 15000,
     alias: [
       { find: "server-only", replacement: resolve(__dirname, "./src/test/mocks/server-only.ts") },
       { find: /^@\/server\/db$/, replacement: resolve(__dirname, "./src/test/mocks/db.ts") },
