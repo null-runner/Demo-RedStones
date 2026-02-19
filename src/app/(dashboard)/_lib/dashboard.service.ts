@@ -5,6 +5,28 @@ import { deals } from "@/server/db/schema";
 import type { Deal } from "@/server/db/schema";
 import { isTerminalStage, TERMINAL_STAGES } from "@/lib/constants/pipeline";
 
+export type DealsByStageItem = {
+  stage: string;
+  count: number;
+  totalValue: number;
+};
+
+export type StagnantDeal = {
+  id: string;
+  title: string;
+  stage: string;
+  daysInactive: number;
+  value: number;
+};
+
+export type DashboardData = {
+  kpis: DashboardKPIs;
+  dealsByStage: DealsByStageItem[];
+  stagnantDeals: StagnantDeal[];
+};
+
+export const STAGNANT_THRESHOLD_DAYS = 14;
+
 export type WinRateTrend = {
   direction: "up" | "down" | "neutral";
   delta: number;
@@ -100,9 +122,51 @@ export function calculateKPIs(allDeals: Deal[], now: Date = new Date()): Dashboa
   };
 }
 
+export function calculateDealsPerStage(allDeals: Deal[]): DealsByStageItem[] {
+  const activeDeals = allDeals.filter((d) => !isTerminalStage(d.stage));
+  const stageMap = new Map<string, { count: number; totalValue: number }>();
+
+  for (const deal of activeDeals) {
+    const current = stageMap.get(deal.stage) ?? { count: 0, totalValue: 0 };
+    stageMap.set(deal.stage, {
+      count: current.count + 1,
+      totalValue: current.totalValue + parseFloat(deal.value),
+    });
+  }
+
+  return Array.from(stageMap.entries())
+    .map(([stage, { count, totalValue }]) => ({ stage, count, totalValue }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function getStagnantDeals(allDeals: Deal[], now: Date = new Date()): StagnantDeal[] {
+  const thresholdMs = STAGNANT_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+  const thresholdDate = new Date(now.getTime() - thresholdMs);
+
+  return allDeals
+    .filter((d) => !isTerminalStage(d.stage) && d.updatedAt < thresholdDate)
+    .map((d) => ({
+      id: d.id,
+      title: d.title,
+      stage: d.stage,
+      daysInactive: Math.floor((now.getTime() - d.updatedAt.getTime()) / (1000 * 60 * 60 * 24)),
+      value: parseFloat(d.value),
+    }))
+    .sort((a, b) => b.daysInactive - a.daysInactive);
+}
+
 async function getDashboardKPIs(): Promise<DashboardKPIs> {
   const allDeals = await db.select().from(deals);
   return calculateKPIs(allDeals);
 }
 
-export const dashboardService = { getDashboardKPIs };
+async function getDashboardData(now: Date = new Date()): Promise<DashboardData> {
+  const allDeals = await db.select().from(deals);
+  return {
+    kpis: calculateKPIs(allDeals, now),
+    dealsByStage: calculateDealsPerStage(allDeals),
+    stagnantDeals: getStagnantDeals(allDeals, now),
+  };
+}
+
+export const dashboardService = { getDashboardKPIs, getDashboardData };

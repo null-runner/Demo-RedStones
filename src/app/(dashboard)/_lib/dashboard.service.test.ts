@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateKPIs } from "./dashboard.service";
+import { calculateKPIs, calculateDealsPerStage, getStagnantDeals } from "./dashboard.service";
 
 import type { Deal } from "@/server/db/schema";
 
@@ -292,5 +292,99 @@ describe("calculateKPIs", () => {
     const result = calculateKPIs(deals, NOW);
     expect(result.wonDealsCount).toBe(0);
     expect(result.wonDealsValue).toBe(0);
+  });
+});
+
+describe("calculateDealsPerStage", () => {
+  it("returns empty array for no deals", () => {
+    expect(calculateDealsPerStage([])).toEqual([]);
+  });
+
+  it("groups deals by stage with count and total value", () => {
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Proposta", value: "10000.00" }),
+      makeDeal({ id: "2", stage: "Proposta", value: "20000.00" }),
+      makeDeal({ id: "3", stage: "Demo", value: "5000.00" }),
+    ];
+    const result = calculateDealsPerStage(dealsData);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ stage: "Proposta", count: 2, totalValue: 30000 }),
+        expect.objectContaining({ stage: "Demo", count: 1, totalValue: 5000 }),
+      ]),
+    );
+  });
+
+  it("excludes terminal stages from chart data", () => {
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Chiuso Vinto", value: "10000.00" }),
+      makeDeal({ id: "2", stage: "Chiuso Perso", value: "5000.00" }),
+      makeDeal({ id: "3", stage: "Proposta", value: "8000.00" }),
+    ];
+    const result = calculateDealsPerStage(dealsData);
+    expect(result).toHaveLength(1);
+    expect(result).toEqual(
+      expect.arrayContaining([expect.objectContaining({ stage: "Proposta" })]),
+    );
+  });
+
+  it("sums value correctly using parseFloat on string values", () => {
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Lead", value: "1500.50" }),
+      makeDeal({ id: "2", stage: "Lead", value: "2500.75" }),
+    ];
+    const result = calculateDealsPerStage(dealsData);
+    expect(result).toHaveLength(1);
+    expect(result.at(0)?.totalValue).toBeCloseTo(4001.25, 2);
+  });
+});
+
+describe("getStagnantDeals", () => {
+  it("returns empty array for no deals", () => {
+    expect(getStagnantDeals([], NOW)).toEqual([]);
+  });
+
+  it("includes deal updated 15 days ago with correct daysInactive", () => {
+    const staleDate = new Date(NOW.getTime() - 15 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({ id: "1", stage: "Proposta", updatedAt: staleDate });
+    const result = getStagnantDeals([deal], NOW);
+    expect(result).toHaveLength(1);
+    expect(result).toEqual(expect.arrayContaining([expect.objectContaining({ daysInactive: 15 })]));
+  });
+
+  it("excludes deal updated exactly 13 days ago (below threshold)", () => {
+    const recentDate = new Date(NOW.getTime() - 13 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({ id: "1", stage: "Proposta", updatedAt: recentDate });
+    expect(getStagnantDeals([deal], NOW)).toHaveLength(0);
+  });
+
+  it("excludes Chiuso Vinto stage even if stale", () => {
+    const staleDate = new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({ id: "1", stage: "Chiuso Vinto", updatedAt: staleDate });
+    expect(getStagnantDeals([deal], NOW)).toHaveLength(0);
+  });
+
+  it("excludes Chiuso Perso stage even if stale", () => {
+    const staleDate = new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({ id: "1", stage: "Chiuso Perso", updatedAt: staleDate });
+    expect(getStagnantDeals([deal], NOW)).toHaveLength(0);
+  });
+
+  it("calculates daysInactive as Math.floor of days diff", () => {
+    const staleDate = new Date(NOW.getTime() - 15.7 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({ id: "1", stage: "Demo", updatedAt: staleDate });
+    const result = getStagnantDeals([deal], NOW);
+    expect(result).toEqual(expect.arrayContaining([expect.objectContaining({ daysInactive: 15 })]));
+  });
+
+  it("sorts by daysInactive DESC (most stagnant first)", () => {
+    const date30 = new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const date20 = new Date(NOW.getTime() - 20 * 24 * 60 * 60 * 1000);
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Demo", updatedAt: date20 }),
+      makeDeal({ id: "2", stage: "Proposta", updatedAt: date30 }),
+    ];
+    const result = getStagnantDeals(dealsData, NOW);
+    expect(result.map((d) => d.daysInactive)).toEqual([30, 20]);
   });
 });
