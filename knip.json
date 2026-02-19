@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": ["src/app/**/*.{ts,tsx}", "src/lib/env.ts", "drizzle.config.ts"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/components/ui/**", ".next/**", "drizzle/**"]
+}
