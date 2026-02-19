@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { createDeal, updateDeal } from "../_lib/deals.actions";
 import { DealForm } from "./deal-form";
-import type { CreateDealInput } from "../_lib/deals.schema";
+import type { DealFormSubmitData } from "./deal-form";
 
 import {
   Sheet,
@@ -37,9 +37,11 @@ export function DealSheet({
 }: DealSheetProps) {
   const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (data: CreateDealInput) => {
+  const handleSubmit = (data: DealFormSubmitData) => {
     startTransition(async () => {
-      const result = deal ? await updateDeal({ ...data, id: deal.id }) : await createDeal(data);
+      const result = deal
+        ? await updateDeal({ ...data, id: deal.id, lostReason: data.lostReason ?? null })
+        : await createDeal(data);
       if (!result.success) {
         toast.error(result.error);
       } else {

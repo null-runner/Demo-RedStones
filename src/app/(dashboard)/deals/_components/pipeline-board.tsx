@@ -25,7 +25,7 @@ import type { Deal } from "@/server/db/schema";
 type PipelineBoardProps = {
   deals: Deal[];
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
-  onEdit: (deal: Deal) => void;
+  onLostReasonNeeded: (dealId: string, oldStage: PipelineStage) => void;
 };
 
 type KanbanColumn = {
@@ -45,11 +45,9 @@ function buildColumns(deals: Deal[]): KanbanColumn[] {
 function DroppableColumn({
   column,
   contacts,
-  onEdit,
 }: {
   column: KanbanColumn;
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
-  onEdit: (deal: Deal) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.stage });
 
@@ -77,7 +75,7 @@ function DroppableColumn({
           {column.deals.map((deal) => {
             const contact = contacts.find((c) => c.id === deal.contactId);
             const contactName = contact ? `${contact.firstName} ${contact.lastName}` : undefined;
-            return <DealCard key={deal.id} deal={deal} contactName={contactName} onEdit={onEdit} />;
+            return <DealCard key={deal.id} deal={deal} contactName={contactName} />;
           })}
         </SortableContext>
       </div>
@@ -85,7 +83,7 @@ function DroppableColumn({
   );
 }
 
-export function PipelineBoard({ deals, contacts, onEdit }: PipelineBoardProps) {
+export function PipelineBoard({ deals, contacts, onLostReasonNeeded }: PipelineBoardProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
@@ -123,6 +121,12 @@ export function PipelineBoard({ deals, contacts, onEdit }: PipelineBoardProps) {
       : (deals.find((d) => d.id === over.id)?.stage ?? currentDeal.stage);
 
     if (currentDeal.stage === targetStage) return;
+
+    // Intercept "Chiuso Perso" — require lost reason before moving
+    if (targetStage === "Chiuso Perso") {
+      onLostReasonNeeded(dealId, currentDeal.stage);
+      return;
+    }
 
     const oldStage = currentDeal.stage;
 
@@ -169,7 +173,7 @@ export function PipelineBoard({ deals, contacts, onEdit }: PipelineBoardProps) {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
-          <DroppableColumn key={column.stage} column={column} contacts={contacts} onEdit={onEdit} />
+          <DroppableColumn key={column.stage} column={column} contacts={contacts} />
         ))}
       </div>
       <DragOverlay>
@@ -181,7 +185,6 @@ export function PipelineBoard({ deals, contacts, onEdit }: PipelineBoardProps) {
                 ? `${activeDealContact.firstName} ${activeDealContact.lastName}`
                 : undefined
             }
-            onEdit={onEdit}
           />
         ) : null}
       </DragOverlay>

@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { createDealSchema, type CreateDealInput } from "../_lib/deals.schema";
 
+import { LOST_REASONS } from "@/lib/constants/lost-reasons";
 import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,12 +28,14 @@ import {
 } from "@/components/ui/select";
 import type { Deal } from "@/server/db/schema";
 
+export type DealFormSubmitData = CreateDealInput & { lostReason?: string | null };
+
 type DealFormProps = {
   initialData?: Deal | null;
   companies: Array<{ id: string; name: string }>;
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   users: Array<{ id: string; name: string }>;
-  onSubmit: (data: CreateDealInput) => void | Promise<void>;
+  onSubmit: (data: DealFormSubmitData) => void | Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
 };
@@ -44,6 +49,9 @@ export function DealForm({
   onCancel,
   isLoading,
 }: DealFormProps) {
+  const [lostReason, setLostReason] = useState<string>(initialData?.lostReason ?? "");
+  const [lostReasonError, setLostReasonError] = useState<string | null>(null);
+
   const form = useForm<CreateDealInput>({
     resolver: zodResolver(createDealSchema),
     defaultValues: {
@@ -56,11 +64,24 @@ export function DealForm({
     },
   });
 
+  const watchedStage = form.watch("stage");
+
+  const handleFormSubmit = (data: CreateDealInput) => {
+    if (data.stage === "Chiuso Perso" && !lostReason) {
+      setLostReasonError("Seleziona un motivo di perdita");
+      return;
+    }
+    void onSubmit({
+      ...data,
+      lostReason: data.stage === "Chiuso Perso" ? lostReason : null,
+    });
+  };
+
   return (
     <Form {...form}>
       <form
         onSubmit={(e) => {
-          void form.handleSubmit(onSubmit)(e);
+          void form.handleSubmit(handleFormSubmit)(e);
         }}
         className="space-y-4"
       >
@@ -111,7 +132,14 @@ export function DealForm({
             <FormItem>
               <FormLabel>Stage *</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                onValueChange={(val) => {
+                  field.onChange(val);
+                  // Reset lostReason when leaving "Chiuso Perso"
+                  if (val !== "Chiuso Perso") {
+                    setLostReason("");
+                    setLostReasonError(null);
+                  }
+                }}
                 defaultValue={field.value}
                 disabled={isLoading ?? false}
               >
@@ -132,6 +160,35 @@ export function DealForm({
             </FormItem>
           )}
         />
+
+        {watchedStage === "Chiuso Perso" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-form-lost-reason">
+              Motivo perdita <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={lostReason}
+              onValueChange={(val) => {
+                setLostReason(val);
+                setLostReasonError(null);
+              }}
+              disabled={isLoading ?? false}
+            >
+              <SelectTrigger id="deal-form-lost-reason">
+                <SelectValue placeholder="Seleziona motivo..." />
+              </SelectTrigger>
+              <SelectContent>
+                {LOST_REASONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {lostReasonError && <p className="text-destructive text-sm">{lostReasonError}</p>}
+          </div>
+        )}
+
         <FormField
           control={form.control}
           name="contactId"

@@ -6,6 +6,10 @@ import { DealTable } from "./deal-table";
 
 import type { Deal } from "@/server/db/schema";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
 const mockDeal: Deal = {
   id: "00000000-0000-0000-0000-000000000001",
   title: "CRM Custom RedStones",

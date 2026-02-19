@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
@@ -11,10 +12,10 @@ import type { Deal } from "@/server/db/schema";
 type DealCardProps = {
   deal: Deal;
   contactName?: string | undefined;
-  onEdit: (deal: Deal) => void;
 };
 
-export function DealCard({ deal, contactName, onEdit }: DealCardProps) {
+export function DealCard({ deal, contactName }: DealCardProps) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
   });
@@ -30,7 +31,7 @@ export function DealCard({ deal, contactName, onEdit }: DealCardProps) {
       <Card
         className="cursor-pointer border shadow-sm transition-shadow hover:shadow-md"
         onClick={() => {
-          onEdit(deal);
+          router.push(`/deals/${deal.id}`);
         }}
       >
         <CardContent className="p-3">

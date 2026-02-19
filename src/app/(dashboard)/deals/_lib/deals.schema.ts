@@ -15,6 +15,7 @@ export const createDealSchema = z.object({
 
 export const updateDealSchema = createDealSchema.partial().extend({
   id: z.string().uuid("ID non valido"),
+  lostReason: z.string().nullable().optional(),
 });
 
 export type CreateDealInput = z.infer<typeof createDealSchema>;

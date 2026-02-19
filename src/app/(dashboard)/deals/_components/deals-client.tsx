@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteDeal } from "../_lib/deals.actions";
+import { deleteDeal, updateDeal } from "../_lib/deals.actions";
 import { DealSheet } from "./deal-sheet";
 import { DealTable } from "./deal-table";
+import { LostReasonDialog } from "./lost-reason-dialog";
 import { PipelineBoard } from "./pipeline-board";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
+import type { PipelineStage } from "@/lib/constants/pipeline";
 import type { Deal } from "@/server/db/schema";
 
 const PERIOD_OPTIONS = [
@@ -50,6 +52,11 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingLostDeal, setPendingLostDeal] = useState<{
+    id: string;
+    title: string;
+    oldStage: PipelineStage;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -100,6 +107,32 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
       }
       setDeletingId(null);
     });
+  };
+
+  const handleLostReasonNeeded = (dealId: string, oldStage: PipelineStage) => {
+    const deal = deals.find((d) => d.id === dealId);
+    if (!deal) return;
+    setPendingLostDeal({ id: dealId, title: deal.title, oldStage });
+  };
+
+  const handleLostReasonConfirm = (reason: string, notes: string | null) => {
+    if (!pendingLostDeal) return;
+    const { id } = pendingLostDeal;
+    setPendingLostDeal(null);
+    startTransition(async () => {
+      const lostReasonValue = notes ? `${reason}: ${notes}` : reason;
+      const result = await updateDeal({ id, stage: "Chiuso Perso", lostReason: lostReasonValue });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Deal spostato in Chiuso Perso");
+      router.refresh();
+    });
+  };
+
+  const handleLostReasonCancel = () => {
+    setPendingLostDeal(null);
   };
 
   return (
@@ -235,7 +268,11 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
       </div>
 
       {view === "kanban" ? (
-        <PipelineBoard deals={filtered} contacts={contacts} onEdit={handleEdit} />
+        <PipelineBoard
+          deals={filtered}
+          contacts={contacts}
+          onLostReasonNeeded={handleLostReasonNeeded}
+        />
       ) : (
         <DealTable
           deals={filtered}
@@ -256,6 +293,13 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
         onSuccess={() => {
           router.refresh();
         }}
+      />
+
+      <LostReasonDialog
+        open={!!pendingLostDeal}
+        dealTitle={pendingLostDeal?.title ?? ""}
+        onConfirm={handleLostReasonConfirm}
+        onCancel={handleLostReasonCancel}
       />
 
       <ConfirmDialog

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Pencil, Trash2, TrendingUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,8 @@ type DealTableProps = {
 };
 
 export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
+  const router = useRouter();
+
   if (deals.length === 0) {
     return (
       <EmptyState
@@ -47,7 +50,13 @@ export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
         </TableHeader>
         <TableBody>
           {deals.map((deal) => (
-            <TableRow key={deal.id}>
+            <TableRow
+              key={deal.id}
+              className="cursor-pointer"
+              onClick={() => {
+                router.push(`/deals/${deal.id}`);
+              }}
+            >
               <TableCell className="font-medium">{deal.title}</TableCell>
               <TableCell>
                 <Badge variant="outline">{deal.stage}</Badge>
@@ -59,7 +68,8 @@ export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onEdit(deal);
                     }}
                     aria-label="Modifica"
@@ -69,7 +79,8 @@ export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onDelete(deal.id);
                     }}
                     aria-label="Elimina"

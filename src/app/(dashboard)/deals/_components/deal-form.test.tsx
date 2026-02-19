@@ -122,10 +122,7 @@ describe("DealForm", () => {
     await user.click(screen.getByRole("button", { name: /crea deal/i }));
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ value: 0 }),
-        expect.anything(),
-      );
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ value: 0 }));
     });
   });
 

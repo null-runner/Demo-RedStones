@@ -34,6 +34,7 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     const deal = await dealsService.update(id, rest);
     if (!deal) return { success: false, error: "Deal non trovato" };
     revalidatePath("/deals");
+    revalidatePath(`/deals/${id}`);
     return { success: true, data: deal };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Errore durante l'aggiornamento";
@@ -47,6 +48,7 @@ export async function deleteDeal(id: string): Promise<ActionResult<void>> {
   try {
     await dealsService.delete(parsed.data);
     revalidatePath("/deals");
+    revalidatePath(`/deals/${parsed.data}`);
     return { success: true, data: undefined };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Errore durante l'eliminazione";

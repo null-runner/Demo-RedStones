@@ -28,7 +28,7 @@ const mockContacts = [
 
 describe("PipelineBoard", () => {
   it("renders 7 columns with correct stage names", () => {
-    render(<PipelineBoard deals={[]} contacts={[]} onEdit={vi.fn()} />);
+    render(<PipelineBoard deals={[]} contacts={[]} onLostReasonNeeded={vi.fn()} />);
 
     expect(screen.getByText("Lead")).toBeInTheDocument();
     expect(screen.getByText("Qualificato")).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe("PipelineBoard", () => {
   });
 
   it("renders deal card in correct stage column", () => {
-    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onEdit={vi.fn()} />);
+    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onLostReasonNeeded={vi.fn()} />);
 
     const propostaColumn = screen.getByTestId("column-Proposta");
     expect(within(propostaColumn).getByText("CRM Custom RedStones")).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("PipelineBoard", () => {
   });
 
   it("shows formatted value in deal card", () => {
-    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onEdit={vi.fn()} />);
+    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onLostReasonNeeded={vi.fn()} />);
 
     const propostaColumn = screen.getByTestId("column-Proposta");
     // EUR formatted value — card value + column header total both show "15.000,00 €"
@@ -59,20 +59,22 @@ describe("PipelineBoard", () => {
   });
 
   it("shows contact name in deal card when contactId is present", () => {
-    render(<PipelineBoard deals={[mockDeal]} contacts={mockContacts} onEdit={vi.fn()} />);
+    render(
+      <PipelineBoard deals={[mockDeal]} contacts={mockContacts} onLostReasonNeeded={vi.fn()} />,
+    );
 
     expect(screen.getByText("Mario Rossi")).toBeInTheDocument();
   });
 
   it("renders empty column when no deals in stage", () => {
-    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onEdit={vi.fn()} />);
+    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onLostReasonNeeded={vi.fn()} />);
 
     const leadColumn = screen.getByTestId("column-Lead");
     expect(within(leadColumn).getByText("0 deal")).toBeInTheDocument();
   });
 
   it("shows deal count and total value in column header", () => {
-    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onEdit={vi.fn()} />);
+    render(<PipelineBoard deals={[mockDeal]} contacts={[]} onLostReasonNeeded={vi.fn()} />);
 
     const propostaColumn = screen.getByTestId("column-Proposta");
     expect(within(propostaColumn).getByText(/1 deal/)).toBeInTheDocument();
