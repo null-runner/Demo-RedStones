@@ -32,9 +32,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { companyId, force } = parsed.data;
-  const result = await enrichmentService.enrich(companyId, { force });
+  try {
+    const { companyId, force } = parsed.data;
+    const result = await enrichmentService.enrich(companyId, { force });
 
-  const status = result.success ? 200 : ERROR_STATUS_MAP[result.error];
-  return NextResponse.json(result, { status });
+    const status = result.success ? 200 : ERROR_STATUS_MAP[result.error];
+    return NextResponse.json(result, { status });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -66,9 +66,16 @@ async function enrich(
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null);
 
+  const TIMEOUT_MS = 9_500;
+
   let rawResult;
   try {
-    rawResult = await model.generateContent(prompt);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("ENRICHMENT_TIMEOUT"));
+      }, TIMEOUT_MS);
+    });
+    rawResult = await Promise.race([model.generateContent(prompt), timeoutPromise]);
   } catch (error) {
     if (error instanceof Error && error.message === "ENRICHMENT_TIMEOUT") {
       return { success: false, error: "timeout" };
@@ -79,8 +86,18 @@ async function enrich(
     return { success: false, error: "network_error" };
   }
 
-  const text = rawResult.response.text();
+  let text: string;
+  try {
+    text = rawResult.response.text();
+  } catch {
+    return { success: false, error: "service_unavailable" };
+  }
+
   const data = parseGeminiResponse(text);
+  if (!data) {
+    return { success: false, error: "service_unavailable" };
+  }
+
   const status = detectStatus(data);
 
   await db
@@ -109,18 +126,22 @@ function buildGeminiPrompt(name: string, domain: string | null): string {
 Rispondi SOLO con il JSON, senza markdown.`;
 }
 
-function parseGeminiResponse(text: string): EnrichmentData {
-  const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
-  const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+function parseGeminiResponse(text: string): EnrichmentData | null {
+  try {
+    const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
 
-  return {
-    description: typeof parsed["description"] === "string" ? parsed["description"] : null,
-    sector: typeof parsed["sector"] === "string" ? parsed["sector"] : null,
-    estimatedSize: typeof parsed["estimatedSize"] === "string" ? parsed["estimatedSize"] : null,
-    painPoints: Array.isArray(parsed["painPoints"])
-      ? (parsed["painPoints"] as string[]).filter((p) => typeof p === "string")
-      : [],
-  };
+    return {
+      description: typeof parsed["description"] === "string" ? parsed["description"] : null,
+      sector: typeof parsed["sector"] === "string" ? parsed["sector"] : null,
+      estimatedSize: typeof parsed["estimatedSize"] === "string" ? parsed["estimatedSize"] : null,
+      painPoints: Array.isArray(parsed["painPoints"])
+        ? (parsed["painPoints"] as string[]).filter((p) => typeof p === "string")
+        : [],
+    };
+  } catch {
+    return null;
+  }
 }
 
 function detectStatus(data: EnrichmentData): "enriched" | "partial" {

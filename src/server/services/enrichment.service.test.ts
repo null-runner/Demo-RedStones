@@ -102,7 +102,7 @@ describe("enrichment service — risposta completa", () => {
     });
   });
 
-  it("chiama db.update con enrichmentStatus: enriched e tutti i campi", async () => {
+  it("chiama db.update con enrichmentStatus: enriched e tutti i campi incluso painPoints", async () => {
     mockCompanyFound();
     const updateChain = mockDbUpdate();
     mockGeminiSuccess();
@@ -115,6 +115,7 @@ describe("enrichment service — risposta completa", () => {
         enrichmentDescription: "Desc",
         enrichmentSector: "SaaS",
         enrichmentSize: "11-50",
+        enrichmentPainPoints: "Pain 1",
       }),
     );
   });
@@ -188,6 +189,19 @@ describe("enrichment service — errori", () => {
     const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
 
     expect(result).toEqual({ success: false, error: "network_error" });
+    expect(updateChain.set).not.toHaveBeenCalled();
+  });
+
+  it("risposta Gemini non-JSON: ritorna service_unavailable senza DB write", async () => {
+    mockCompanyFound();
+    const updateChain = mockDbUpdate();
+    mockGenerateContent.mockResolvedValue({
+      response: { text: () => "I cannot help with that request." },
+    });
+
+    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
+
+    expect(result).toEqual({ success: false, error: "service_unavailable" });
     expect(updateChain.set).not.toHaveBeenCalled();
   });
 

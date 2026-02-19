@@ -65,6 +65,31 @@ describe("POST /api/enrichment", () => {
     });
   });
 
+  it("body JSON invalido: ritorna 400", async () => {
+    const req = new NextRequest("http://localhost/api/enrichment", {
+      method: "POST",
+      body: "not-valid-json",
+      headers: { "Content-Type": "application/json" },
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).toHaveProperty("error", "Invalid JSON");
+    expect(enrichmentService.enrich).not.toHaveBeenCalled();
+  });
+
+  it("service throws unexpected error: route ritorna 500", async () => {
+    vi.mocked(enrichmentService.enrich).mockRejectedValue(new Error("DB connection failed"));
+
+    const req = makeRequest({ companyId: "00000000-0000-0000-0000-000000000001" });
+    const res = await POST(req);
+
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).toHaveProperty("error", "Internal server error");
+  });
+
   it("body senza companyId: ritorna 400", async () => {
     const req = makeRequest({});
     const res = await POST(req);
