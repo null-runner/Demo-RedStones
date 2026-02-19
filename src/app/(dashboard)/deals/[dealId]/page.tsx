@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DealDetail } from "../_components/deal-detail";
 import { dealsService } from "../_lib/deals.service";
+import { timelineService } from "../_lib/timeline.service";
 
 import { getCompaniesForSelect } from "@/server/services/companies.service";
 import { getContactsForSelect } from "@/server/services/contacts.service";
@@ -14,14 +15,23 @@ export default async function DealDetailPage({ params }: { params: Promise<{ dea
     notFound();
   }
 
-  const [deal, companies, contacts, users] = await Promise.all([
+  const [deal, companies, contacts, users, timelineEntries] = await Promise.all([
     dealsService.getById(dealId),
     getCompaniesForSelect(),
     getContactsForSelect(),
     getUsersForSelect(),
+    timelineService.getByDealId(dealId),
   ]);
 
   if (!deal) notFound();
 
-  return <DealDetail deal={deal} companies={companies} contacts={contacts} users={users} />;
+  return (
+    <DealDetail
+      deal={deal}
+      companies={companies}
+      contacts={contacts}
+      users={users}
+      timelineEntries={timelineEntries}
+    />
+  );
 }

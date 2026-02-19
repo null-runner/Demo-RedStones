@@ -8,6 +8,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
+vi.mock("../_lib/timeline.actions", () => ({
+  addNote: vi.fn().mockResolvedValue({ success: true, data: {} }),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
@@ -47,6 +51,7 @@ const baseProps = {
   companies: [{ id: "c1", name: "Test" }],
   contacts: [{ id: "ct1", firstName: "A", lastName: "B" }],
   users: [{ id: "u1", name: "Admin" }],
+  timelineEntries: [],
 };
 
 describe("DealDetail", () => {
@@ -100,9 +105,11 @@ describe("DealDetail", () => {
     expect(screen.getByText("Prossima Azione Suggerita")).toBeInTheDocument();
   });
 
-  it("renders timeline placeholder section", () => {
+  it("renders timeline section with add note form", () => {
     render(<DealDetail {...baseProps} />);
 
     expect(screen.getByText("Timeline Attività")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/nota/i)).toBeInTheDocument();
+    expect(screen.getByText(/nessuna attività/i)).toBeInTheDocument();
   });
 });

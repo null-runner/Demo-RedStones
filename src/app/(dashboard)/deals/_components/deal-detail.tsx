@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Building2, Clock, Edit, User } from "lucide-react";
 
 import { DealSheet } from "./deal-sheet";
+import { TimelineFeed } from "./timeline-feed";
 import type { DealWithDetails } from "../_lib/deals.service";
+import type { TimelineEntryWithAuthor } from "../_lib/timeline.service";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +21,7 @@ type DealDetailProps = {
   companies: Array<{ id: string; name: string }>;
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   users: Array<{ id: string; name: string }>;
+  timelineEntries: TimelineEntryWithAuthor[];
 };
 
 function getStageBadgeVariant(stage: string): "default" | "destructive" | "secondary" | "outline" {
@@ -27,7 +30,7 @@ function getStageBadgeVariant(stage: string): "default" | "destructive" | "secon
   return "secondary";
 }
 
-export function DealDetail({ deal, companies, contacts, users }: DealDetailProps) {
+export function DealDetail({ deal, companies, contacts, users, timelineEntries }: DealDetailProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -123,18 +126,13 @@ export function DealDetail({ deal, companies, contacts, users }: DealDetailProps
         </Card>
       </div>
 
-      {/* Timeline Placeholder */}
+      {/* Timeline Attività */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Timeline Attività</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-muted-foreground text-sm">Nessuna attività registrata ancora.</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Le note e i cambi stage appariranno qui (disponibile nella prossima versione).
-            </p>
-          </div>
+          <TimelineFeed dealId={deal.id} entries={timelineEntries} />
         </CardContent>
       </Card>
 

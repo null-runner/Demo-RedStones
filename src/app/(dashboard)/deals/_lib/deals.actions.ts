@@ -5,6 +5,7 @@ import { z } from "zod/v3";
 
 import { createDealSchema, updateDealSchema } from "./deals.schema";
 import { dealsService } from "./deals.service";
+import { timelineService } from "./timeline.service";
 
 import type { ActionResult } from "@/lib/types";
 import type { Deal } from "@/server/db/schema";
@@ -31,8 +32,24 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
   }
   try {
     const { id, ...rest } = parsed.data;
+
+    // Rileva cambio stage PRIMA dell'update
+    let previousStage: string | undefined;
+    if (rest.stage !== undefined) {
+      const currentDeal = await dealsService.getById(id);
+      if (currentDeal && currentDeal.stage !== rest.stage) {
+        previousStage = currentDeal.stage;
+      }
+    }
+
     const deal = await dealsService.update(id, rest);
     if (!deal) return { success: false, error: "Deal non trovato" };
+
+    // Registra cambio stage nella timeline (se avvenuto)
+    if (previousStage !== undefined && rest.stage !== undefined) {
+      await timelineService.recordStageChange(id, previousStage, rest.stage, null);
+    }
+
     revalidatePath("/deals");
     revalidatePath(`/deals/${id}`);
     return { success: true, data: deal };
