@@ -116,6 +116,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
                 className="rounded-r-none"
                 onClick={() => {
                   setView("kanban");
+                  setStageFilter("all");
                 }}
                 aria-label="Vista kanban"
               >

@@ -5,13 +5,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { formatEUR } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
-
-function formatCurrency(value: string): string {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
-    parseFloat(value),
-  );
-}
 
 type DealCardProps = {
   deal: Deal;
@@ -53,7 +48,9 @@ export function DealCard({ deal, contactName, onEdit }: DealCardProps) {
             </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{deal.title}</p>
-              <p className="text-muted-foreground mt-1 text-xs">{formatCurrency(deal.value)}</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {formatEUR(parseFloat(deal.value))}
+              </p>
               {contactName && (
                 <p className="text-muted-foreground mt-0.5 truncate text-xs">{contactName}</p>
               )}

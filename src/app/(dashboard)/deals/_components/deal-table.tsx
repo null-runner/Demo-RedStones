@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { formatEUR } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
 
 type DealTableProps = {
@@ -20,12 +21,6 @@ type DealTableProps = {
   onEdit: (deal: Deal) => void;
   onDelete: (id: string) => void;
 };
-
-function formatCurrency(value: string): string {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
-    parseFloat(value),
-  );
-}
 
 export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
   if (deals.length === 0) {
@@ -57,7 +52,7 @@ export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
               <TableCell>
                 <Badge variant="outline">{deal.stage}</Badge>
               </TableCell>
-              <TableCell>{formatCurrency(deal.value)}</TableCell>
+              <TableCell>{formatEUR(parseFloat(deal.value))}</TableCell>
               <TableCell>{deal.createdAt.toLocaleDateString("it-IT")}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">

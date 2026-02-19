@@ -19,6 +19,7 @@ import { DealCard } from "./deal-card";
 
 import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
 import type { PipelineStage } from "@/lib/constants/pipeline";
+import { formatEUR } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
 
 type PipelineBoardProps = {
@@ -41,10 +42,6 @@ function buildColumns(deals: Deal[]): KanbanColumn[] {
   });
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value);
-}
-
 function DroppableColumn({
   column,
   contacts,
@@ -57,13 +54,13 @@ function DroppableColumn({
   const { setNodeRef, isOver } = useDroppable({ id: column.stage });
 
   return (
-    <div className="flex min-w-[220px] flex-1 flex-col">
+    <div data-testid={`column-${column.stage}`} className="flex min-w-[220px] flex-1 flex-col">
       {/* Column header */}
       <div className="bg-muted/60 mb-3 flex items-center justify-between rounded-t-md px-3 py-2">
         <span className="text-sm font-semibold">{column.stage}</span>
         <div className="text-right">
           <span className="text-muted-foreground text-xs">{column.deals.length} deal</span>
-          <p className="text-muted-foreground text-xs">{formatCurrency(column.totalValue)}</p>
+          <p className="text-muted-foreground text-xs">{formatEUR(column.totalValue)}</p>
         </div>
       </div>
       {/* Drop zone */}
