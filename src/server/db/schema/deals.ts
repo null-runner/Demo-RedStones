@@ -27,6 +27,7 @@ export const deals = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    index("idx_deals_contact_id").on(t.contactId),
     index("idx_deals_company_id").on(t.companyId),
     index("idx_deals_owner_id").on(t.ownerId),
     index("idx_deals_stage").on(t.stage),

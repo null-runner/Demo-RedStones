@@ -1,0 +1,1 @@
+CREATE INDEX "idx_deals_contact_id" ON "deals" USING btree ("contact_id");

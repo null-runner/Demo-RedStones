@@ -8,7 +8,6 @@ import { tags } from "./tags";
 import { timelineEntries, timelineEntryTypeEnum } from "./timeline-entries";
 import { userRoleEnum, users } from "./users";
 
-// Re-export tables and enums
 export {
   companies,
   enrichmentStatusEnum,
@@ -22,7 +21,6 @@ export {
   users,
 };
 
-// Re-export types
 export type { Company, NewCompany } from "./companies";
 export type { Contact, NewContact } from "./contacts";
 export type { Deal, NewDeal } from "./deals";
@@ -30,7 +28,6 @@ export type { NewTag, Tag } from "./tags";
 export type { NewTimelineEntry, TimelineEntry } from "./timeline-entries";
 export type { NewUser, User } from "./users";
 
-// Relations
 export const usersRelations = relations(users, ({ many }) => ({
   deals: many(deals),
   timelineEntries: many(timelineEntries),
