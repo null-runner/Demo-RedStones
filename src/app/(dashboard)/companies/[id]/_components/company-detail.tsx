@@ -105,6 +105,10 @@ export function CompanyDetail({ company }: CompanyDetailProps) {
       <div className="bg-card rounded-lg border p-4">
         <h2 className="mb-3 text-base font-semibold">Informazioni Aziendali</h2>
         <div className="space-y-2 text-sm">
+          <div>
+            <span className="font-medium">Nome: </span>
+            {company.name}
+          </div>
           {company.domain && (
             <div>
               <span className="font-medium">Dominio: </span>

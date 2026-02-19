@@ -49,7 +49,7 @@ describe("CompanyDetail", () => {
   it("renders company info section: name, domain, sector, description", () => {
     render(<CompanyDetail company={mockEnrichedCompany} />);
 
-    expect(screen.getByText("RedStones Srl")).toBeInTheDocument();
+    expect(screen.getAllByText("RedStones Srl")).toHaveLength(2);
     expect(screen.getByText("redstones.it")).toBeInTheDocument();
     expect(screen.getByText("SaaS")).toBeInTheDocument();
     expect(screen.getByText("Agenzia di sviluppo software")).toBeInTheDocument();
@@ -70,10 +70,11 @@ describe("CompanyDetail", () => {
     expect(screen.getByText("Arricchisci con AI")).toBeInTheDocument();
   });
 
-  it("renders partial enrichment badge when partial", () => {
+  it("renders partial enrichment badge and available fields when partial", () => {
     render(<CompanyDetail company={mockPartialCompany} />);
 
     expect(screen.getByText("Parzialmente arricchita")).toBeInTheDocument();
+    expect(screen.getByText("Dati parziali disponibili")).toBeInTheDocument();
   });
 
   it("renders contacts list with contact names", () => {
@@ -95,11 +96,12 @@ describe("CompanyDetail", () => {
     expect(screen.getByText("Nessun contatto collegato")).toBeInTheDocument();
   });
 
-  it("renders deals list with deal title and stage", () => {
+  it("renders deals list with deal title, stage, and formatted value", () => {
     render(<CompanyDetail company={mockEnrichedCompany} />);
 
     expect(screen.getByText("CRM Custom")).toBeInTheDocument();
     expect(screen.getByText("proposal")).toBeInTheDocument();
+    expect(screen.getByText(/15\.000,00/)).toBeInTheDocument();
   });
 
   it("renders deal as link to /deals/[id]", () => {
