@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 
 const ITEMS_PER_PAGE = 10;
+const ALL_FILTER = "__all__";
 
 type ContactsClientProps = {
   contacts: ContactWithCompanyAndTags[];
@@ -171,12 +172,18 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
           className="max-w-sm"
         />
         <div className="mt-2 flex flex-wrap gap-2">
-          <Select value={filterCompanyId} onValueChange={setFilterCompanyId}>
+          <Select
+            value={filterCompanyId || ALL_FILTER}
+            onValueChange={(val) => {
+              setFilterCompanyId(val === ALL_FILTER ? "" : val);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtra per azienda" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutte le aziende</SelectItem>
+              <SelectItem value={ALL_FILTER}>Tutte le aziende</SelectItem>
               {companies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -184,12 +191,18 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterTagName} onValueChange={setFilterTagName}>
+          <Select
+            value={filterTagName || ALL_FILTER}
+            onValueChange={(val) => {
+              setFilterTagName(val === ALL_FILTER ? "" : val);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Filtra per tag" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutti i tag</SelectItem>
+              <SelectItem value={ALL_FILTER}>Tutti i tag</SelectItem>
               {allTags.map((t) => (
                 <SelectItem key={t.id} value={t.name}>
                   {t.name}
@@ -197,12 +210,18 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterRole} onValueChange={setFilterRole}>
+          <Select
+            value={filterRole || ALL_FILTER}
+            onValueChange={(val) => {
+              setFilterRole(val === ALL_FILTER ? "" : val);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Filtra per ruolo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutti i ruoli</SelectItem>
+              <SelectItem value={ALL_FILTER}>Tutti i ruoli</SelectItem>
               {roles.map((r) => (
                 <SelectItem key={r} value={r}>
                   {r}

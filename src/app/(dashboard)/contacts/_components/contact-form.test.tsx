@@ -42,6 +42,25 @@ describe("ContactForm", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Telefono")).toBeInTheDocument();
     expect(screen.getByLabelText("Ruolo")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Aggiungi tag...")).toBeInTheDocument();
+  });
+
+  it("renders pre-filled tags when initialData has tags", () => {
+    const contactWithTags: ContactWithCompanyAndTags = {
+      ...mockContact,
+      tags: [{ id: "t1", name: "react" }],
+    };
+    render(
+      <ContactForm
+        initialData={contactWithTags}
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("react")).toBeInTheDocument();
   });
 
   it("shows email validation error for invalid email", async () => {

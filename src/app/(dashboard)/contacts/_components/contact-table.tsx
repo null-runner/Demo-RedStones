@@ -127,7 +127,7 @@ export function ContactTable({
       cell: (contact) => contact.role ?? "-",
     },
     {
-      key: "tags" as keyof ContactWithCompanyAndTags,
+      key: "tags",
       header: "Tag",
       cell: (contact) => (
         <div className="flex flex-wrap gap-1">

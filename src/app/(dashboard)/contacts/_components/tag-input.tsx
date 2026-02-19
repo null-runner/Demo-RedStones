@@ -23,9 +23,9 @@ export function TagInput({ value, allTags, onAdd, onRemove, disabled }: TagInput
   );
 
   function handleAdd(tagName: string) {
-    const trimmed = tagName.trim();
-    if (!trimmed || value.includes(trimmed)) return;
-    onAdd(trimmed);
+    const normalized = tagName.trim().toLowerCase();
+    if (!normalized || value.includes(normalized)) return;
+    onAdd(normalized);
     setInputValue("");
     setOpen(false);
   }
@@ -33,9 +33,9 @@ export function TagInput({ value, allTags, onAdd, onRemove, disabled }: TagInput
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
-      const trimmed = inputValue.trim();
-      if (trimmed && !value.includes(trimmed)) {
-        onAdd(trimmed);
+      const normalized = inputValue.trim().toLowerCase();
+      if (normalized && !value.includes(normalized)) {
+        onAdd(normalized);
         setInputValue("");
         setOpen(false);
       }
@@ -106,7 +106,7 @@ export function TagInput({ value, allTags, onAdd, onRemove, disabled }: TagInput
               {tag.name}
             </button>
           ))}
-          {inputValue.trim() && !value.includes(inputValue.trim()) && (
+          {inputValue.trim() && !value.includes(inputValue.trim().toLowerCase()) && (
             <button
               type="button"
               className="hover:bg-accent hover:text-accent-foreground text-muted-foreground w-full rounded-sm px-2 py-1.5 text-left text-sm"

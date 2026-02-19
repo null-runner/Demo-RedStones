@@ -75,6 +75,8 @@ export async function syncContactTags(
 ): Promise<ActionResult<void>> {
   const parsed = z.string().uuid().safeParse(contactId);
   if (!parsed.success) return { success: false, error: "ID contatto non valido" };
+  const parsedTags = z.array(z.string().min(1).max(50)).safeParse(tagNames);
+  if (!parsedTags.success) return { success: false, error: "Tag non validi" };
   try {
     const current = await db
       .select({ tagId: contactsToTags.tagId })

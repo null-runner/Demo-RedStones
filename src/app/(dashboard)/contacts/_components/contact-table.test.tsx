@@ -148,6 +148,51 @@ describe("ContactTable", () => {
     expect(onDelete).toHaveBeenCalledWith((firstContact as (typeof mockContacts)[number]).id);
   });
 
+  it("renders tag badges in the tags column", () => {
+    const baseContact = mockContacts.at(0);
+    expect(baseContact).toBeDefined();
+    const contactsWithTags: ContactWithCompanyAndTags[] = [
+      {
+        ...(baseContact as ContactWithCompanyAndTags),
+        tags: [
+          { id: "t1", name: "react" },
+          { id: "t2", name: "sales" },
+          { id: "t3", name: "vip" },
+        ],
+      },
+    ];
+    render(
+      <ContactTable
+        contacts={contactsWithTags}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        {...defaultSortProps}
+      />,
+    );
+
+    expect(screen.getByText("react")).toBeInTheDocument();
+    expect(screen.getByText("sales")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
+  });
+
+  it("calls onViewDetail when contact name is clicked", async () => {
+    const onViewDetail = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onViewDetail={onViewDetail}
+        {...defaultSortProps}
+      />,
+    );
+
+    await user.click(screen.getByText("Mario Rossi"));
+
+    expect(onViewDetail).toHaveBeenCalledWith("00000000-0000-0000-0000-000000000001");
+  });
+
   it("calls onSort when sortable header is clicked", async () => {
     const onSort = vi.fn();
     const user = userEvent.setup();

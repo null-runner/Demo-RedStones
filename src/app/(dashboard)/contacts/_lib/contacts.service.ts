@@ -177,10 +177,11 @@ async function checkDuplicate(
   if (!companyId || !email || !email.includes("@")) return null;
   const domain = email.split("@")[1];
   if (!domain) return null;
+  const escapedDomain = domain.replace(/[%_\\]/g, "\\$&");
   const results = await db
     .select({ id: contacts.id, firstName: contacts.firstName, lastName: contacts.lastName })
     .from(contacts)
-    .where(and(eq(contacts.companyId, companyId), ilike(contacts.email, `%@${domain}`)));
+    .where(and(eq(contacts.companyId, companyId), ilike(contacts.email, `%@${escapedDomain}`)));
   const found = results.find((c) => c.id !== excludeId);
   return found ?? null;
 }
