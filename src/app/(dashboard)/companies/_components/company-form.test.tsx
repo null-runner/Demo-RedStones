@@ -88,6 +88,7 @@ describe("CompanyForm", () => {
     await user.type(screen.getByLabelText(/nome/i), "RedStones Srl");
     await user.type(screen.getByLabelText(/dominio/i), "redstones.it");
     await user.type(screen.getByLabelText(/settore/i), "SaaS");
+    await user.type(screen.getByLabelText(/descrizione/i), "Agenzia SaaS");
     await user.click(screen.getByRole("button", { name: /crea azienda/i }));
 
     await waitFor(
@@ -97,6 +98,7 @@ describe("CompanyForm", () => {
             name: "RedStones Srl",
             domain: "redstones.it",
             sector: "SaaS",
+            description: "Agenzia SaaS",
           }),
           expect.anything(),
         );

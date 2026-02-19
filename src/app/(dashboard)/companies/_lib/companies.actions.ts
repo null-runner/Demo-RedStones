@@ -45,7 +45,7 @@ export async function deleteCompany(id: string): Promise<ActionResult<void>> {
   const parsed = z.string().uuid().safeParse(id);
   if (!parsed.success) return { success: false, error: "ID non valido" };
   try {
-    await companiesService.delete(id);
+    await companiesService.delete(parsed.data);
     revalidatePath("/companies");
     return { success: true, data: undefined };
   } catch (e) {

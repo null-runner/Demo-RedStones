@@ -71,6 +71,7 @@ describe("companiesService.getAll", () => {
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ name: "RedStones Srl" });
+    expect(chain.from).toHaveBeenCalled();
     expect(chain.orderBy).toHaveBeenCalled();
   });
 
@@ -206,6 +207,7 @@ describe("companiesService.delete", () => {
     await expect(companiesService.delete("00000000-0000-0000-0000-000000000001")).rejects.toThrow(
       "Impossibile eliminare",
     );
+    expect(db.delete).not.toHaveBeenCalled();
   });
 
   it("throws when company has deals", async () => {
@@ -226,5 +228,6 @@ describe("companiesService.delete", () => {
     await expect(companiesService.delete("00000000-0000-0000-0000-000000000001")).rejects.toThrow(
       "Impossibile eliminare",
     );
+    expect(db.delete).not.toHaveBeenCalled();
   });
 });

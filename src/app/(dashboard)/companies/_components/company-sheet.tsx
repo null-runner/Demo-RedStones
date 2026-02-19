@@ -45,6 +45,7 @@ export function CompanySheet({ open, onOpenChange, company, onSuccess }: Company
         </SheetHeader>
         <div className="mt-6">
           <CompanyForm
+            key={company?.id ?? "new"}
             initialData={company ?? null}
             onSubmit={handleSubmit}
             onCancel={() => {
