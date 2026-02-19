@@ -47,5 +47,5 @@ _bmad/
 _bmad-output/
 docs/research/
 docs/personal/
-scripts/.ralph-state/
+scripts/
 backup-pre-ralph-*.tar.gz
