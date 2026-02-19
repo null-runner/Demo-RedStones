@@ -134,6 +134,18 @@ describe("dealsService.update", () => {
     const result = await dealsService.update("d1", { title: "Updated" });
     expect(result).toBeNull();
   });
+
+  it("converts value number to string for DB", async () => {
+    const chain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ ...mockDeal, value: "8000" }]),
+    };
+    vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
+
+    await dealsService.update("d1", { value: 8000 });
+    expect(chain.set).toHaveBeenCalledWith(expect.objectContaining({ value: "8000" }));
+  });
 });
 
 describe("dealsService.delete", () => {

@@ -43,6 +43,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [minValue, setMinValue] = useState("");
+  const [maxValue, setMaxValue] = useState("");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
@@ -57,6 +58,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
       if (ownerFilter !== "all" && deal.ownerId !== ownerFilter) return false;
       const numVal = parseFloat(deal.value);
       if (minValue !== "" && numVal < parseFloat(minValue)) return false;
+      if (maxValue !== "" && numVal > parseFloat(maxValue)) return false;
       if (periodFilter === "30d") {
         const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         if (deal.createdAt < cutoff) return false;
@@ -67,7 +69,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
       }
       return true;
     });
-  }, [deals, query, stageFilter, ownerFilter, minValue, periodFilter]);
+  }, [deals, query, stageFilter, ownerFilter, minValue, maxValue, periodFilter]);
 
   const handleEdit = (deal: Deal) => {
     setEditingDeal(deal);
@@ -113,7 +115,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
 
       {/* Filtri */}
       <div className="bg-muted/50 rounded-lg border p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="space-y-1">
             <Label className="text-xs">Cerca</Label>
             <Input
@@ -165,6 +167,18 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
               value={minValue}
               onChange={(e) => {
                 setMinValue(e.target.value);
+              }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Valore max (EUR)</Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="∞"
+              value={maxValue}
+              onChange={(e) => {
+                setMaxValue(e.target.value);
               }}
             />
           </div>

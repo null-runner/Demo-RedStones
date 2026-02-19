@@ -75,7 +75,7 @@ describe("DealForm", () => {
     });
   });
 
-  it("shows validation error when value is negative", async () => {
+  it("shows validation error for invalid value", async () => {
     const user = userEvent.setup();
     render(
       <DealForm
@@ -90,9 +90,8 @@ describe("DealForm", () => {
     const titleInput = screen.getByPlaceholderText(/crm custom/i);
     await user.type(titleInput, "Test Deal");
 
-    // In jsdom, number inputs don't allow intermediate "-" state.
-    // Set value directly on the DOM element, then dispatch a change event.
-    // Clear the value input → valueAsNumber becomes NaN → fails min(0) validation
+    // jsdom <input type="number"> doesn't support typing negative values.
+    // Clearing produces NaN → coerce.number() triggers "Il valore deve essere >= 0"
     const valueInput = screen.getByRole("spinbutton");
     await user.clear(valueInput);
 
