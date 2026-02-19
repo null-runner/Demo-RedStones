@@ -2,12 +2,13 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { LayoutGrid, List, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteDeal } from "../_lib/deals.actions";
 import { DealSheet } from "./deal-sheet";
 import { DealTable } from "./deal-table";
+import { PipelineBoard } from "./pipeline-board";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
@@ -45,6 +46,7 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
   const [minValue, setMinValue] = useState("");
   const [maxValue, setMaxValue] = useState("");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
+  const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -106,10 +108,36 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
         title="Pipeline"
         description="Gestisci le opportunità commerciali"
         action={
-          <Button onClick={handleNewDeal}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuovo Deal
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border">
+              <Button
+                variant={view === "kanban" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-r-none"
+                onClick={() => {
+                  setView("kanban");
+                }}
+                aria-label="Vista kanban"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={view === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-l-none"
+                onClick={() => {
+                  setView("list");
+                }}
+                aria-label="Vista lista"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button onClick={handleNewDeal}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuovo Deal
+            </Button>
+          </div>
         }
       />
 
@@ -126,22 +154,24 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
               }}
             />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Stage</Label>
-            <Select value={stageFilter} onValueChange={setStageFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutti gli stage</SelectItem>
-                {PIPELINE_STAGES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {view === "list" && (
+            <div className="space-y-1">
+              <Label className="text-xs">Stage</Label>
+              <Select value={stageFilter} onValueChange={setStageFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti gli stage</SelectItem>
+                  {PIPELINE_STAGES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1">
             <Label className="text-xs">Owner</Label>
             <Select value={ownerFilter} onValueChange={setOwnerFilter}>
@@ -203,13 +233,17 @@ export function DealsClient({ deals, companies, contacts, users }: DealsClientPr
         </div>
       </div>
 
-      <DealTable
-        deals={filtered}
-        onEdit={handleEdit}
-        onDelete={(id) => {
-          setDeletingId(id);
-        }}
-      />
+      {view === "kanban" ? (
+        <PipelineBoard deals={filtered} contacts={contacts} onEdit={handleEdit} />
+      ) : (
+        <DealTable
+          deals={filtered}
+          onEdit={handleEdit}
+          onDelete={(id) => {
+            setDeletingId(id);
+          }}
+        />
+      )}
 
       <DealSheet
         open={sheetOpen}
