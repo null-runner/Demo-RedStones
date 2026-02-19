@@ -1,12 +1,28 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 
 import type { CreateCompanyInput, UpdateCompanyInput } from "./companies.schema";
 
 import { db } from "@/server/db";
 import { companies, contacts, deals } from "@/server/db/schema";
 import type { Company } from "@/server/db/schema";
+
+export type CompanyWithDetails = Company & {
+  contacts: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    role: string | null;
+  }>;
+  deals: Array<{
+    id: string;
+    title: string;
+    value: string;
+    stage: string;
+  }>;
+};
 
 async function getAll(): Promise<Company[]> {
   return db.select().from(companies).orderBy(asc(companies.name));
@@ -33,6 +49,34 @@ async function update(id: string, input: Omit<UpdateCompanyInput, "id">): Promis
   return result[0] ?? null;
 }
 
+async function getById(id: string): Promise<CompanyWithDetails | null> {
+  const result = await db.query.companies.findFirst({
+    where: eq(companies.id, id),
+    with: {
+      contacts: {
+        columns: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+        },
+        orderBy: [asc(contacts.firstName)],
+      },
+      deals: {
+        columns: {
+          id: true,
+          title: true,
+          value: true,
+          stage: true,
+        },
+        orderBy: [desc(deals.createdAt)],
+      },
+    },
+  });
+  return result ?? null;
+}
+
 async function deleteCompany(id: string): Promise<void> {
   const [hasContacts, hasDeals] = await Promise.all([
     db.select({ id: contacts.id }).from(contacts).where(eq(contacts.companyId, id)).limit(1),
@@ -46,6 +90,7 @@ async function deleteCompany(id: string): Promise<void> {
 
 export const companiesService = {
   getAll,
+  getById,
   create,
   update,
   delete: deleteCompany,

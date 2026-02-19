@@ -120,4 +120,44 @@ describe("CompanyTable", () => {
 
     expect(screen.getByText("Nessuna azienda trovata")).toBeInTheDocument();
   });
+
+  it("renders company name as clickable button when onViewDetail provided", () => {
+    const companies = [makeCompany()];
+    render(
+      <CompanyTable
+        companies={companies}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onViewDetail={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "RedStones Srl" })).toBeInTheDocument();
+  });
+
+  it("calls onViewDetail when company name clicked", async () => {
+    const onViewDetail = vi.fn();
+    const user = userEvent.setup();
+    const companies = [makeCompany()];
+    render(
+      <CompanyTable
+        companies={companies}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onViewDetail={onViewDetail}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "RedStones Srl" }));
+
+    expect(onViewDetail).toHaveBeenCalledWith("00000000-0000-0000-0000-000000000001");
+  });
+
+  it("renders company name as plain text when onViewDetail not provided", () => {
+    const companies = [makeCompany()];
+    render(<CompanyTable companies={companies} onEdit={vi.fn()} onDelete={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "RedStones Srl" })).not.toBeInTheDocument();
+    expect(screen.getByText("RedStones Srl")).toBeInTheDocument();
+  });
 });

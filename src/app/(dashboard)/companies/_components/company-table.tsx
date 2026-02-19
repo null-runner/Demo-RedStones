@@ -17,6 +17,7 @@ type CompanyTableProps = {
   companies: Company[];
   onEdit: (company: Company) => void;
   onDelete: (id: string) => void;
+  onViewDetail?: (id: string) => void;
 };
 
 function EnrichmentBadge({ status }: { status: Company["enrichmentStatus"] }) {
@@ -26,7 +27,7 @@ function EnrichmentBadge({ status }: { status: Company["enrichmentStatus"] }) {
   return <Badge variant="outline">Not enriched</Badge>;
 }
 
-export function CompanyTable({ companies, onEdit, onDelete }: CompanyTableProps) {
+export function CompanyTable({ companies, onEdit, onDelete, onViewDetail }: CompanyTableProps) {
   if (companies.length === 0) {
     return (
       <EmptyState
@@ -52,7 +53,21 @@ export function CompanyTable({ companies, onEdit, onDelete }: CompanyTableProps)
         <TableBody>
           {companies.map((company) => (
             <TableRow key={company.id} className="hover:bg-muted/50">
-              <TableCell className="font-medium">{company.name}</TableCell>
+              <TableCell className="font-medium">
+                {onViewDetail ? (
+                  <button
+                    type="button"
+                    className="hover:underline"
+                    onClick={() => {
+                      onViewDetail(company.id);
+                    }}
+                  >
+                    {company.name}
+                  </button>
+                ) : (
+                  company.name
+                )}
+              </TableCell>
               <TableCell className="text-muted-foreground">{company.domain ?? "—"}</TableCell>
               <TableCell className="text-muted-foreground">{company.sector ?? "—"}</TableCell>
               <TableCell>

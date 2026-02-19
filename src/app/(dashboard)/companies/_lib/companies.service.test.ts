@@ -9,6 +9,11 @@ vi.mock("@/server/db", () => ({
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    query: {
+      companies: {
+        findFirst: vi.fn(),
+      },
+    },
   },
 }));
 
@@ -18,9 +23,11 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     ...actual,
     eq: vi.fn((col: unknown, val: unknown) => ({ type: "eq", col, val })),
     asc: vi.fn((col: unknown) => ({ type: "asc", col })),
+    desc: vi.fn((col: unknown) => ({ type: "desc", col })),
   };
 });
 
+import type { CompanyWithDetails } from "./companies.service";
 import { companiesService } from "./companies.service";
 
 import { db } from "@/server/db";
@@ -229,5 +236,57 @@ describe("companiesService.delete", () => {
       "Impossibile eliminare",
     );
     expect(db.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("companiesService.getById", () => {
+  const mockContact = {
+    id: "c1",
+    firstName: "Mario",
+    lastName: "Rossi",
+    email: "mario@test.com",
+    role: "CEO",
+  };
+  const mockDeal = { id: "d1", title: "Deal Alpha", value: "5000.00", stage: "proposal" };
+  const mockCompanyWithDetails: CompanyWithDetails = {
+    ...mockCompany,
+    contacts: [mockContact],
+    deals: [mockDeal],
+  };
+
+  it("returns company with contacts and deals", async () => {
+    vi.mocked(
+      db.query.companies.findFirst as unknown as ReturnType<typeof vi.fn>,
+    ).mockResolvedValue(mockCompanyWithDetails);
+
+    const result = await companiesService.getById("00000000-0000-0000-0000-000000000001");
+
+    expect(result).not.toBeNull();
+    expect(result?.contacts).toHaveLength(1);
+    expect(result?.contacts[0]).toMatchObject({ firstName: "Mario", lastName: "Rossi" });
+    expect(result?.deals).toHaveLength(1);
+    expect(result?.deals[0]).toMatchObject({ title: "Deal Alpha", stage: "proposal" });
+  });
+
+  it("returns company with empty contacts and deals", async () => {
+    vi.mocked(
+      db.query.companies.findFirst as unknown as ReturnType<typeof vi.fn>,
+    ).mockResolvedValue({ ...mockCompanyWithDetails, contacts: [], deals: [] });
+
+    const result = await companiesService.getById("00000000-0000-0000-0000-000000000001");
+
+    expect(result).not.toBeNull();
+    expect(result?.contacts).toEqual([]);
+    expect(result?.deals).toEqual([]);
+  });
+
+  it("returns null when company not found", async () => {
+    vi.mocked(
+      db.query.companies.findFirst as unknown as ReturnType<typeof vi.fn>,
+    ).mockResolvedValue(undefined);
+
+    const result = await companiesService.getById("00000000-0000-0000-0000-000000000099");
+
+    expect(result).toBeNull();
   });
 });

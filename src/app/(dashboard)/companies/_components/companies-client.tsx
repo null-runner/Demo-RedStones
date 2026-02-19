@@ -43,6 +43,10 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
     setSheetOpen(true);
   };
 
+  const handleViewDetail = (id: string) => {
+    router.push(`/companies/${id}`);
+  };
+
   const handleNewCompany = () => {
     setEditingCompany(null);
     setSheetOpen(true);
@@ -98,6 +102,7 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
         onDelete={(id) => {
           setDeletingId(id);
         }}
+        onViewDetail={handleViewDetail}
       />
 
       <CompanySheet
