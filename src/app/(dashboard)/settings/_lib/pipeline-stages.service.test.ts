@@ -52,6 +52,20 @@ const mockProtectedStage = {
   createdAt: new Date("2026-01-01"),
 };
 
+const mockProtectedStage2 = {
+  id: "ps7",
+  name: "Chiuso Perso",
+  sortOrder: 7,
+  isProtected: true,
+  createdAt: new Date("2026-01-01"),
+};
+
+function mockTransactionWith(mockTx: Record<string, unknown>) {
+  vi.mocked(db.transaction).mockImplementation(
+    (fn: (tx: never) => Promise<unknown>) => fn(mockTx as never) as never,
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -67,39 +81,51 @@ describe("pipelineStagesService.getAll", () => {
 });
 
 describe("pipelineStagesService.create", () => {
-  it("inserts new stage with next sortOrder", async () => {
-    vi.mocked(db.query.pipelineStages.findMany).mockResolvedValue([mockStage, mockProtectedStage]);
-    const chain = {
+  it("inserts new stage and bumps protected stages", async () => {
+    vi.mocked(db.query.pipelineStages.findMany).mockResolvedValue([
+      mockStage,
+      mockProtectedStage,
+      mockProtectedStage2,
+    ]);
+    const mockTx = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
       values: vi.fn().mockReturnThis(),
       returning: vi
         .fn()
-        .mockResolvedValue([{ ...mockStage, id: "ps-new", name: "Nuovo Stage", sortOrder: 5 }]),
+        .mockResolvedValue([{ ...mockStage, id: "ps-new", name: "Nuovo Stage", sortOrder: 2 }]),
     };
-    vi.mocked(db.insert).mockReturnValue(chain as unknown as ReturnType<typeof db.insert>);
+    mockTransactionWith(mockTx);
 
     const result = await pipelineStagesService.create("Nuovo Stage");
     expect(result).toMatchObject({ name: "Nuovo Stage" });
-    expect(chain.values).toHaveBeenCalledWith(expect.objectContaining({ name: "Nuovo Stage" }));
+    expect(db.transaction).toHaveBeenCalledOnce();
   });
 
   it("throws if name is a protected stage name", async () => {
-    await expect(pipelineStagesService.create("Chiuso Vinto")).rejects.toThrow();
+    await expect(pipelineStagesService.create("Chiuso Vinto")).rejects.toThrow(/riservato/i);
+  });
+
+  it("throws if name already exists", async () => {
+    vi.mocked(db.query.pipelineStages.findMany).mockResolvedValue([mockStage, mockProtectedStage]);
+
+    await expect(pipelineStagesService.create("Lead")).rejects.toThrow(/esiste già/i);
   });
 });
 
 describe("pipelineStagesService.rename", () => {
   it("updates stage name and propagates to deals", async () => {
     vi.mocked(db.query.pipelineStages.findFirst).mockResolvedValue(mockStage);
+    vi.mocked(db.query.pipelineStages.findMany).mockResolvedValue([mockStage, mockProtectedStage]);
     const mockTx = {
       update: vi.fn().mockReturnThis(),
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ ...mockStage, name: "Prospect" }]),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    (db.transaction as any).mockImplementation((fn: (tx: typeof mockTx) => Promise<unknown>) =>
-      fn(mockTx),
-    );
+    mockTransactionWith(mockTx);
 
     await expect(pipelineStagesService.rename("ps1", "Prospect")).resolves.not.toThrow();
   });
@@ -114,6 +140,50 @@ describe("pipelineStagesService.rename", () => {
     vi.mocked(db.query.pipelineStages.findFirst).mockResolvedValue(undefined);
 
     await expect(pipelineStagesService.rename("nonexistent", "X")).rejects.toThrow();
+  });
+
+  it("throws if new name is a protected name", async () => {
+    await expect(pipelineStagesService.rename("ps1", "Chiuso Vinto")).rejects.toThrow(/riservato/i);
+  });
+
+  it("throws if new name already exists on another stage", async () => {
+    const otherStage = { ...mockStage, id: "ps2", name: "Demo", sortOrder: 3 };
+    vi.mocked(db.query.pipelineStages.findFirst).mockResolvedValue(mockStage);
+    vi.mocked(db.query.pipelineStages.findMany).mockResolvedValue([
+      mockStage,
+      otherStage,
+      mockProtectedStage,
+    ]);
+
+    await expect(pipelineStagesService.rename("ps1", "Demo")).rejects.toThrow(/esiste già/i);
+  });
+});
+
+describe("pipelineStagesService.reorder", () => {
+  it("updates sortOrder for each stage in a transaction", async () => {
+    const mockTx = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+    };
+    mockTransactionWith(mockTx);
+
+    await pipelineStagesService.reorder(["ps1", "ps2", "ps3"]);
+    expect(db.transaction).toHaveBeenCalledOnce();
+    // update called 3 times (once per stage)
+    expect(mockTx.update).toHaveBeenCalledTimes(3);
+  });
+
+  it("skips empty ids in the array", async () => {
+    const mockTx = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+    };
+    mockTransactionWith(mockTx);
+
+    await pipelineStagesService.reorder(["ps1", "", "ps3"]);
+    expect(mockTx.update).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -20,22 +20,49 @@ async function create(name: string): Promise<PipelineStageRow> {
     throw new Error(`Il nome "${name}" è riservato e non può essere usato`);
   }
   const all = await getAll();
+  const duplicate = all.find((s) => s.name === name);
+  if (duplicate) {
+    throw new Error(`Uno stage con il nome "${name}" esiste già`);
+  }
   const nonProtected = all.filter((s) => !s.isProtected);
+  const protectedStages = all.filter((s) => s.isProtected);
   const nextOrder =
     nonProtected.length > 0 ? (nonProtected[nonProtected.length - 1]?.sortOrder ?? 0) + 1 : 1;
 
-  const result = await db.insert(pipelineStages).values({ name, sortOrder: nextOrder }).returning();
-  const stage = result[0];
-  if (!stage) throw new Error("Errore durante la creazione dello stage");
-  return stage;
+  return db.transaction(async (tx) => {
+    // Bump protected stages to keep them at the end
+    for (const ps of protectedStages) {
+      if (ps.sortOrder >= nextOrder) {
+        await tx
+          .update(pipelineStages)
+          .set({ sortOrder: ps.sortOrder + 1 })
+          .where(eq(pipelineStages.id, ps.id));
+      }
+    }
+    const result = await tx
+      .insert(pipelineStages)
+      .values({ name, sortOrder: nextOrder })
+      .returning();
+    const stage = result[0];
+    if (!stage) throw new Error("Errore durante la creazione dello stage");
+    return stage;
+  });
 }
 
 async function rename(id: string, newName: string): Promise<PipelineStageRow> {
+  if (PROTECTED_NAMES.includes(newName as (typeof PROTECTED_NAMES)[number])) {
+    throw new Error(`Il nome "${newName}" è riservato e non può essere usato`);
+  }
   const existing = await db.query.pipelineStages.findFirst({
     where: eq(pipelineStages.id, id),
   });
   if (!existing) throw new Error("Stage non trovato");
   if (existing.isProtected) throw new Error("Stage protetto: non può essere rinominato");
+  const all = await getAll();
+  const duplicate = all.find((s) => s.name === newName && s.id !== id);
+  if (duplicate) {
+    throw new Error(`Uno stage con il nome "${newName}" esiste già`);
+  }
 
   return db.transaction(async (tx) => {
     await tx

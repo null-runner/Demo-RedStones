@@ -57,6 +57,10 @@ export async function reorderStages(orderedIds: string[]): Promise<ActionResult<
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
     return { success: false, error: "Lista stage non valida" };
   }
+  const invalidId = orderedIds.find((id) => !stageIdSchema.safeParse(id).success);
+  if (invalidId) {
+    return { success: false, error: "ID stage non valido nella lista" };
+  }
   // TODO Epic 8: requireRole("admin")
   try {
     await pipelineStagesService.reorder(orderedIds);
