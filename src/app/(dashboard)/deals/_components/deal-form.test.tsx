@@ -142,8 +142,7 @@ describe("DealForm", () => {
       />,
     );
 
-    const titleInput = screen.getByPlaceholderText(/crm custom/i);
-    expect(titleInput.value).toBe("Deal Test");
+    expect(screen.getByDisplayValue("Deal Test")).toBeInTheDocument();
   });
 
   it("calls onCancel when cancel button clicked", async () => {
