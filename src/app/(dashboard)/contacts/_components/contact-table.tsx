@@ -1,49 +1,113 @@
 "use client";
 
-import { Pencil, Trash2, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 
 import type { ContactWithCompany } from "../_lib/contacts.service";
 
-import { Button } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/shared/data-table";
-import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
+
+export type SortKey = "firstName" | "email" | "companyName" | "role";
+export type SortDirection = "asc" | "desc";
 
 type ContactTableProps = {
   contacts: ContactWithCompany[];
   onEdit: (contact: ContactWithCompany) => void;
   onDelete: (id: string) => void;
+  sortKey: SortKey;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
 };
 
-export function ContactTable({ contacts, onEdit, onDelete }: ContactTableProps) {
-  if (contacts.length === 0) {
-    return (
-      <EmptyState
-        icon={Users}
-        title="Nessun contatto"
-        description="Aggiungi il tuo primo contatto per iniziare."
-      />
-    );
-  }
+function SortableHeader({
+  label,
+  columnKey,
+  activeSortKey,
+  sortDirection,
+  onSort,
+}: {
+  label: string;
+  columnKey: SortKey;
+  activeSortKey: SortKey;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
+}) {
+  const isActive = activeSortKey === columnKey;
+  const Icon = isActive ? (sortDirection === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="-ml-3 h-8"
+      onClick={() => {
+        onSort(columnKey);
+      }}
+    >
+      {label}
+      <Icon className="ml-1 h-3 w-3" />
+    </Button>
+  );
+}
 
+export function ContactTable({
+  contacts,
+  onEdit,
+  onDelete,
+  sortKey,
+  sortDirection,
+  onSort,
+}: ContactTableProps) {
   const columns: Column<ContactWithCompany>[] = [
     {
       key: "firstName",
-      header: "Nome",
+      header: (
+        <SortableHeader
+          label="Nome"
+          columnKey="firstName"
+          activeSortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={onSort}
+        />
+      ),
       cell: (contact) => `${contact.firstName} ${contact.lastName}`,
     },
     {
       key: "email",
-      header: "Email",
+      header: (
+        <SortableHeader
+          label="Email"
+          columnKey="email"
+          activeSortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={onSort}
+        />
+      ),
       cell: (contact) => contact.email ?? "-",
     },
     {
       key: "companyName",
-      header: "Azienda",
+      header: (
+        <SortableHeader
+          label="Azienda"
+          columnKey="companyName"
+          activeSortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={onSort}
+        />
+      ),
       cell: (contact) => contact.companyName ?? "-",
     },
     {
       key: "role",
-      header: "Ruolo",
+      header: (
+        <SortableHeader
+          label="Ruolo"
+          columnKey="role"
+          activeSortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={onSort}
+        />
+      ),
       cell: (contact) => contact.role ?? "-",
     },
     {

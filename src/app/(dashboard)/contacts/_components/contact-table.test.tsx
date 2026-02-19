@@ -44,9 +44,22 @@ const mockContacts: ContactWithCompany[] = [
   },
 ];
 
+const defaultSortProps = {
+  sortKey: "firstName" as const,
+  sortDirection: "asc" as const,
+  onSort: vi.fn(),
+};
+
 describe("ContactTable", () => {
   it("renders column headers: Nome, Email, Azienda, Ruolo", () => {
-    render(<ContactTable contacts={mockContacts} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        {...defaultSortProps}
+      />,
+    );
 
     expect(screen.getByText("Nome")).toBeInTheDocument();
     expect(screen.getByText("Email")).toBeInTheDocument();
@@ -55,21 +68,37 @@ describe("ContactTable", () => {
   });
 
   it("renders contact rows with correct data", () => {
-    render(<ContactTable contacts={mockContacts} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        {...defaultSortProps}
+      />,
+    );
 
     expect(screen.getByText("mario@example.com")).toBeInTheDocument();
     expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     expect(screen.getByText("CEO")).toBeInTheDocument();
   });
 
-  it("renders empty state when contacts is empty", () => {
-    render(<ContactTable contacts={[]} onEdit={vi.fn()} onDelete={vi.fn()} />);
+  it("renders DataTable empty row when contacts is empty", () => {
+    render(
+      <ContactTable contacts={[]} onEdit={vi.fn()} onDelete={vi.fn()} {...defaultSortProps} />,
+    );
 
-    expect(screen.getByText("Nessun contatto")).toBeInTheDocument();
+    expect(screen.getByText("Nessun risultato")).toBeInTheDocument();
   });
 
   it("displays full name as firstName + lastName", () => {
-    render(<ContactTable contacts={mockContacts} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        {...defaultSortProps}
+      />,
+    );
 
     expect(screen.getByText("Mario Rossi")).toBeInTheDocument();
   });
@@ -77,7 +106,14 @@ describe("ContactTable", () => {
   it("calls onEdit when edit button is clicked", async () => {
     const onEdit = vi.fn();
     const user = userEvent.setup();
-    render(<ContactTable contacts={mockContacts} onEdit={onEdit} onDelete={vi.fn()} />);
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={onEdit}
+        onDelete={vi.fn()}
+        {...defaultSortProps}
+      />,
+    );
 
     const editButtons = screen.getAllByRole("button", { name: /modifica/i });
     const editButton = editButtons.at(0);
@@ -90,7 +126,14 @@ describe("ContactTable", () => {
   it("calls onDelete when delete button is clicked", async () => {
     const onDelete = vi.fn();
     const user = userEvent.setup();
-    render(<ContactTable contacts={mockContacts} onEdit={vi.fn()} onDelete={onDelete} />);
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={vi.fn()}
+        onDelete={onDelete}
+        {...defaultSortProps}
+      />,
+    );
 
     const deleteButtons = screen.getAllByRole("button", { name: /elimina/i });
     const deleteButton = deleteButtons.at(0);
@@ -100,5 +143,24 @@ describe("ContactTable", () => {
     const firstContact = mockContacts.at(0);
     expect(firstContact).toBeDefined();
     expect(onDelete).toHaveBeenCalledWith((firstContact as (typeof mockContacts)[number]).id);
+  });
+
+  it("calls onSort when sortable header is clicked", async () => {
+    const onSort = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        sortKey="firstName"
+        sortDirection="asc"
+        onSort={onSort}
+      />,
+    );
+
+    await user.click(screen.getByText("Email"));
+
+    expect(onSort).toHaveBeenCalledWith("email");
   });
 });

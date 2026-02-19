@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod/v3";
 
 import { createContactSchema, updateContactSchema } from "./contacts.schema";
 import { contactsService } from "./contacts.service";
@@ -38,9 +39,15 @@ export async function updateContact(input: unknown): Promise<ActionResult<Contac
   }
 }
 
+const deleteIdSchema = z.string().uuid("ID non valido");
+
 export async function deleteContact(id: string): Promise<ActionResult<void>> {
+  const parsed = deleteIdSchema.safeParse(id);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
+  }
   try {
-    await contactsService.delete(id);
+    await contactsService.delete(parsed.data);
     revalidatePath("/contacts");
     return { success: true, data: undefined };
   } catch (e) {

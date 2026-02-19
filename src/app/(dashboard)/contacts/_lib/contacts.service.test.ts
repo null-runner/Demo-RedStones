@@ -179,6 +179,32 @@ describe("contactsService.create", () => {
       contactsService.create({ firstName: "X", lastName: "Y", email: "", phone: "", role: "" }),
     ).rejects.toThrow();
   });
+
+  it("throws user-friendly error when company_id does not exist", async () => {
+    const chainMock = {
+      into: vi.fn().mockReturnThis(),
+      values: vi.fn().mockReturnThis(),
+      returning: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            'insert or update on table "contacts" violates foreign key constraint "contacts_company_id_companies_id_fk"',
+          ),
+        ),
+    };
+    vi.mocked(db.insert).mockReturnValue(chainMock as unknown as ReturnType<typeof db.insert>);
+
+    await expect(
+      contactsService.create({
+        firstName: "Test",
+        lastName: "User",
+        email: "",
+        phone: "",
+        role: "",
+        companyId: "00000000-0000-0000-0000-000000000099",
+      }),
+    ).rejects.toThrow("Azienda selezionata non trovata");
+  });
 });
 
 describe("contactsService.update", () => {

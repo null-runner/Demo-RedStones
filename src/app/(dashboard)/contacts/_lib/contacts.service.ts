@@ -42,17 +42,25 @@ async function getAll(searchQuery?: string): Promise<ContactWithCompany[]> {
 }
 
 async function create(input: CreateContactInput): Promise<Contact> {
-  const rows = await db
-    .insert(contacts)
-    .values({
-      firstName: input.firstName,
-      lastName: input.lastName,
-      email: input.email || null,
-      phone: input.phone || null,
-      role: input.role || null,
-      companyId: input.companyId ?? null,
-    })
-    .returning();
+  let rows: Contact[];
+  try {
+    rows = await db
+      .insert(contacts)
+      .values({
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email || null,
+        phone: input.phone || null,
+        role: input.role || null,
+        companyId: input.companyId ?? null,
+      })
+      .returning();
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("foreign key")) {
+      throw new Error("Azienda selezionata non trovata");
+    }
+    throw e;
+  }
 
   const contact = rows[0];
   if (!contact) throw new Error("Errore durante la creazione del contatto");
@@ -65,17 +73,13 @@ async function update(input: UpdateContactInput): Promise<Contact> {
   const rows = await db
     .update(contacts)
     .set({
-      ...Object.fromEntries(
-        Object.entries({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email !== undefined ? data.email || null : undefined,
-          phone: data.phone !== undefined ? data.phone || null : undefined,
-          role: data.role !== undefined ? data.role || null : undefined,
-          companyId: data.companyId !== undefined ? data.companyId : undefined,
-          updatedAt: new Date(),
-        }).filter(([, v]) => v !== undefined),
-      ),
+      ...(data.firstName !== undefined && { firstName: data.firstName }),
+      ...(data.lastName !== undefined && { lastName: data.lastName }),
+      ...(data.email !== undefined && { email: data.email || null }),
+      ...(data.phone !== undefined && { phone: data.phone || null }),
+      ...(data.role !== undefined && { role: data.role || null }),
+      ...(data.companyId !== undefined && { companyId: data.companyId }),
+      updatedAt: new Date(),
     })
     .where(eq(contacts.id, id))
     .returning();

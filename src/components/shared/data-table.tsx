@@ -9,7 +9,7 @@ import {
 
 export type Column<T> = {
   key: keyof T & string;
-  header: string;
+  header: React.ReactNode;
   cell?: (item: T) => React.ReactNode;
 };
 
