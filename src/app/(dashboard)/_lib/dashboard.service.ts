@@ -5,6 +5,15 @@ import { deals } from "@/server/db/schema";
 import type { Deal } from "@/server/db/schema";
 import { isTerminalStage, TERMINAL_STAGES } from "@/lib/constants/pipeline";
 
+export type PeriodFilter = "current-month" | "prev-month" | "last-90-days";
+
+export type PeriodDateRange = {
+  start: Date;
+  end: Date;
+  prevStart: Date;
+  prevEnd: Date;
+};
+
 export type DealsByStageItem = {
   stage: string;
   count: number;
@@ -44,13 +53,36 @@ export type DashboardKPIs = {
 const STAGE_WON = TERMINAL_STAGES[0]; // "Chiuso Vinto"
 const STAGE_LOST = TERMINAL_STAGES[1]; // "Chiuso Perso"
 
-function getMonthBoundaries(now: Date) {
+export function getPeriodDateRange(period: PeriodFilter, now: Date = new Date()): PeriodDateRange {
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
-  const startOfMonth = new Date(Date.UTC(year, month, 1));
-  const startOfPrevMonth = new Date(Date.UTC(year, month - 1, 1));
-  const endOfPrevMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-  return { startOfMonth, startOfPrevMonth, endOfPrevMonth };
+
+  if (period === "current-month") {
+    return {
+      start: new Date(Date.UTC(year, month, 1)),
+      end: now,
+      prevStart: new Date(Date.UTC(year, month - 1, 1)),
+      prevEnd: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
+    };
+  }
+
+  if (period === "prev-month") {
+    return {
+      start: new Date(Date.UTC(year, month - 1, 1)),
+      end: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
+      prevStart: new Date(Date.UTC(year, month - 2, 1)),
+      prevEnd: new Date(Date.UTC(year, month - 1, 0, 23, 59, 59, 999)),
+    };
+  }
+
+  // "last-90-days"
+  const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+  return {
+    start: new Date(now.getTime() - ninetyDaysMs),
+    end: now,
+    prevStart: new Date(now.getTime() - 2 * ninetyDaysMs),
+    prevEnd: new Date(now.getTime() - ninetyDaysMs - 1),
+  };
 }
 
 function calcWinRate(won: number, lost: number): number {
@@ -79,46 +111,46 @@ function calcVelocity(allWonDeals: Deal[], winRateDecimal: number): number {
   return (wonCount * avgValue * winRateDecimal) / safeCycleDays;
 }
 
-export function calculateKPIs(allDeals: Deal[], now: Date = new Date()): DashboardKPIs {
-  const { startOfMonth, startOfPrevMonth, endOfPrevMonth } = getMonthBoundaries(now);
+export function calculateKPIs(
+  allDeals: Deal[],
+  now: Date = new Date(),
+  period: PeriodFilter = "current-month",
+): DashboardKPIs {
+  const { start, end, prevStart, prevEnd } = getPeriodDateRange(period, now);
 
   const pipelineValue = allDeals
-    .filter((d) => !isTerminalStage(d.stage))
+    .filter((d) => !isTerminalStage(d.stage) && d.createdAt >= start && d.createdAt <= end)
     .reduce((sum, d) => sum + parseFloat(d.value), 0);
 
-  const wonThisMonth = allDeals.filter((d) => d.stage === STAGE_WON && d.createdAt >= startOfMonth);
-  const lostThisMonth = allDeals.filter(
-    (d) => d.stage === STAGE_LOST && d.createdAt >= startOfMonth,
+  const wonCurrent = allDeals.filter(
+    (d) => d.stage === STAGE_WON && d.createdAt >= start && d.createdAt <= end,
   );
-  const winRate = calcWinRate(wonThisMonth.length, lostThisMonth.length);
+  const lostCurrent = allDeals.filter(
+    (d) => d.stage === STAGE_LOST && d.createdAt >= start && d.createdAt <= end,
+  );
+  const winRate = calcWinRate(wonCurrent.length, lostCurrent.length);
 
-  const wonPrevMonth = allDeals.filter(
-    (d) =>
-      d.stage === STAGE_WON && d.createdAt >= startOfPrevMonth && d.createdAt <= endOfPrevMonth,
+  const wonPrev = allDeals.filter(
+    (d) => d.stage === STAGE_WON && d.createdAt >= prevStart && d.createdAt <= prevEnd,
   );
-  const lostPrevMonth = allDeals.filter(
-    (d) =>
-      d.stage === STAGE_LOST && d.createdAt >= startOfPrevMonth && d.createdAt <= endOfPrevMonth,
+  const lostPrev = allDeals.filter(
+    (d) => d.stage === STAGE_LOST && d.createdAt >= prevStart && d.createdAt <= prevEnd,
   );
-  const winRatePrev = calcWinRate(wonPrevMonth.length, lostPrevMonth.length);
+  const winRatePrev = calcWinRate(wonPrev.length, lostPrev.length);
 
   const delta = Math.round((winRate - winRatePrev) * 10) / 10;
   const direction: WinRateTrend["direction"] = delta > 0 ? "up" : delta < 0 ? "down" : "neutral";
 
-  const allWonDeals = allDeals.filter((d) => d.stage === STAGE_WON);
   const winRateDecimal = winRate / 100;
-  const velocity = calcVelocity(allWonDeals, winRateDecimal);
-
-  const wonDealsCount = wonThisMonth.length;
-  const wonDealsValue = wonThisMonth.reduce((sum, d) => sum + parseFloat(d.value), 0);
+  const velocity = calcVelocity(wonCurrent, winRateDecimal);
 
   return {
     pipelineValue,
     winRate,
     winRateTrend: { direction, delta },
     velocity,
-    wonDealsCount,
-    wonDealsValue,
+    wonDealsCount: wonCurrent.length,
+    wonDealsValue: wonCurrent.reduce((sum, d) => sum + parseFloat(d.value), 0),
   };
 }
 
@@ -155,12 +187,18 @@ export function getStagnantDeals(allDeals: Deal[], now: Date = new Date()): Stag
     .sort((a, b) => b.daysInactive - a.daysInactive);
 }
 
-async function getDashboardData(now: Date = new Date()): Promise<DashboardData> {
+async function getDashboardData(
+  period: PeriodFilter = "current-month",
+  now: Date = new Date(),
+): Promise<DashboardData> {
   const allDeals = await db.select().from(deals);
+  const { start, end } = getPeriodDateRange(period, now);
+  const periodDeals = allDeals.filter((d) => d.createdAt >= start && d.createdAt <= end);
+
   return {
-    kpis: calculateKPIs(allDeals, now),
-    dealsByStage: calculateDealsPerStage(allDeals),
-    stagnantDeals: getStagnantDeals(allDeals, now),
+    kpis: calculateKPIs(allDeals, now, period),
+    dealsByStage: calculateDealsPerStage(periodDeals),
+    stagnantDeals: getStagnantDeals(periodDeals, now),
   };
 }
 

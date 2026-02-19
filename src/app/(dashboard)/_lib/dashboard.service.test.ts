@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateKPIs, calculateDealsPerStage, getStagnantDeals } from "./dashboard.service";
+import {
+  calculateKPIs,
+  calculateDealsPerStage,
+  getStagnantDeals,
+  getPeriodDateRange,
+} from "./dashboard.service";
 
 import type { Deal } from "@/server/db/schema";
 
@@ -293,6 +298,64 @@ describe("calculateKPIs", () => {
     expect(result.wonDealsCount).toBe(0);
     expect(result.wonDealsValue).toBe(0);
   });
+
+  it("current-month: deal from prev month NOT included in pipeline value", () => {
+    const prevMonthDeal = makeDeal({
+      id: "prev",
+      stage: "Proposta",
+      value: "5000.00",
+      createdAt: new Date("2026-01-10T00:00:00Z"),
+      updatedAt: new Date("2026-01-10T00:00:00Z"),
+    });
+    const result = calculateKPIs([prevMonthDeal], NOW, "current-month");
+    expect(result.pipelineValue).toBe(0);
+  });
+
+  it("prev-month: deal from prev month included in pipeline value", () => {
+    const prevMonthDeal = makeDeal({
+      id: "prev",
+      stage: "Proposta",
+      value: "5000.00",
+      createdAt: new Date("2026-01-10T00:00:00Z"),
+      updatedAt: new Date("2026-01-10T00:00:00Z"),
+    });
+    const result = calculateKPIs([prevMonthDeal], NOW, "prev-month");
+    expect(result.pipelineValue).toBe(5000);
+  });
+
+  it("empty deal list with prev-month: all KPIs zero", () => {
+    const result = calculateKPIs([], NOW, "prev-month");
+    expect(result.pipelineValue).toBe(0);
+    expect(result.winRate).toBe(0);
+    expect(result.velocity).toBe(0);
+    expect(result.wonDealsCount).toBe(0);
+  });
+
+  it("last-90-days: deal from 30 days ago included in pipeline value", () => {
+    const thirtyDaysAgo = new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({
+      id: "recent",
+      stage: "Proposta",
+      value: "7000.00",
+      createdAt: thirtyDaysAgo,
+      updatedAt: thirtyDaysAgo,
+    });
+    const result = calculateKPIs([deal], NOW, "last-90-days");
+    expect(result.pipelineValue).toBe(7000);
+  });
+
+  it("last-90-days: deal from 100 days ago excluded from pipeline value", () => {
+    const hundredDaysAgo = new Date(NOW.getTime() - 100 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({
+      id: "old",
+      stage: "Proposta",
+      value: "7000.00",
+      createdAt: hundredDaysAgo,
+      updatedAt: hundredDaysAgo,
+    });
+    const result = calculateKPIs([deal], NOW, "last-90-days");
+    expect(result.pipelineValue).toBe(0);
+  });
 });
 
 describe("calculateDealsPerStage", () => {
@@ -336,6 +399,47 @@ describe("calculateDealsPerStage", () => {
     const result = calculateDealsPerStage(dealsData);
     expect(result).toHaveLength(1);
     expect(result.at(0)?.totalValue).toBeCloseTo(4001.25, 2);
+  });
+});
+
+describe("getPeriodDateRange", () => {
+  const REF = new Date("2026-02-15T12:00:00Z");
+
+  it("current-month: start is first day of month UTC", () => {
+    const { start, end } = getPeriodDateRange("current-month", REF);
+    expect(start).toEqual(new Date("2026-02-01T00:00:00.000Z"));
+    expect(end).toEqual(REF);
+  });
+
+  it("current-month: prevStart and prevEnd cover January 2026", () => {
+    const { prevStart, prevEnd } = getPeriodDateRange("current-month", REF);
+    expect(prevStart).toEqual(new Date("2026-01-01T00:00:00.000Z"));
+    expect(prevEnd.getUTCMonth()).toBe(0);
+    expect(prevEnd.getUTCFullYear()).toBe(2026);
+  });
+
+  it("prev-month: start is first day of January 2026", () => {
+    const { start, end } = getPeriodDateRange("prev-month", REF);
+    expect(start).toEqual(new Date("2026-01-01T00:00:00.000Z"));
+    expect(end.getUTCMonth()).toBe(0);
+    expect(end.getUTCDate()).toBe(31);
+  });
+
+  it("prev-month: prevStart is first day of two months ago", () => {
+    const { prevStart } = getPeriodDateRange("prev-month", REF);
+    expect(prevStart).toEqual(new Date("2025-12-01T00:00:00.000Z"));
+  });
+
+  it("last-90-days: start is 90 days before now", () => {
+    const { start, end } = getPeriodDateRange("last-90-days", REF);
+    const expectedStart = new Date(REF.getTime() - 90 * 24 * 60 * 60 * 1000);
+    expect(start).toEqual(expectedStart);
+    expect(end).toEqual(REF);
+  });
+
+  it("last-90-days: prevEnd is strictly before start (no boundary overlap)", () => {
+    const { start, prevEnd } = getPeriodDateRange("last-90-days", REF);
+    expect(prevEnd.getTime()).toBeLessThan(start.getTime());
   });
 });
 
