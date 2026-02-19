@@ -61,6 +61,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const mockStageChangeWithAuthor = {
+  ...mockStageChangeEntry,
+  author: { id: "u1", name: "Jacopo Rampinelli" },
+};
+
 describe("timelineService.getByDealId", () => {
   it("returns entries with author in descending order", async () => {
     vi.mocked(db.query.timelineEntries.findMany).mockResolvedValue([mockEntryWithAuthor]);
@@ -75,6 +80,18 @@ describe("timelineService.getByDealId", () => {
 
     const result = await timelineService.getByDealId("d1");
     expect(result).toHaveLength(0);
+  });
+
+  it("returns mixed note and stage_change entries", async () => {
+    vi.mocked(db.query.timelineEntries.findMany).mockResolvedValue([
+      mockStageChangeWithAuthor,
+      mockEntryWithAuthor,
+    ]);
+
+    const result = await timelineService.getByDealId("d1");
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ type: "stage_change" });
+    expect(result[1]).toMatchObject({ type: "note" });
   });
 });
 
@@ -126,5 +143,17 @@ describe("timelineService.recordStageChange", () => {
         newStage: "Qualificato",
       }),
     );
+  });
+
+  it("throws if insert returns empty", async () => {
+    const chain = {
+      values: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    };
+    vi.mocked(db.insert).mockReturnValue(chain as unknown as ReturnType<typeof db.insert>);
+
+    await expect(
+      timelineService.recordStageChange("d1", "Lead", "Qualificato", null),
+    ).rejects.toThrow();
   });
 });

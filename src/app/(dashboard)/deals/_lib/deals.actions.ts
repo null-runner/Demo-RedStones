@@ -45,9 +45,15 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     const deal = await dealsService.update(id, rest);
     if (!deal) return { success: false, error: "Deal non trovato" };
 
-    // Registra cambio stage nella timeline (se avvenuto)
+    // Registra cambio stage nella timeline (se avvenuto) — non-blocking:
+    // il deal è già aggiornato, un errore di timeline non deve invalidare l'operazione
     if (previousStage !== undefined && rest.stage !== undefined) {
-      await timelineService.recordStageChange(id, previousStage, rest.stage, null);
+      try {
+        await timelineService.recordStageChange(id, previousStage, rest.stage, null);
+      } catch {
+        // Timeline recording failed but deal update succeeded — log silently
+        console.error(`Failed to record stage change for deal ${id}`);
+      }
     }
 
     revalidatePath("/deals");

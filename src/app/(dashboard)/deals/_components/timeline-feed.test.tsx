@@ -96,6 +96,22 @@ describe("TimelineFeed", () => {
     expect(button).not.toBeDisabled();
   });
 
+  it("calls addNote action when submitting a note", async () => {
+    const { addNote: mockAddNote } = await import("../_lib/timeline.actions");
+    const user = userEvent.setup();
+    render(<TimelineFeed dealId="00000000-0000-0000-0000-000000000001" entries={[]} />);
+
+    const textarea = screen.getByPlaceholderText(/nota/i);
+    await user.type(textarea, "Nota di test");
+    const button = screen.getByRole("button", { name: /aggiungi nota/i });
+    await user.click(button);
+
+    expect(mockAddNote).toHaveBeenCalledWith(
+      "00000000-0000-0000-0000-000000000001",
+      "Nota di test",
+    );
+  });
+
   it("renders empty state when no entries", () => {
     render(<TimelineFeed dealId="00000000-0000-0000-0000-000000000001" entries={[]} />);
     expect(screen.getByText(/nessuna attività/i)).toBeInTheDocument();
