@@ -260,4 +260,37 @@ describe("calculateKPIs", () => {
     expect(result.wonDealsCount).toBe(0);
     expect(result.wonDealsValue).toBe(0);
   });
+
+  it("includes deals created exactly at month boundary in current month", () => {
+    const exactStart = new Date("2026-02-01T00:00:00Z");
+    const deals: Deal[] = [
+      makeDeal({
+        id: "1",
+        stage: "Chiuso Vinto",
+        value: "5000.00",
+        createdAt: exactStart,
+        updatedAt: exactStart,
+      }),
+    ];
+    const result = calculateKPIs(deals, NOW);
+    expect(result.wonDealsCount).toBe(1);
+    expect(result.wonDealsValue).toBe(5000);
+    expect(result.winRate).toBe(100);
+  });
+
+  it("excludes deals created just before month boundary from current month", () => {
+    const justBeforeMonth = new Date("2026-01-31T23:59:59.999Z");
+    const deals: Deal[] = [
+      makeDeal({
+        id: "1",
+        stage: "Chiuso Vinto",
+        value: "5000.00",
+        createdAt: justBeforeMonth,
+        updatedAt: justBeforeMonth,
+      }),
+    ];
+    const result = calculateKPIs(deals, NOW);
+    expect(result.wonDealsCount).toBe(0);
+    expect(result.wonDealsValue).toBe(0);
+  });
 });

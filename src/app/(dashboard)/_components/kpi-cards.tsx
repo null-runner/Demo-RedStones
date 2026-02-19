@@ -11,7 +11,8 @@ interface KpiCardsProps {
 
 function TrendIndicator({ trend }: { trend: WinRateTrend }) {
   const { direction, delta } = trend;
-  const label = direction === "up" ? `+${String(delta)}pp` : `${String(delta)}pp`;
+  const formatted = delta.toFixed(1);
+  const label = direction === "up" ? `+${formatted}pp` : `${formatted}pp`;
 
   if (direction === "up") {
     return (
@@ -76,10 +77,8 @@ export function KpiCards({ kpis }: KpiCardsProps) {
           <CardTitle className="text-sm font-medium">Deal Vinti</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{kpis.wonDealsCount}</p>
-          <p className="text-muted-foreground text-sm">
-            {kpis.wonDealsCount} deal · {formatEUR(kpis.wonDealsValue)}
-          </p>
+          <p className="text-2xl font-bold">{formatEUR(kpis.wonDealsValue)}</p>
+          <p className="text-muted-foreground text-sm">{kpis.wonDealsCount} deal</p>
         </CardContent>
       </Card>
     </div>

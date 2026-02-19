@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/server/db";
 import { deals } from "@/server/db/schema";
 import type { Deal } from "@/server/db/schema";
+import { isTerminalStage, TERMINAL_STAGES } from "@/lib/constants/pipeline";
 
 export type WinRateTrend = {
   direction: "up" | "down" | "neutral";
@@ -18,15 +19,15 @@ export type DashboardKPIs = {
   wonDealsValue: number;
 };
 
-const TERMINAL_WON = "Chiuso Vinto";
-const TERMINAL_LOST = "Chiuso Perso";
+const STAGE_WON = TERMINAL_STAGES[0]; // "Chiuso Vinto"
+const STAGE_LOST = TERMINAL_STAGES[1]; // "Chiuso Perso"
 
 function getMonthBoundaries(now: Date) {
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const startOfMonth = new Date(year, month, 1);
-  const startOfPrevMonth = new Date(year, month - 1, 1);
-  const endOfPrevMonth = new Date(year, month, 0, 23, 59, 59, 999);
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const startOfMonth = new Date(Date.UTC(year, month, 1));
+  const startOfPrevMonth = new Date(Date.UTC(year, month - 1, 1));
+  const endOfPrevMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
   return { startOfMonth, startOfPrevMonth, endOfPrevMonth };
 }
 
@@ -60,31 +61,29 @@ export function calculateKPIs(allDeals: Deal[], now: Date = new Date()): Dashboa
   const { startOfMonth, startOfPrevMonth, endOfPrevMonth } = getMonthBoundaries(now);
 
   const pipelineValue = allDeals
-    .filter((d) => d.stage !== TERMINAL_WON && d.stage !== TERMINAL_LOST)
+    .filter((d) => !isTerminalStage(d.stage))
     .reduce((sum, d) => sum + parseFloat(d.value), 0);
 
-  const wonThisMonth = allDeals.filter(
-    (d) => d.stage === TERMINAL_WON && d.createdAt >= startOfMonth,
-  );
+  const wonThisMonth = allDeals.filter((d) => d.stage === STAGE_WON && d.createdAt >= startOfMonth);
   const lostThisMonth = allDeals.filter(
-    (d) => d.stage === TERMINAL_LOST && d.createdAt >= startOfMonth,
+    (d) => d.stage === STAGE_LOST && d.createdAt >= startOfMonth,
   );
   const winRate = calcWinRate(wonThisMonth.length, lostThisMonth.length);
 
   const wonPrevMonth = allDeals.filter(
     (d) =>
-      d.stage === TERMINAL_WON && d.createdAt >= startOfPrevMonth && d.createdAt <= endOfPrevMonth,
+      d.stage === STAGE_WON && d.createdAt >= startOfPrevMonth && d.createdAt <= endOfPrevMonth,
   );
   const lostPrevMonth = allDeals.filter(
     (d) =>
-      d.stage === TERMINAL_LOST && d.createdAt >= startOfPrevMonth && d.createdAt <= endOfPrevMonth,
+      d.stage === STAGE_LOST && d.createdAt >= startOfPrevMonth && d.createdAt <= endOfPrevMonth,
   );
   const winRatePrev = calcWinRate(wonPrevMonth.length, lostPrevMonth.length);
 
   const delta = Math.round((winRate - winRatePrev) * 10) / 10;
   const direction: WinRateTrend["direction"] = delta > 0 ? "up" : delta < 0 ? "down" : "neutral";
 
-  const allWonDeals = allDeals.filter((d) => d.stage === TERMINAL_WON);
+  const allWonDeals = allDeals.filter((d) => d.stage === STAGE_WON);
   const winRateDecimal = winRate / 100;
   const velocity = calcVelocity(allWonDeals, winRateDecimal);
 

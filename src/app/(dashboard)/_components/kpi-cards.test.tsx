@@ -37,7 +37,7 @@ describe("KpiCards", () => {
   it("renders trend indicator with up arrow and green color for positive trend", () => {
     const { container } = render(<KpiCards kpis={mockKpisBase} />);
     // Look for the delta text showing positive pp
-    expect(screen.getByText("+7pp")).toBeInTheDocument();
+    expect(screen.getByText("+7.0pp")).toBeInTheDocument();
     // The trend icon should have a green class
     const greenElements = container.querySelectorAll(".text-green-600");
     expect(greenElements.length).toBeGreaterThan(0);
@@ -49,7 +49,7 @@ describe("KpiCards", () => {
       winRateTrend: { direction: "down", delta: -5 },
     };
     const { container } = render(<KpiCards kpis={kpisDown} />);
-    expect(screen.getByText("-5pp")).toBeInTheDocument();
+    expect(screen.getByText("-5.0pp")).toBeInTheDocument();
     const redElements = container.querySelectorAll(".text-red-600");
     expect(redElements.length).toBeGreaterThan(0);
   });
@@ -60,7 +60,7 @@ describe("KpiCards", () => {
       winRateTrend: { direction: "neutral", delta: 0 },
     };
     render(<KpiCards kpis={kpisNeutral} />);
-    expect(screen.getByText("0pp")).toBeInTheDocument();
+    expect(screen.getByText("0.0pp")).toBeInTheDocument();
   });
 
   it("renders zero values without crashing", () => {
@@ -74,6 +74,6 @@ describe("KpiCards", () => {
     };
     render(<KpiCards kpis={zeroKpis} />);
     expect(screen.getByText("0.0%")).toBeInTheDocument();
-    expect(screen.getByText("0 deal · 0,00 €")).toBeInTheDocument();
+    expect(screen.getByText("0 deal")).toBeInTheDocument();
   });
 });
