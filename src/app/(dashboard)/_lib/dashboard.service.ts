@@ -155,11 +155,6 @@ export function getStagnantDeals(allDeals: Deal[], now: Date = new Date()): Stag
     .sort((a, b) => b.daysInactive - a.daysInactive);
 }
 
-async function getDashboardKPIs(): Promise<DashboardKPIs> {
-  const allDeals = await db.select().from(deals);
-  return calculateKPIs(allDeals);
-}
-
 async function getDashboardData(now: Date = new Date()): Promise<DashboardData> {
   const allDeals = await db.select().from(deals);
   return {
@@ -169,4 +164,4 @@ async function getDashboardData(now: Date = new Date()): Promise<DashboardData> 
   };
 }
 
-export const dashboardService = { getDashboardKPIs, getDashboardData };
+export const dashboardService = { getDashboardData };

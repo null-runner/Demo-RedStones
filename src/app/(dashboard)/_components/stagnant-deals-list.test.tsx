@@ -29,6 +29,13 @@ describe("StagnantDealsList", () => {
     expect(screen.getByText("35 giorni")).toBeInTheDocument();
   });
 
+  it("renders formatted EUR value for each deal", () => {
+    render(<StagnantDealsList deals={mockDeals} />);
+    // formatEUR uses Intl which inserts narrow no-break space (\u202f) before €
+    expect(screen.getByText(/15\.000,00/)).toBeInTheDocument();
+    expect(screen.getByText(/8\.?000,00/)).toBeInTheDocument();
+  });
+
   it("renders a link to /deals/[id] for each deal", () => {
     render(<StagnantDealsList deals={mockDeals} />);
     const link1 = screen.getByRole("link", { name: /Deal Alpha/i });

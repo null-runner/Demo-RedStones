@@ -352,7 +352,13 @@ describe("getStagnantDeals", () => {
     expect(result).toEqual(expect.arrayContaining([expect.objectContaining({ daysInactive: 15 })]));
   });
 
-  it("excludes deal updated exactly 13 days ago (below threshold)", () => {
+  it("excludes deal updated exactly 14 days ago (at threshold boundary)", () => {
+    const exactThreshold = new Date(NOW.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const deal = makeDeal({ id: "1", stage: "Proposta", updatedAt: exactThreshold });
+    expect(getStagnantDeals([deal], NOW)).toHaveLength(0);
+  });
+
+  it("excludes deal updated 13 days ago (below threshold)", () => {
     const recentDate = new Date(NOW.getTime() - 13 * 24 * 60 * 60 * 1000);
     const deal = makeDeal({ id: "1", stage: "Proposta", updatedAt: recentDate });
     expect(getStagnantDeals([deal], NOW)).toHaveLength(0);
