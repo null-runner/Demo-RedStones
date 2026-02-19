@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ContactWithCompany } from "../_lib/contacts.service";
+import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
 import { ContactForm } from "./contact-form";
 
 const mockCompanies = [
@@ -10,7 +10,9 @@ const mockCompanies = [
   { id: "00000000-0000-0000-0000-000000000011", name: "Beta Srl" },
 ];
 
-const mockContact: ContactWithCompany = {
+const mockAllTags = [{ id: "t1", name: "react" }];
+
+const mockContact: ContactWithCompanyAndTags = {
   id: "00000000-0000-0000-0000-000000000001",
   firstName: "Mario",
   lastName: "Rossi",
@@ -19,13 +21,21 @@ const mockContact: ContactWithCompany = {
   role: "CEO",
   companyId: "00000000-0000-0000-0000-000000000010",
   companyName: "Acme Corp",
+  tags: [],
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
 };
 
 describe("ContactForm", () => {
   it("renders all form fields", () => {
-    render(<ContactForm companies={mockCompanies} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ContactForm
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
 
     expect(screen.getByLabelText("Nome")).toBeInTheDocument();
     expect(screen.getByLabelText("Cognome")).toBeInTheDocument();
@@ -36,7 +46,14 @@ describe("ContactForm", () => {
 
   it("shows email validation error for invalid email", async () => {
     const user = userEvent.setup();
-    render(<ContactForm companies={mockCompanies} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ContactForm
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText("Nome"), "Mario");
     await user.type(screen.getByLabelText("Cognome"), "Rossi");
@@ -50,7 +67,14 @@ describe("ContactForm", () => {
 
   it("shows phone validation error for invalid phone", async () => {
     const user = userEvent.setup();
-    render(<ContactForm companies={mockCompanies} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ContactForm
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText("Nome"), "Mario");
     await user.type(screen.getByLabelText("Cognome"), "Rossi");
@@ -65,7 +89,14 @@ describe("ContactForm", () => {
   it("calls onSubmit with correct data for valid input", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
-    render(<ContactForm companies={mockCompanies} onSubmit={onSubmit} onCancel={vi.fn()} />);
+    render(
+      <ContactForm
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText("Nome"), "Mario");
     await user.type(screen.getByLabelText("Cognome"), "Rossi");
@@ -93,6 +124,7 @@ describe("ContactForm", () => {
       <ContactForm
         initialData={mockContact}
         companies={mockCompanies}
+        allTags={mockAllTags}
         onSubmit={vi.fn()}
         onCancel={vi.fn()}
       />,
@@ -107,6 +139,7 @@ describe("ContactForm", () => {
     render(
       <ContactForm
         companies={mockCompanies}
+        allTags={mockAllTags}
         onSubmit={vi.fn()}
         onCancel={vi.fn()}
         isLoading={true}
@@ -120,7 +153,14 @@ describe("ContactForm", () => {
   it("calls onCancel when Annulla is clicked", async () => {
     const onCancel = vi.fn();
     const user = userEvent.setup();
-    render(<ContactForm companies={mockCompanies} onSubmit={vi.fn()} onCancel={onCancel} />);
+    render(
+      <ContactForm
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: /annulla/i }));
 

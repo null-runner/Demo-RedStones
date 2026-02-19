@@ -2,18 +2,20 @@
 
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 
-import type { ContactWithCompany } from "../_lib/contacts.service";
+import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
 
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export type SortKey = "firstName" | "email" | "companyName" | "role";
 export type SortDirection = "asc" | "desc";
 
 type ContactTableProps = {
-  contacts: ContactWithCompany[];
-  onEdit: (contact: ContactWithCompany) => void;
+  contacts: ContactWithCompanyAndTags[];
+  onEdit: (contact: ContactWithCompanyAndTags) => void;
   onDelete: (id: string) => void;
+  onViewDetail?: (id: string) => void;
   sortKey: SortKey;
   sortDirection: SortDirection;
   onSort: (key: SortKey) => void;
@@ -53,11 +55,12 @@ export function ContactTable({
   contacts,
   onEdit,
   onDelete,
+  onViewDetail,
   sortKey,
   sortDirection,
   onSort,
 }: ContactTableProps) {
-  const columns: Column<ContactWithCompany>[] = [
+  const columns: Column<ContactWithCompanyAndTags>[] = [
     {
       key: "firstName",
       header: (
@@ -69,7 +72,20 @@ export function ContactTable({
           onSort={onSort}
         />
       ),
-      cell: (contact) => `${contact.firstName} ${contact.lastName}`,
+      cell: (contact) =>
+        onViewDetail ? (
+          <button
+            type="button"
+            className="font-medium hover:underline"
+            onClick={() => {
+              onViewDetail(contact.id);
+            }}
+          >
+            {contact.firstName} {contact.lastName}
+          </button>
+        ) : (
+          `${contact.firstName} ${contact.lastName}`
+        ),
     },
     {
       key: "email",
@@ -109,6 +125,20 @@ export function ContactTable({
         />
       ),
       cell: (contact) => contact.role ?? "-",
+    },
+    {
+      key: "tags" as keyof ContactWithCompanyAndTags,
+      header: "Tag",
+      cell: (contact) => (
+        <div className="flex flex-wrap gap-1">
+          {contact.tags.slice(0, 2).map((t) => (
+            <Badge key={t.id} variant="secondary">
+              {t.name}
+            </Badge>
+          ))}
+          {contact.tags.length > 2 && <Badge variant="outline">+{contact.tags.length - 2}</Badge>}
+        </div>
+      ),
     },
     {
       key: "id",

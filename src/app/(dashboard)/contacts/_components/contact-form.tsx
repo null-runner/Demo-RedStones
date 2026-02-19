@@ -1,10 +1,13 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
+import { checkDuplicateContact } from "../_lib/contacts.actions";
 import { createContactSchema, type CreateContactInput } from "../_lib/contacts.schema";
-import type { ContactWithCompany } from "../_lib/contacts.service";
+import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
+import { TagInput } from "./tag-input";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +28,9 @@ import {
 } from "@/components/ui/select";
 
 type ContactFormProps = {
-  initialData?: ContactWithCompany | null;
+  initialData?: ContactWithCompanyAndTags | null;
   companies: Array<{ id: string; name: string }>;
+  allTags: Array<{ id: string; name: string }>;
   onSubmit: (data: CreateContactInput) => void | Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
@@ -35,12 +39,15 @@ type ContactFormProps = {
 export function ContactForm({
   initialData,
   companies,
+  allTags,
   onSubmit,
   onCancel,
   isLoading = false,
 }: ContactFormProps) {
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
   const form = useForm<CreateContactInput>({
-    resolver: standardSchemaResolver(createContactSchema),
+    resolver: zodResolver(createContactSchema),
     defaultValues: initialData
       ? {
           firstName: initialData.firstName,
@@ -49,6 +56,7 @@ export function ContactForm({
           phone: initialData.phone ?? "",
           role: initialData.role ?? "",
           companyId: initialData.companyId ?? null,
+          tagNames: initialData.tags.map((t) => t.name),
         }
       : {
           firstName: "",
@@ -57,8 +65,35 @@ export function ContactForm({
           phone: "",
           role: "",
           companyId: null,
+          tagNames: [],
         },
   });
+
+  const watchedCompanyId = form.watch("companyId");
+  const watchedEmail = form.watch("email");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (watchedCompanyId && watchedEmail && watchedEmail.includes("@")) {
+        void checkDuplicateContact(watchedCompanyId, watchedEmail, initialData?.id).then(
+          (result) => {
+            if (result.success && result.data.isDuplicate) {
+              setDuplicateWarning(
+                `Possibile duplicato trovato: ${result.data.duplicateName ?? ""}`,
+              );
+            } else {
+              setDuplicateWarning(null);
+            }
+          },
+        );
+      } else {
+        setDuplicateWarning(null);
+      }
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [watchedCompanyId, watchedEmail, initialData?.id]);
 
   return (
     <Form {...form}>
@@ -173,6 +208,39 @@ export function ContactForm({
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="tagNames"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tag</FormLabel>
+              <FormControl>
+                <TagInput
+                  value={field.value}
+                  allTags={allTags}
+                  onAdd={(name) => {
+                    field.onChange([...field.value, name]);
+                  }}
+                  onRemove={(name) => {
+                    field.onChange(field.value.filter((t) => t !== name));
+                  }}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {duplicateWarning && (
+          <div
+            role="alert"
+            className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-800"
+          >
+            ⚠ {duplicateWarning}
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>

@@ -11,6 +11,7 @@ export const createContactSchema = z.object({
   }),
   role: z.string().max(100),
   companyId: z.string().uuid("ID azienda non valido").optional().nullable(),
+  tagNames: z.array(z.string().min(1).max(50)),
 });
 
 export type CreateContactInput = z.infer<typeof createContactSchema>;

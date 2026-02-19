@@ -2,10 +2,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ContactWithCompany } from "../_lib/contacts.service";
+import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
 import { ContactTable } from "./contact-table";
 
-const mockContacts: ContactWithCompany[] = [
+const mockContacts: ContactWithCompanyAndTags[] = [
   {
     id: "00000000-0000-0000-0000-000000000001",
     firstName: "Mario",
@@ -15,6 +15,7 @@ const mockContacts: ContactWithCompany[] = [
     role: "CEO",
     companyId: "00000000-0000-0000-0000-000000000010",
     companyName: "Acme Corp",
+    tags: [],
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
   },
@@ -27,6 +28,7 @@ const mockContacts: ContactWithCompany[] = [
     role: "CTO",
     companyId: null,
     companyName: null,
+    tags: [],
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
   },
@@ -39,6 +41,7 @@ const mockContacts: ContactWithCompany[] = [
     role: null,
     companyId: null,
     companyName: "Beta Srl",
+    tags: [],
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
   },

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { createContact, updateContact } from "../_lib/contacts.actions";
 import type { CreateContactInput } from "../_lib/contacts.schema";
-import type { ContactWithCompany } from "../_lib/contacts.service";
+import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
 import { ContactForm } from "./contact-form";
 
 import {
@@ -19,8 +19,9 @@ import {
 type ContactSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  contact?: ContactWithCompany | null;
+  contact?: ContactWithCompanyAndTags | null;
   companies: Array<{ id: string; name: string }>;
+  allTags: Array<{ id: string; name: string }>;
   onSuccess: () => void;
 };
 
@@ -29,6 +30,7 @@ export function ContactSheet({
   onOpenChange,
   contact,
   companies,
+  allTags,
   onSuccess,
 }: ContactSheetProps) {
   const [isPending, startTransition] = useTransition();
@@ -64,6 +66,7 @@ export function ContactSheet({
           <ContactForm
             initialData={contact ?? null}
             companies={companies}
+            allTags={allTags}
             onSubmit={handleSubmit}
             onCancel={() => {
               onOpenChange(false);

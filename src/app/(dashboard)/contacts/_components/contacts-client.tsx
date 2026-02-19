@@ -6,7 +6,7 @@ import { Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteContact } from "../_lib/contacts.actions";
-import type { ContactWithCompany } from "../_lib/contacts.service";
+import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
 import { ContactSheet } from "./contact-sheet";
 import { ContactTable, type SortDirection, type SortKey } from "./contact-table";
 
@@ -15,26 +15,37 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ITEMS_PER_PAGE = 10;
 
 type ContactsClientProps = {
-  contacts: ContactWithCompany[];
+  contacts: ContactWithCompanyAndTags[];
   companies: Array<{ id: string; name: string }>;
+  allTags: Array<{ id: string; name: string }>;
 };
 
-export function ContactsClient({ contacts, companies }: ContactsClientProps) {
+export function ContactsClient({ contacts, companies, allTags }: ContactsClientProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<ContactWithCompany | null>(null);
+  const [editingContact, setEditingContact] = useState<ContactWithCompanyAndTags | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [sortKey, setSortKey] = useState<SortKey>("firstName");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterCompanyId, setFilterCompanyId] = useState<string>("");
+  const [filterTagName, setFilterTagName] = useState<string>("");
+  const [filterRole, setFilterRole] = useState<string>("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,16 +57,25 @@ export function ContactsClient({ contacts, companies }: ContactsClientProps) {
     };
   }, [searchQuery]);
 
+  const roles = useMemo(
+    () => [...new Set(contacts.map((c) => c.role).filter((r): r is string => r != null))].sort(),
+    [contacts],
+  );
+
   const filtered = useMemo(() => {
     const q = debouncedQuery.toLowerCase();
-    if (!q) return contacts;
-    return contacts.filter(
-      (c) =>
+    return contacts.filter((c) => {
+      const matchSearch =
+        !q ||
         `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
         (c.email?.toLowerCase().includes(q) ?? false) ||
-        (c.companyName?.toLowerCase().includes(q) ?? false),
-    );
-  }, [contacts, debouncedQuery]);
+        (c.companyName?.toLowerCase().includes(q) ?? false);
+      const matchCompany = !filterCompanyId || c.companyId === filterCompanyId;
+      const matchTag = !filterTagName || c.tags.some((t) => t.name === filterTagName);
+      const matchRole = !filterRole || c.role === filterRole;
+      return matchSearch && matchCompany && matchTag && matchRole;
+    });
+  }, [contacts, debouncedQuery, filterCompanyId, filterTagName, filterRole]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -74,7 +94,7 @@ export function ContactsClient({ contacts, companies }: ContactsClientProps) {
     setSheetOpen(true);
   }
 
-  function handleEdit(contact: ContactWithCompany) {
+  function handleEdit(contact: ContactWithCompanyAndTags) {
     setEditingContact(contact);
     setSheetOpen(true);
   }
@@ -124,6 +144,7 @@ export function ContactsClient({ contacts, companies }: ContactsClientProps) {
           onOpenChange={setSheetOpen}
           contact={editingContact}
           companies={companies}
+          allTags={allTags}
           onSuccess={() => {
             router.refresh();
           }}
@@ -149,12 +170,56 @@ export function ContactsClient({ contacts, companies }: ContactsClientProps) {
           }}
           className="max-w-sm"
         />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Select value={filterCompanyId} onValueChange={setFilterCompanyId}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtra per azienda" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Tutte le aziende</SelectItem>
+              {companies.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterTagName} onValueChange={setFilterTagName}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Filtra per tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Tutti i tag</SelectItem>
+              {allTags.map((t) => (
+                <SelectItem key={t.id} value={t.name}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Filtra per ruolo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Tutti i ruoli</SelectItem>
+              {roles.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </PageHeader>
 
       <ContactTable
         contacts={paginated}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
+        onViewDetail={(id) => {
+          router.push(`/contacts/${id}`);
+        }}
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSort={handleSort}
@@ -196,6 +261,7 @@ export function ContactsClient({ contacts, companies }: ContactsClientProps) {
         onOpenChange={setSheetOpen}
         contact={editingContact}
         companies={companies}
+        allTags={allTags}
         onSuccess={() => {
           router.refresh();
         }}
@@ -217,7 +283,7 @@ export function ContactsClient({ contacts, companies }: ContactsClientProps) {
   );
 }
 
-function getSortValue(contact: ContactWithCompany, key: SortKey): string {
+function getSortValue(contact: ContactWithCompanyAndTags, key: SortKey): string {
   switch (key) {
     case "firstName":
       return `${contact.firstName} ${contact.lastName}`.toLowerCase();
