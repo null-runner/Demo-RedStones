@@ -1,14 +1,19 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { usePathname } from "next/navigation";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock usePathname — must be before component import
+import { Sidebar } from "./sidebar";
+
+// Vitest hoists vi.mock above all imports at runtime
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn().mockReturnValue("/"),
 }));
 
-import { Sidebar } from "./sidebar";
-
 describe("Sidebar", () => {
+  beforeEach(() => {
+    vi.mocked(usePathname).mockReturnValue("/");
+  });
+
   it("renders all navigation links", () => {
     render(<Sidebar />);
     expect(screen.getByRole("link", { name: /dashboard/i })).toBeInTheDocument();
@@ -37,21 +42,19 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: /pipeline/i })).toHaveAttribute("href", "/deals");
   });
 
-  it("highlights active link based on pathname", async () => {
-    const { usePathname } = await import("next/navigation");
+  it("marks active link with aria-current='page'", () => {
     vi.mocked(usePathname).mockReturnValue("/contacts");
 
     render(<Sidebar />);
     const contactsLink = screen.getByRole("link", { name: /contatti/i });
-    expect(contactsLink).toHaveClass("bg-accent");
+    expect(contactsLink).toHaveAttribute("aria-current", "page");
   });
 
-  it("does not highlight inactive links", async () => {
-    const { usePathname } = await import("next/navigation");
+  it("does not mark inactive links with aria-current", () => {
     vi.mocked(usePathname).mockReturnValue("/contacts");
 
     render(<Sidebar />);
     const dashboardLink = screen.getByRole("link", { name: /dashboard/i });
-    expect(dashboardLink).not.toHaveClass("bg-accent");
+    expect(dashboardLink).not.toHaveAttribute("aria-current");
   });
 });

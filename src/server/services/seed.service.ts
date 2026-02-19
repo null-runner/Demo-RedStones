@@ -10,11 +10,13 @@ import {
   timelineEntries,
   users,
 } from "@/server/db/schema";
-import type { NewCompany } from "@/server/db/schema/companies";
-import type { NewContact } from "@/server/db/schema/contacts";
-import type { NewDeal } from "@/server/db/schema/deals";
-import type { NewTimelineEntry } from "@/server/db/schema/timeline-entries";
-import type { NewUser } from "@/server/db/schema/users";
+import type {
+  NewCompany,
+  NewContact,
+  NewDeal,
+  NewTimelineEntry,
+  NewUser,
+} from "@/server/db/schema";
 
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
@@ -680,18 +682,21 @@ export function generateSeedData(): SeedData {
 }
 
 export async function resetDatabase(): Promise<void> {
-  await db.delete(timelineEntries);
-  await db.delete(contactsToTags);
-  await db.delete(deals);
-  await db.delete(contacts);
-  await db.delete(tags);
-  await db.delete(companies);
-  await db.delete(users);
-
   const data = generateSeedData();
-  await db.insert(users).values(data.users);
-  await db.insert(companies).values(data.companies);
-  await db.insert(contacts).values(data.contacts);
-  await db.insert(deals).values(data.deals);
-  await db.insert(timelineEntries).values(data.timelineEntries);
+
+  await db.transaction(async (tx) => {
+    await tx.delete(timelineEntries);
+    await tx.delete(contactsToTags);
+    await tx.delete(deals);
+    await tx.delete(contacts);
+    await tx.delete(tags);
+    await tx.delete(companies);
+    await tx.delete(users);
+
+    await tx.insert(users).values(data.users);
+    await tx.insert(companies).values(data.companies);
+    await tx.insert(contacts).values(data.contacts);
+    await tx.insert(deals).values(data.deals);
+    await tx.insert(timelineEntries).values(data.timelineEntries);
+  });
 }
