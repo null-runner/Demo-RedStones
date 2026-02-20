@@ -40,11 +40,24 @@ const PERMISSIONS: Record<string, PermissionAction[]> = {
     "update:deals",
     "delete:deals",
   ],
-  guest: [],
+  guest: [
+    "create:contacts",
+    "update:contacts",
+    "delete:contacts",
+    "create:companies",
+    "update:companies",
+    "delete:companies",
+    "create:deals",
+    "update:deals",
+    "delete:deals",
+    "manage:settings",
+    "manage:users",
+  ],
 };
 
 export function usePermission(action: PermissionAction): boolean {
   const { data: session } = useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role ?? "guest";
+  if (!session?.user) return false;
+  const role = (session.user as { role?: string }).role ?? "guest";
   return PERMISSIONS[role]?.includes(action) ?? false;
 }

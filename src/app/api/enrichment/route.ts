@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod/v3";
 
+import { getCurrentUser } from "@/lib/auth";
 import type { EnrichmentError } from "@/server/services/enrichment.service";
 import { enrichmentService } from "@/server/services/enrichment.service";
 
-export const maxDuration = 10;
+export const maxDuration = 60;
 
 const EnrichBodySchema = z.object({
   companyId: z.string().uuid(),
@@ -19,7 +20,17 @@ const ERROR_STATUS_MAP: Record<EnrichmentError["error"], number> = {
   network_error: 503,
 };
 
+function scheduleBackground(fn: () => Promise<void>): void {
+  fn().catch((err: unknown) => {
+    console.error("[enrichment] Background task failed:", err);
+  });
+}
+
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: unknown;
   try {
     body = await request.json();
@@ -34,8 +45,35 @@ export async function POST(request: Request) {
 
   try {
     const { companyId, force } = parsed.data;
-    const result = await enrichmentService.enrich(companyId, { force });
+    const result = await enrichmentService.startEnrichment(companyId, { force });
 
+    if (result.success && result.status === "processing") {
+      scheduleBackground(() => enrichmentService.runEnrichment(companyId));
+      return NextResponse.json(result, { status: 202 });
+    }
+
+    const status = result.success ? 200 : ERROR_STATUS_MAP[result.error];
+    return NextResponse.json(result, { status });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const companyId = searchParams.get("companyId");
+
+  if (!companyId || !/^[0-9a-f-]{36}$/i.test(companyId)) {
+    return NextResponse.json({ error: "Invalid companyId" }, { status: 400 });
+  }
+
+  try {
+    const result = await enrichmentService.getStatus(companyId);
     const status = result.success ? 200 : ERROR_STATUS_MAP[result.error];
     return NextResponse.json(result, { status });
   } catch {

@@ -47,7 +47,6 @@ export async function registerUser(data: {
     return { error: "Email già registrata" };
   }
 
-  // Auto-login after registration
   await signIn("credentials", {
     email: parsed.data.email,
     password: parsed.data.password,

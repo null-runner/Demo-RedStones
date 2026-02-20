@@ -17,7 +17,6 @@ export async function authorizeCredentials(credentials: { email: string; passwor
   const user = result[0];
   if (!user) return null;
 
-  // Special case: guest user has no password (public demo account)
   if (user.role === "guest" && !user.passwordHash) {
     return { id: user.id, email: user.email, name: user.name, role: user.role };
   }
@@ -30,8 +29,7 @@ export async function authorizeCredentials(credentials: { email: string; passwor
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  // Cast needed due to @auth/core version mismatch (0.41.0 vs 0.41.1 in pnpm)
-  adapter: DrizzleAdapter(db) as unknown as NonNullable<NextAuthConfig["adapter"]>,
+  adapter: DrizzleAdapter(db) as NonNullable<NextAuthConfig["adapter"]>,
   providers: [
     Credentials({
       async authorize(credentials) {

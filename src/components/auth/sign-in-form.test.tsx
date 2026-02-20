@@ -114,7 +114,13 @@ describe("SignInForm", () => {
       ok: true,
       json: () => Promise.resolve({ success: true }),
     } as Response);
-    vi.mocked(signIn).mockResolvedValueOnce(undefined as never);
+    vi.mocked(signIn).mockResolvedValueOnce({
+      error: undefined,
+      code: undefined,
+      ok: true,
+      status: 200,
+      url: "",
+    });
 
     render(<SignInForm />);
     await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));

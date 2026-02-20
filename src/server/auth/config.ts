@@ -7,13 +7,16 @@ export const authConfig = {
   },
   session: { strategy: "jwt" },
   callbacks: {
-    jwt({ token, user }) {
-      // user is present only on initial sign-in; cast id as optional to guard
-      const uid = (user as { id?: string })["id"];
-      if (uid) {
-        token["id"] = uid;
+    jwt({ token, user: _user }) {
+      // user is only populated on initial sign-in; undefined on token refresh
+      // NextAuth types incorrectly mark it as always present
+      const user = _user as
+        | { id?: string; email?: string | null; name?: string | null; role?: string }
+        | undefined;
+      if (user) {
+        token["id"] = user.id;
         token["email"] = user.email ?? null;
-        token["role"] = (user as { role?: string })["role"];
+        token["role"] = user.role;
         token["name"] = user.name ?? null;
       }
       return token;

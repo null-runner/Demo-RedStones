@@ -48,12 +48,12 @@ export function SignInForm() {
         setFormError("Errore durante la preparazione della demo. Riprova.");
         return;
       }
-      const result = (await signIn("credentials", {
+      const result = await signIn("credentials", {
         email: GUEST_EMAIL,
         password: "",
         redirect: false,
-      })) as unknown as { error?: string } | undefined;
-      if (result?.error) {
+      });
+      if (result.error) {
         setFormError("Errore di autenticazione demo. Riprova.");
         return;
       }
@@ -67,12 +67,12 @@ export function SignInForm() {
 
   const onSubmit = async (data: SignInValues) => {
     setFormError(null);
-    const result = (await signIn("credentials", {
+    const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
       redirect: false,
-    })) as unknown as { error?: string } | undefined;
-    if (result?.error) {
+    });
+    if (result.error) {
       setFormError("Credenziali non valide");
       return;
     }
