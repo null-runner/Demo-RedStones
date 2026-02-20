@@ -61,6 +61,7 @@ type Props = {
 export function UserManagement({ initialUsers, currentUserId }: Props) {
   const [users, setUsers] = useState<UserRow[]>(initialUsers);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
@@ -70,43 +71,57 @@ export function UserManagement({ initialUsers, currentUserId }: Props) {
   const pendingDeleteUser = users.find((u) => u.id === pendingDeleteId);
 
   async function handleDelete(userId: string) {
-    const res = await fetch(`/api/settings/users/${userId}`, { method: "DELETE" });
-    if (res.ok) {
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-      setPendingDeleteId(null);
-    } else if (res.status === 400) {
-      toast.error("Deve rimanere almeno un Admin nel sistema");
-      setPendingDeleteId(null);
-    } else if (res.status === 403) {
-      toast.error("Non puoi rimuovere il tuo account");
-      setPendingDeleteId(null);
-    } else {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/settings/users/${userId}`, { method: "DELETE" });
+      if (res.ok) {
+        setUsers((prev) => prev.filter((u) => u.id !== userId));
+      } else if (res.status === 400) {
+        toast.error("Deve rimanere almeno un Admin nel sistema");
+      } else if (res.status === 403) {
+        toast.error("Non puoi rimuovere il tuo account");
+      } else {
+        toast.error("Errore durante la rimozione");
+      }
+    } catch {
       toast.error("Errore durante la rimozione");
+    } finally {
       setPendingDeleteId(null);
+      setIsDeleting(false);
     }
   }
 
   async function onSubmit(data: InviteForm) {
-    const res = await fetch("/api/settings/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    try {
+      const res = await fetch("/api/settings/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    if (res.status === 409) {
-      form.setError("email", { message: "Email già registrata nel sistema" });
-      return;
-    }
+      if (res.status === 409) {
+        form.setError("email", { message: "Email già registrata nel sistema" });
+        return;
+      }
 
-    if (!res.ok) {
+      if (!res.ok) {
+        toast.error("Errore durante l'invito");
+        return;
+      }
+
+      // JSON serializes Date objects as ISO strings — parse them back
+      const raw = (await res.json()) as UserRow;
+      const newUser: UserRow = {
+        ...raw,
+        createdAt: new Date(String(raw.createdAt)),
+        invitedAt: raw.invitedAt ? new Date(String(raw.invitedAt)) : null,
+      };
+      setUsers((prev) => [newUser, ...prev]);
+      form.reset();
+      toast.success("Utente invitato con successo");
+    } catch {
       toast.error("Errore durante l'invito");
-      return;
     }
-
-    const newUser = (await res.json()) as UserRow;
-    setUsers((prev) => [newUser, ...prev]);
-    form.reset();
-    toast.success("Utente invitato con successo");
   }
 
   return (
@@ -148,6 +163,9 @@ export function UserManagement({ initialUsers, currentUserId }: Props) {
                   variant="ghost"
                   size="sm"
                   disabled={user.id === currentUserId}
+                  title={
+                    user.id === currentUserId ? "Non puoi rimuovere il tuo account" : undefined
+                  }
                   onClick={() => {
                     setPendingDeleteId(user.id);
                   }}
@@ -178,11 +196,12 @@ export function UserManagement({ initialUsers, currentUserId }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Annulla</AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeleting}
               onClick={() => {
                 if (pendingDeleteId) void handleDelete(pendingDeleteId);
               }}
             >
-              Rimuovi
+              {isDeleting ? "Rimozione..." : "Rimuovi"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -216,7 +235,7 @@ export function UserManagement({ initialUsers, currentUserId }: Props) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Ruolo</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="w-32">
                         <SelectValue placeholder="Ruolo" />

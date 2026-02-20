@@ -38,7 +38,7 @@ export default async function SettingsPage() {
       </Card>
 
       {isAdmin && (
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>Gestione Utenti</CardTitle>
             <CardDescription>

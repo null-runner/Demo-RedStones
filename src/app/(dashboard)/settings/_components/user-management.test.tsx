@@ -54,13 +54,14 @@ describe("UserManagement", () => {
     expect(screen.getByText("Invitato")).toBeInTheDocument();
   });
 
-  it("disables Remove button for current user", () => {
+  it("disables Remove button for current user with tooltip", () => {
     render(<UserManagement initialUsers={mockUsers} currentUserId="admin-1" />);
 
     const adminRow = screen.getByText("Admin User").closest("tr");
     if (!adminRow) throw new Error("adminRow not found");
     const deleteButton = within(adminRow).getByRole("button", { name: /rimuovi/i });
     expect(deleteButton).toBeDisabled();
+    expect(deleteButton).toHaveAttribute("title", "Non puoi rimuovere il tuo account");
   });
 
   it("opens confirm dialog on Remove click for non-self user", async () => {
@@ -73,6 +74,52 @@ describe("UserManagement", () => {
     await user.click(deleteButton);
 
     expect(screen.getByText(/sei sicuro di voler rimuovere mario rossi/i)).toBeInTheDocument();
+  });
+
+  it("adds new user to table after successful invite", async () => {
+    const user = userEvent.setup();
+    const newUser = {
+      id: "new-1",
+      name: "newuser",
+      email: "newuser@test.com",
+      role: "member",
+      createdAt: "2024-06-01T00:00:00.000Z",
+      invitedAt: "2024-06-01T00:00:00.000Z",
+    };
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve(newUser),
+    } as Response);
+
+    render(<UserManagement initialUsers={mockUsers} currentUserId="admin-1" />);
+
+    const emailInput = screen.getByPlaceholderText("utente@esempio.com");
+    await user.type(emailInput, "newuser@test.com");
+    await user.click(screen.getByRole("button", { name: /invia invito/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("newuser")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error on invite with duplicate email (409)", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ error: "Email già registrata nel sistema" }),
+    } as Response);
+
+    render(<UserManagement initialUsers={mockUsers} currentUserId="admin-1" />);
+
+    const emailInput = screen.getByPlaceholderText("utente@esempio.com");
+    await user.type(emailInput, "mario@test.com");
+    await user.click(screen.getByRole("button", { name: /invia invito/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Email già registrata nel sistema")).toBeInTheDocument();
+    });
   });
 
   it("removes user from list after confirmed deletion", async () => {
