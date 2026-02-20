@@ -1,7 +1,7 @@
 const EUR_FORMATTER = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
 export function formatEUR(value: number): string {
-  return EUR_FORMATTER.format(value);
+  return EUR_FORMATTER.format(Number.isNaN(value) ? 0 : value);
 }
 
 /** Convert string value to integer cents to avoid floating-point precision issues. */

@@ -55,10 +55,14 @@ export function CompaniesClient({ companies, allTags }: CompaniesClientProps) {
     );
   }, [companies, query]);
 
-  const companiesForSelect = useMemo(
-    () => companies.map((c) => ({ id: c.id, name: c.name })),
-    [companies],
-  );
+  const companiesForSelect = useMemo(() => {
+    const list = companies.map((c) => ({ id: c.id, name: c.name }));
+    if (promptCompany && !list.some((c) => c.id === promptCompany.id)) {
+      list.push(promptCompany);
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return list;
+  }, [companies, promptCompany]);
 
   const handleEdit = (company: Company) => {
     if (!canWrite) {

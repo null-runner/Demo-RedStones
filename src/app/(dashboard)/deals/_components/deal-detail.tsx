@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, Edit, User } from "lucide-react";
 
 import { DealSheet } from "./deal-sheet";
@@ -17,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEUR } from "@/lib/format";
 import { isTerminalStage } from "@/lib/constants/pipeline";
-import type { Deal } from "@/server/db/schema";
 
 type DealDetailProps = {
   deal: DealWithDetails;
@@ -42,6 +42,7 @@ export function DealDetail({
   timelineEntries,
   nbaSuggestions,
 }: DealDetailProps) {
+  const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -141,12 +142,13 @@ export function DealDetail({
       <DealSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        deal={deal as Deal}
+        deal={deal}
         companies={companies}
         contacts={contacts}
         users={users}
         onSuccess={() => {
           setSheetOpen(false);
+          router.refresh();
         }}
       />
     </div>

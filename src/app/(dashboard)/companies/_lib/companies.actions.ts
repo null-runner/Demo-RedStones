@@ -47,6 +47,7 @@ export async function updateCompany(input: unknown): Promise<ActionResult<Compan
     const company = await companiesService.update(id, rest);
     if (!company) return { success: false, error: "Azienda non trovata" };
     revalidatePath("/companies");
+    revalidatePath(`/companies/${id}`);
     return { success: true, data: company };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Errore durante l'aggiornamento";

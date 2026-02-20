@@ -61,7 +61,9 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     if (previousStage !== undefined && rest.stage !== undefined) {
       try {
         await timelineService.recordStageChange(id, previousStage, rest.stage, null);
-      } catch {}
+      } catch (e) {
+        console.error("[timeline] Failed to record stage change:", e);
+      }
     }
 
     revalidatePath("/deals");

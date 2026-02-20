@@ -12,6 +12,12 @@ describe("formatEUR", () => {
     const result = formatEUR(0);
     expect(result).toMatch(/0/);
   });
+
+  it("formats NaN as zero", () => {
+    const result = formatEUR(NaN);
+    expect(result).toMatch(/0/);
+    expect(result).not.toContain("NaN");
+  });
 });
 
 describe("formatRelativeDate", () => {
