@@ -8,11 +8,11 @@ import { TitleScene } from "./scenes/TitleScene";
 import { GradientBackground } from "./visual/GradientBackground";
 
 // Scene durations in frames (30fps)
-const TITLE = 75; // 2.5s
-const DASHBOARD = 90; // 3s
-const KANBAN = 100; // 3.3s
-const ENRICHMENT = 90; // 3s
-const OUTRO = 45; // 1.5s
+const TITLE = 105; // 3.5s
+const DASHBOARD = 120; // 4s
+const KANBAN = 130; // 4.3s
+const ENRICHMENT = 120; // 4s
+const OUTRO = 60; // 2s
 
 export const TOTAL_DURATION = TITLE + DASHBOARD + KANBAN + ENRICHMENT + OUTRO;
 

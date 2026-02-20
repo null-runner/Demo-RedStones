@@ -5,10 +5,10 @@ export const GradientBackground: React.FC = () => {
   const frame = useCurrentFrame();
 
   // Slow-moving ambient glow orbs (like rentevo but on light background)
-  const orbX1 = interpolate(frame, [0, 400], [60, 80], { extrapolateRight: "clamp" });
-  const orbY1 = interpolate(frame, [0, 200, 400], [10, 30, 15], { extrapolateRight: "clamp" });
-  const orbX2 = interpolate(frame, [0, 400], [10, 30], { extrapolateRight: "clamp" });
-  const orbY2 = interpolate(frame, [0, 200, 400], [70, 50, 75], { extrapolateRight: "clamp" });
+  const orbX1 = interpolate(frame, [0, 535], [60, 80], { extrapolateRight: "clamp" });
+  const orbY1 = interpolate(frame, [0, 267, 535], [10, 30, 15], { extrapolateRight: "clamp" });
+  const orbX2 = interpolate(frame, [0, 535], [10, 30], { extrapolateRight: "clamp" });
+  const orbY2 = interpolate(frame, [0, 267, 535], [70, 50, 75], { extrapolateRight: "clamp" });
   const pulseScale = interpolate(frame % 120, [0, 60, 120], [1, 1.15, 1]);
 
   return (

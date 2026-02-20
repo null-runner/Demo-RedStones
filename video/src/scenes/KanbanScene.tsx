@@ -57,10 +57,16 @@ export const KanbanScene: React.FC<{ durationInFrames: number }> = ({ durationIn
   const opacity =
     fadeIn({ frame, durationFrames: 12 }) * fadeOut({ frame, durationInFrames, outroFrames: 14 });
 
-  // Animated drag at frame 55
-  const dragActive = frame >= 55 && frame <= 85;
-  const dragProgress = dragActive
-    ? springIn({ frame: frame - 55, fps, delayFrames: 0, config: { damping: 100, stiffness: 80 } })
+  // Drag phases: before → dragging → landed
+  const dragStart = 65;
+  const dragEnd = 95;
+  const isDragging = frame >= dragStart && frame <= dragEnd;
+  const isLanded = frame > dragEnd;
+  const dragProgress = isDragging
+    ? springIn({ frame: frame - dragStart, fps, delayFrames: 0, config: { damping: 100, stiffness: 80 } })
+    : 0;
+  const landedP = isLanded
+    ? springIn({ frame: frame - dragEnd, fps, delayFrames: 0 })
     : 0;
 
   return (
@@ -163,6 +169,31 @@ export const KanbanScene: React.FC<{ durationInFrames: number }> = ({ durationIn
                   minHeight: 180,
                 }}
               >
+                {/* Landed card appears in Proposta column */}
+                {isLanded && colIdx === 2 && (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: "#ffffff",
+                      border: `1px solid ${BRAND.colors.cardBorder}`,
+                      opacity: landedP,
+                      transform: `translateY(${interpolate(landedP, [0, 1], [8, 0])}px)`,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                      order: -1,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 600, color: BRAND.colors.text, marginBottom: 3 }}>
+                      Progetto Pilot
+                    </div>
+                    <div style={{ fontSize: 11, color: BRAND.colors.muted, marginBottom: 5 }}>
+                      InnovaHub
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.colors.success }}>
+                      8.500 €
+                    </div>
+                  </div>
+                )}
                 {col.deals.map((deal, dealIdx) => {
                   const cardP = springIn({
                     frame,
@@ -171,9 +202,9 @@ export const KanbanScene: React.FC<{ durationInFrames: number }> = ({ durationIn
                   });
                   const y = interpolate(cardP, [0, 1], [16, 0]);
 
-                  // Hide "API Platform" card from Qualificato during drag
+                  // Hide dragged card from Qualificato during drag and after landing
                   const isBeingDragged =
-                    dragActive && colIdx === 1 && dealIdx === 1;
+                    (isDragging || isLanded) && colIdx === 1 && dealIdx === 1;
                   if (isBeingDragged) return null;
 
                   return (
@@ -225,7 +256,7 @@ export const KanbanScene: React.FC<{ durationInFrames: number }> = ({ durationIn
           ))}
 
           {/* Floating drag card */}
-          {dragActive && (
+          {isDragging && (
             <div
               style={{
                 position: "absolute",
