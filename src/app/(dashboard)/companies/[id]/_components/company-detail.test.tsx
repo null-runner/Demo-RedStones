@@ -1,8 +1,20 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CompanyWithDetails } from "../../_lib/companies.service";
 import { CompanyDetail } from "./company-detail";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
+vi.mock("@/hooks/use-permission", () => ({
+  usePermission: () => true,
+}));
+
+vi.mock("../../_components/company-sheet", () => ({
+  CompanySheet: () => null,
+}));
 
 const mockEnrichedCompany: CompanyWithDetails = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -124,5 +136,11 @@ describe("CompanyDetail", () => {
 
     const backLink = screen.getByRole("link", { name: /torna alle aziende/i });
     expect(backLink).toHaveAttribute("href", "/companies");
+  });
+
+  it("renders Modifica button when user has update permission", () => {
+    render(<CompanyDetail company={mockEnrichedCompany} />);
+
+    expect(screen.getByRole("button", { name: /modifica/i })).toBeInTheDocument();
   });
 });

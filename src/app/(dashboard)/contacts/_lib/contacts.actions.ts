@@ -97,6 +97,12 @@ export async function syncContactTags(
   const parsedTags = z.array(z.string().min(1).max(50)).safeParse(tagNames);
   if (!parsedTags.success) return { success: false, error: "Tag non validi" };
   try {
+    await requireRole(["admin", "member", "guest"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
+  try {
     const current = await db
       .select({ tagId: contactsToTags.tagId })
       .from(contactsToTags)
@@ -131,6 +137,12 @@ export async function checkDuplicateContact(
   email: string,
   excludeId?: string,
 ): Promise<ActionResult<{ isDuplicate: boolean; duplicateName?: string }>> {
+  try {
+    await requireRole(["admin", "member", "guest"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
   try {
     const duplicate = await contactsService.checkDuplicate(companyId, email, excludeId);
     if (duplicate) {

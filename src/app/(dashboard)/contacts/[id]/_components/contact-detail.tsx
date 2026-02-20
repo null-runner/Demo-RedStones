@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
@@ -28,34 +28,29 @@ export function ContactDetail({ contact, companies, allTags }: ContactDetailProp
   const canWrite = usePermission("update:contacts");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [localTagNames, setLocalTagNames] = useState(() => contact.tags.map((t) => t.name));
+  const lastGoodTags = useRef(localTagNames);
   const [isTagSyncing, startTagTransition] = useTransition();
 
-  const handleTagAdd = (tagName: string) => {
-    const next = [...localTagNames, tagName];
+  const syncTags = (next: string[]) => {
     setLocalTagNames(next);
     startTagTransition(async () => {
       const result = await syncContactTags(contact.id, next);
       if (!result.success) {
         toast.error(result.error);
-        setLocalTagNames(localTagNames);
+        setLocalTagNames(lastGoodTags.current);
       } else {
+        lastGoodTags.current = next;
         router.refresh();
       }
     });
   };
 
+  const handleTagAdd = (tagName: string) => {
+    syncTags([...localTagNames, tagName]);
+  };
+
   const handleTagRemove = (tagName: string) => {
-    const next = localTagNames.filter((n) => n !== tagName);
-    setLocalTagNames(next);
-    startTagTransition(async () => {
-      const result = await syncContactTags(contact.id, next);
-      if (!result.success) {
-        toast.error(result.error);
-        setLocalTagNames(localTagNames);
-      } else {
-        router.refresh();
-      }
-    });
+    syncTags(localTagNames.filter((n) => n !== tagName));
   };
 
   return (

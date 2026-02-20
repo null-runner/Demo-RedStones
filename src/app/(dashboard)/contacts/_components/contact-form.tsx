@@ -227,9 +227,9 @@ export function ContactForm({
                 <FormLabel>Azienda</FormLabel>
                 <Select
                   onValueChange={(val) => {
-                    field.onChange(val === "none" ? null : val);
+                    field.onChange(val === "_none" ? null : val);
                   }}
-                  value={field.value ?? "none"}
+                  value={field.value ?? "_none"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -237,7 +237,7 @@ export function ContactForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">Nessuna azienda</SelectItem>
+                    <SelectItem value="_none">Nessuna azienda</SelectItem>
                     {localCompanies.map((company) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.name}

@@ -19,7 +19,8 @@ export function TagInput({ value, allTags, onAdd, onRemove, disabled }: TagInput
 
   const filteredTags = allTags.filter(
     (t) =>
-      !value.includes(t.name) && (inputValue === "" || t.name.includes(inputValue.toLowerCase())),
+      !value.includes(t.name) &&
+      (inputValue === "" || t.name.toLowerCase().includes(inputValue.toLowerCase())),
   );
 
   function handleAdd(tagName: string) {

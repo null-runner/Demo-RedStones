@@ -1,33 +1,50 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 
 import type { CompanyWithDetails } from "../../_lib/companies.service";
+import { CompanySheet } from "../../_components/company-sheet";
 import { EnrichmentSection } from "./enrichment-section";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { usePermission } from "@/hooks/use-permission";
+import { formatEUR } from "@/lib/format";
 
 type CompanyDetailProps = {
   company: CompanyWithDetails;
 };
 
-function formatCurrency(value: string): string {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
-    parseFloat(value),
-  );
-}
-
 export function CompanyDetail({ company }: CompanyDetailProps) {
+  const router = useRouter();
+  const canWrite = usePermission("update:companies");
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={company.name}
         action={
-          <Button variant="outline" asChild>
-            <Link href="/companies">← Torna alle Aziende</Link>
-          </Button>
+          <div className="flex gap-2">
+            {canWrite && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSheetOpen(true);
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Modifica
+              </Button>
+            )}
+            <Button variant="outline" asChild>
+              <Link href="/companies">← Torna alle Aziende</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -117,7 +134,7 @@ export function CompanyDetail({ company }: CompanyDetailProps) {
                   </Link>
                   <Badge variant="outline">{deal.stage}</Badge>
                 </div>
-                <span className="text-muted-foreground">{formatCurrency(deal.value)}</span>
+                <span className="text-muted-foreground">{formatEUR(parseFloat(deal.value))}</span>
               </div>
             ))}
           </div>
@@ -125,6 +142,15 @@ export function CompanyDetail({ company }: CompanyDetailProps) {
           <p className="text-muted-foreground text-sm">Nessun deal associato</p>
         )}
       </div>
+
+      <CompanySheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        company={company}
+        onSuccess={() => {
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
