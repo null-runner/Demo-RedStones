@@ -20,7 +20,7 @@ type CompanySheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   company?: Company | null;
-  onSuccess: () => void;
+  onSuccess: (created?: { id: string; name: string }) => void;
 };
 
 export function CompanySheet({ open, onOpenChange, company, onSuccess }: CompanySheetProps) {
@@ -39,7 +39,7 @@ export function CompanySheet({ open, onOpenChange, company, onSuccess }: Company
       }
       toast.success(isEdit ? "Azienda aggiornata" : "Azienda creata");
       onOpenChange(false);
-      onSuccess();
+      onSuccess(isEdit ? undefined : { id: result.data.id, name: result.data.name });
     });
   };
 

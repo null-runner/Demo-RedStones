@@ -9,9 +9,18 @@ import { deleteCompany } from "../_lib/companies.actions";
 import { CompanySheet } from "./company-sheet";
 import { CompanyTable } from "./company-table";
 
+import { ContactSheet } from "@/app/(dashboard)/contacts/_components/contact-sheet";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { usePermission } from "@/hooks/use-permission";
 import { showPermissionDeniedToast } from "@/lib/rbac-toast";
@@ -19,9 +28,10 @@ import type { Company } from "@/server/db/schema";
 
 type CompaniesClientProps = {
   companies: Company[];
+  allTags: Array<{ id: string; name: string }>;
 };
 
-export function CompaniesClient({ companies }: CompaniesClientProps) {
+export function CompaniesClient({ companies, allTags }: CompaniesClientProps) {
   const router = useRouter();
   const canWrite = usePermission("delete:companies");
   const [query, setQuery] = useState("");
@@ -29,6 +39,10 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const [promptCompany, setPromptCompany] = useState<{ id: string; name: string } | null>(null);
+  const [contactSheetOpen, setContactSheetOpen] = useState(false);
+  const [contactDefaultCompanyId, setContactDefaultCompanyId] = useState<string | undefined>();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return companies;
@@ -40,6 +54,11 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
         (c.sector?.toLowerCase().includes(q) ?? false),
     );
   }, [companies, query]);
+
+  const companiesForSelect = useMemo(
+    () => companies.map((c) => ({ id: c.id, name: c.name })),
+    [companies],
+  );
 
   const handleEdit = (company: Company) => {
     if (!canWrite) {
@@ -66,6 +85,13 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
     if (!open) setEditingCompany(null);
+  };
+
+  const handleCompanySuccess = (created?: { id: string; name: string }) => {
+    router.refresh();
+    if (created) {
+      setPromptCompany(created);
+    }
   };
 
   const handleDeleteConfirm = () => {
@@ -127,9 +153,7 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
         open={sheetOpen}
         onOpenChange={handleSheetOpenChange}
         company={editingCompany}
-        onSuccess={() => {
-          router.refresh();
-        }}
+        onSuccess={handleCompanySuccess}
       />
 
       <ConfirmDialog
@@ -141,6 +165,51 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
         description="Sei sicuro di voler eliminare questa azienda? L'operazione non può essere annullata."
         onConfirm={handleDeleteConfirm}
         isLoading={isPending}
+      />
+
+      {/* Prompt: create contact after company creation */}
+      <Dialog
+        open={!!promptCompany}
+        onOpenChange={(open) => {
+          if (!open) setPromptCompany(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contatto per {promptCompany?.name}</DialogTitle>
+            <DialogDescription>Vuoi registrare un contatto per questa azienda?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPromptCompany(null);
+              }}
+            >
+              No, grazie
+            </Button>
+            <Button
+              onClick={() => {
+                setContactDefaultCompanyId(promptCompany?.id);
+                setContactSheetOpen(true);
+                setPromptCompany(null);
+              }}
+            >
+              Crea Contatto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ContactSheet
+        open={contactSheetOpen}
+        onOpenChange={setContactSheetOpen}
+        companies={companiesForSelect}
+        allTags={allTags}
+        defaultCompanyId={contactDefaultCompanyId}
+        onSuccess={() => {
+          router.refresh();
+        }}
       />
     </div>
   );

@@ -23,6 +23,7 @@ type ContactSheetProps = {
   companies: Array<{ id: string; name: string }>;
   allTags: Array<{ id: string; name: string }>;
   onSuccess: () => void;
+  defaultCompanyId?: string | undefined;
 };
 
 export function ContactSheet({
@@ -32,6 +33,7 @@ export function ContactSheet({
   companies,
   allTags,
   onSuccess,
+  defaultCompanyId,
 }: ContactSheetProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -69,6 +71,7 @@ export function ContactSheet({
             companies={companies}
             allTags={allTags}
             onSubmit={handleSubmit}
+            {...(defaultCompanyId != null ? { defaultCompanyId } : {})}
             onCancel={() => {
               onOpenChange(false);
             }}
