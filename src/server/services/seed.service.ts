@@ -132,7 +132,7 @@ export function generateSeedData(): SeedData {
       enrichmentSector: "Marketing e Pubblicità Digitale",
       enrichmentSize: "11-50 dipendenti",
       enrichmentPainPoints:
-        "Difficoltà nel dimostrare ROI ai clienti; alta competizione nel mercato locale; turnover dei talenti digitali",
+        "Difficoltà nel dimostrare ROI ai clienti\nAlta competizione nel mercato locale\nTurnover dei talenti digitali",
       createdAt: daysAgo(45),
       updatedAt: daysAgo(10),
     },
@@ -148,7 +148,7 @@ export function generateSeedData(): SeedData {
       enrichmentSector: "Manifattura Industriale / Automotive",
       enrichmentSize: "51-200 dipendenti",
       enrichmentPainPoints:
-        "Gestione lead time e supply chain volatile; difficoltà nel passaggio al digitale; pressione sui margini da competitor asiatici",
+        "Gestione lead time e supply chain volatile\nDifficoltà nel passaggio al digitale\nPressione sui margini da competitor asiatici",
       createdAt: daysAgo(50),
       updatedAt: daysAgo(8),
     },
@@ -164,7 +164,7 @@ export function generateSeedData(): SeedData {
       enrichmentSector: "Consulenza Aziendale e Finanziaria",
       enrichmentSize: "1-10 dipendenti",
       enrichmentPainPoints:
-        "Dipendenza da referral; difficoltà nello scalare i servizi; competizione da grandi studi internazionali",
+        "Dipendenza da referral\nDifficoltà nello scalare i servizi\nCompetizione da grandi studi internazionali",
       createdAt: daysAgo(40),
       updatedAt: daysAgo(6),
     },

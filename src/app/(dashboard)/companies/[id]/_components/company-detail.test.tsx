@@ -14,7 +14,7 @@ const mockEnrichedCompany: CompanyWithDetails = {
   enrichmentDescription: "Azienda specializzata in SaaS per PMI italiane",
   enrichmentSector: "Software / SaaS",
   enrichmentSize: "11-50 dipendenti",
-  enrichmentPainPoints: "Acquisizione clienti, retention, scalabilità",
+  enrichmentPainPoints: "Acquisizione clienti\nRetention\nScalabilità",
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
   contacts: [
@@ -61,7 +61,9 @@ describe("CompanyDetail", () => {
     expect(screen.getByText("Azienda specializzata in SaaS per PMI italiane")).toBeInTheDocument();
     expect(screen.getByText("Software / SaaS")).toBeInTheDocument();
     expect(screen.getByText("11-50 dipendenti")).toBeInTheDocument();
-    expect(screen.getByText("Acquisizione clienti, retention, scalabilità")).toBeInTheDocument();
+    expect(screen.getByText("Acquisizione clienti")).toBeInTheDocument();
+    expect(screen.getByText("Retention")).toBeInTheDocument();
+    expect(screen.getByText("Scalabilità")).toBeInTheDocument();
   });
 
   it("renders enrichment empty state with CTA when not enriched", () => {

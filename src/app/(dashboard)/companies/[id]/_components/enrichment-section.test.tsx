@@ -199,6 +199,66 @@ describe("EnrichmentSection", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  // AC11: click "Aggiorna" nel dialog → fetch con force:true
+  it("AC11: click Aggiorna nel dialog chiama fetch con force:true", async () => {
+    const user = userEvent.setup();
+    mockFetchResponse({
+      success: true,
+      status: "enriched",
+      data: {
+        description: "Updated",
+        sector: "IT",
+        estimatedSize: "11-50",
+        painPoints: ["New pain"],
+      },
+    });
+
+    render(
+      <EnrichmentSection
+        company={makeCompany({
+          enrichmentStatus: "enriched",
+          enrichmentDescription: "Desc",
+          enrichmentSector: "IT",
+          enrichmentSize: "11-50",
+          enrichmentPainPoints: "Old pain",
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /aggiorna dati/i }));
+    await user.click(screen.getByRole("button", { name: /^aggiorna$/i }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/enrichment",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            companyId: "00000000-0000-0000-0000-000000000001",
+            force: true,
+          }),
+        }),
+      );
+    });
+  });
+
+  // AC12: azienda seed pre-arricchita → nessuna API call al mount
+  it("AC12: azienda enriched non chiama fetch al mount", () => {
+    render(
+      <EnrichmentSection
+        company={makeCompany({
+          enrichmentStatus: "enriched",
+          enrichmentDescription: "Desc",
+          enrichmentSector: "IT",
+          enrichmentSize: "11-50",
+          enrichmentPainPoints: "Pain point 1",
+        })}
+      />,
+    );
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   // AC13: pain points con \n → lista puntata
   it("AC13: pain points con newline visualizzati come lista separata", () => {
     render(
@@ -216,5 +276,21 @@ describe("EnrichmentSection", () => {
     expect(screen.getByText("Acquisizione clienti")).toBeInTheDocument();
     expect(screen.getByText("Retention")).toBeInTheDocument();
     expect(screen.getByText("Scalabilità")).toBeInTheDocument();
+  });
+
+  // Network failure: fetch throws → toast error
+  it("errore di rete (fetch throws) mostra toast servizio non disponibile", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockRejectedValue(new Error("Failed to fetch"));
+
+    render(<EnrichmentSection company={makeCompany()} />);
+    await user.click(screen.getByRole("button", { name: /arricchisci con ai/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining("temporaneamente non disponibile"),
+      );
+    });
+    expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
   });
 });
