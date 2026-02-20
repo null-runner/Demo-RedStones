@@ -130,12 +130,51 @@ describe("CommandMenu", () => {
     expect(mockPush).toHaveBeenCalledWith("/deals/d1");
   });
 
-  it("mostra heading Contatti quando esistono risultati contatti", async () => {
+  it("mostra heading Contatti, Aziende e Deal per query che matcha tutti i gruppi", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+    await user.click(screen.getByRole("button", { name: /ricerca/i }));
+    const input = screen.getByPlaceholderText(/digita per cercare/i);
+    await user.type(input, "r");
+    expect(screen.getByText("Contatti")).toBeInTheDocument();
+    expect(screen.getByText("Aziende")).toBeInTheDocument();
+    expect(screen.getByText("Deal")).toBeInTheDocument();
+  });
+
+  it("mostra messaggio stato vuoto quando overlay aperto senza query", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+    await user.click(screen.getByRole("button", { name: /ricerca/i }));
+    expect(screen.getByText("Digita per cercare contatti, aziende e deal...")).toBeInTheDocument();
+  });
+
+  it("mostra messaggio nessun risultato per query senza match", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+    await user.click(screen.getByRole("button", { name: /ricerca/i }));
+    const input = screen.getByPlaceholderText(/digita per cercare/i);
+    await user.type(input, "zzz");
+    expect(screen.getByText(/nessun risultato per/i)).toBeInTheDocument();
+  });
+
+  it("chiude overlay con Escape", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+    await user.click(screen.getByRole("button", { name: /ricerca/i }));
+    expect(screen.getByPlaceholderText(/digita per cercare/i)).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByPlaceholderText(/digita per cercare/i)).not.toBeInTheDocument();
+  });
+
+  it("resetta la query quando il dialog si chiude", async () => {
     const user = userEvent.setup();
     renderMenu();
     await user.click(screen.getByRole("button", { name: /ricerca/i }));
     const input = screen.getByPlaceholderText(/digita per cercare/i);
     await user.type(input, "mario");
-    expect(screen.getByText("Contatti")).toBeInTheDocument();
+    expect(screen.getByText("Mario Rossi")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: /ricerca/i }));
+    expect(screen.getByText("Digita per cercare contatti, aziende e deal...")).toBeInTheDocument();
   });
 });

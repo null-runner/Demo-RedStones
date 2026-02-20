@@ -37,6 +37,12 @@ export function filterResults(
   };
 }
 
+const currencyFormatter = new Intl.NumberFormat("it-IT", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
 type CommandMenuProps = { dataset: SearchDataset };
 
 export function CommandMenu({ dataset }: CommandMenuProps) {
@@ -63,6 +69,7 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
 
   function handleSelect(href: string) {
     setOpen(false);
+    setQuery("");
     router.push(href);
   }
 
@@ -82,7 +89,10 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
 
       <CommandDialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(newOpen) => {
+          setOpen(newOpen);
+          if (!newOpen) setQuery("");
+        }}
         title="Ricerca globale"
         description="Cerca contatti, aziende e deal"
         showCloseButton={false}
@@ -152,11 +162,7 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
                       <div className="flex flex-col">
                         <span>{d.title}</span>
                         <span className="text-muted-foreground text-xs">
-                          {new Intl.NumberFormat("it-IT", {
-                            style: "currency",
-                            currency: "EUR",
-                            maximumFractionDigits: 0,
-                          }).format(parseFloat(d.value))}
+                          {currencyFormatter.format(parseFloat(d.value))}
                         </span>
                       </div>
                     </CommandItem>

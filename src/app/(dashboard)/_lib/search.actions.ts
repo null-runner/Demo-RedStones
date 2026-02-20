@@ -29,11 +29,12 @@ export async function prefetchSearchData(): Promise<SearchDataset> {
   ]);
 
   const total = rawContacts.length + rawCompanies.length + rawDeals.length;
-  const perGroup = total > MAX_RECORDS ? Math.floor(MAX_RECORDS / 3) : rawContacts.length;
+  const needsTruncation = total > MAX_RECORDS;
+  const perGroup = Math.floor(MAX_RECORDS / 3);
 
-  const contactSlice = total > MAX_RECORDS ? rawContacts.slice(0, perGroup) : rawContacts;
-  const companySlice = total > MAX_RECORDS ? rawCompanies.slice(0, perGroup) : rawCompanies;
-  const dealSlice = total > MAX_RECORDS ? rawDeals.slice(0, perGroup) : rawDeals;
+  const contactSlice = needsTruncation ? rawContacts.slice(0, perGroup) : rawContacts;
+  const companySlice = needsTruncation ? rawCompanies.slice(0, perGroup) : rawCompanies;
+  const dealSlice = needsTruncation ? rawDeals.slice(0, perGroup) : rawDeals;
 
   return {
     contacts: contactSlice.map((c) => ({
