@@ -3,8 +3,14 @@ import "server-only";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { eq } from "drizzle-orm";
 
+import { CircuitBreaker } from "@/lib/circuit-breaker";
 import { db } from "@/server/db";
 import { companies } from "@/server/db/schema";
+
+const geminiBreaker = new CircuitBreaker({
+  failureThreshold: 3,
+  resetTimeoutMs: 2 * 60 * 1000,
+});
 
 export type EnrichmentData = {
   description: string | null;
@@ -127,12 +133,14 @@ async function runEnrichment(companyId: string): Promise<void> {
 
   let rawResult;
   try {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("ENRICHMENT_TIMEOUT"));
-      }, TIMEOUT_MS);
+    rawResult = await geminiBreaker.execute(() => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("ENRICHMENT_TIMEOUT"));
+        }, TIMEOUT_MS);
+      });
+      return Promise.race([model.generateContent(prompt), timeoutPromise]);
     });
-    rawResult = await Promise.race([model.generateContent(prompt), timeoutPromise]);
   } catch (error) {
     const errorReason = getErrorReason(error);
     console.error(`[enrichment] Failed for ${companyId}: ${errorReason}`);
@@ -219,6 +227,7 @@ function detectStatus(data: EnrichmentData): "enriched" | "partial" {
 }
 
 function getErrorReason(error: unknown): string {
+  if (error instanceof Error && error.message === "Circuit breaker is open") return "circuit_open";
   if (error instanceof Error && error.message === "ENRICHMENT_TIMEOUT") return "timeout";
   if (isHttpError(error)) return "service_unavailable";
   return "network_error";
