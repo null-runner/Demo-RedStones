@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { usePermission } from "@/hooks/use-permission";
 import type { PipelineStage } from "@/lib/constants/pipeline";
+import { toCents } from "@/lib/format";
 import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Deal } from "@/server/db/schema";
 
@@ -74,9 +75,9 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
       }
       if (stageFilter !== "all" && deal.stage !== stageFilter) return false;
       if (ownerFilter !== "all" && deal.ownerId !== ownerFilter) return false;
-      const numVal = parseFloat(deal.value);
-      if (minValue !== "" && numVal < parseFloat(minValue)) return false;
-      if (maxValue !== "" && numVal > parseFloat(maxValue)) return false;
+      const dealCents = toCents(deal.value);
+      if (minValue !== "" && dealCents < toCents(minValue)) return false;
+      if (maxValue !== "" && dealCents > toCents(maxValue)) return false;
       if (deal.createdAt < dateRange.from || deal.createdAt > dateRange.to) return false;
       return true;
     });

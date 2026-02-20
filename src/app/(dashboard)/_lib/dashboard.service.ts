@@ -8,7 +8,7 @@ import type { ContactWithLastActivity, NbaResult } from "./nba.service";
 import { db } from "@/server/db";
 import { contacts, deals, timelineEntries } from "@/server/db/schema";
 import type { Deal, TimelineEntry } from "@/server/db/schema";
-import { sumCurrency } from "@/lib/format";
+import { sumCurrency, toCents } from "@/lib/format";
 import { isTerminalStage, TERMINAL_STAGES } from "@/lib/constants/pipeline";
 
 export type PeriodFilterPreset = "current-month" | "prev-month" | "last-90-days";
@@ -185,8 +185,7 @@ export function calculateDealsPerStage(allDeals: Deal[]): DealsByStageItem[] {
     const current = stageMap.get(deal.stage) ?? { count: 0, totalValue: 0 };
     stageMap.set(deal.stage, {
       count: current.count + 1,
-      totalValue:
-        (Math.round(current.totalValue * 100) + Math.round(parseFloat(deal.value) * 100)) / 100,
+      totalValue: (Math.round(current.totalValue * 100) + toCents(deal.value)) / 100,
     });
   }
 
