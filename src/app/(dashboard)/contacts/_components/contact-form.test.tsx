@@ -9,6 +9,10 @@ vi.mock("../_lib/contacts.actions", () => ({
   checkDuplicateContact: vi.fn().mockResolvedValue({ success: true, data: { isDuplicate: false } }),
 }));
 
+vi.mock("@/app/(dashboard)/companies/_lib/companies.actions", () => ({
+  createCompany: vi.fn(),
+}));
+
 const mockCompanies = [
   { id: "00000000-0000-0000-0000-000000000010", name: "Acme Corp" },
   { id: "00000000-0000-0000-0000-000000000011", name: "Beta Srl" },
@@ -171,6 +175,19 @@ describe("ContactForm", () => {
 
     const saveButton = screen.getByRole("button", { name: /salva/i });
     expect(saveButton).toBeDisabled();
+  });
+
+  it("renders new company button", () => {
+    render(
+      <ContactForm
+        companies={mockCompanies}
+        allTags={mockAllTags}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /nuova azienda/i })).toBeInTheDocument();
   });
 
   it("calls onCancel when Annulla is clicked", async () => {
