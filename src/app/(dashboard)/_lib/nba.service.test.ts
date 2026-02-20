@@ -70,6 +70,13 @@ describe("getSuggestionsForDeal", () => {
     expect(types).not.toContain("follow_up");
   });
 
+  it("boundary: deal fermo esattamente 7 giorni → nessun follow_up (> 7, non >=)", () => {
+    const deal = makeDeal({ updatedAt: daysAgo(7) });
+    const suggestions = getSuggestionsForDeal(deal, []);
+    const types = suggestions.map((s) => s.type);
+    expect(types).not.toContain("follow_up");
+  });
+
   it("AC3: deal stage Proposta, updatedAt 15 giorni fa → request_decision (non follow_up)", () => {
     const deal = makeDeal({ stage: "Proposta", updatedAt: daysAgo(15) });
     const suggestions = getSuggestionsForDeal(deal, []);
@@ -80,6 +87,14 @@ describe("getSuggestionsForDeal", () => {
 
   it("deal stage Proposta, updatedAt 13 giorni fa → follow_up (non request_decision)", () => {
     const deal = makeDeal({ stage: "Proposta", updatedAt: daysAgo(13) });
+    const suggestions = getSuggestionsForDeal(deal, []);
+    const types = suggestions.map((s) => s.type);
+    expect(types).toContain("follow_up");
+    expect(types).not.toContain("request_decision");
+  });
+
+  it("boundary: deal Proposta esattamente 14 giorni → follow_up, non request_decision (> 14, non >=)", () => {
+    const deal = makeDeal({ stage: "Proposta", updatedAt: daysAgo(14) });
     const suggestions = getSuggestionsForDeal(deal, []);
     const types = suggestions.map((s) => s.type);
     expect(types).toContain("follow_up");
@@ -154,6 +169,21 @@ describe("getSuggestionsForDeal", () => {
     const rdSuggestion = suggestions.find((s) => s.type === "request_decision");
     expect(rdSuggestion?.message).toMatch(/in Proposta da \d+ giorni/);
   });
+
+  it("entityTitle usa deal.title", () => {
+    const deal = makeDeal({ title: "Big Deal", updatedAt: daysAgo(8) });
+    const suggestions = getSuggestionsForDeal(deal, [makeTimelineEntry({ type: "note" })]);
+    expect(suggestions[0]?.entityTitle).toBe("Big Deal");
+  });
+
+  it("id segue pattern entityId-type", () => {
+    const deal = makeDeal({ id: "abc-123", updatedAt: daysAgo(8) });
+    const suggestions = getSuggestionsForDeal(deal, []);
+    const followUp = suggestions.find((s) => s.type === "follow_up");
+    const addNotes = suggestions.find((s) => s.type === "add_notes");
+    expect(followUp?.id).toBe("abc-123-follow_up");
+    expect(addNotes?.id).toBe("abc-123-add_notes");
+  });
 });
 
 describe("getSuggestionsForContact", () => {
@@ -167,6 +197,12 @@ describe("getSuggestionsForContact", () => {
   it("contatto inattivo 29 giorni → nessun suggerimento", () => {
     const contact = makeContact();
     const suggestions = getSuggestionsForContact(contact, daysAgo(29));
+    expect(suggestions).toHaveLength(0);
+  });
+
+  it("boundary: contatto inattivo esattamente 30 giorni → nessun suggerimento (> 30, non >=)", () => {
+    const contact = makeContact();
+    const suggestions = getSuggestionsForContact(contact, daysAgo(30));
     expect(suggestions).toHaveLength(0);
   });
 
@@ -193,6 +229,18 @@ describe("getSuggestionsForContact", () => {
     const contact = makeContact();
     const suggestions = getSuggestionsForContact(contact, daysAgo(31));
     expect(suggestions[0]?.message).toMatch(/inattivo da \d+ giorni/);
+  });
+
+  it("entityTitle usa firstName + lastName", () => {
+    const contact = makeContact({ firstName: "Luca", lastName: "Bianchi" });
+    const suggestions = getSuggestionsForContact(contact, daysAgo(31));
+    expect(suggestions[0]?.entityTitle).toBe("Luca Bianchi");
+  });
+
+  it("id segue pattern contactId-reactivate_contact", () => {
+    const contact = makeContact({ id: "cnt-456" });
+    const suggestions = getSuggestionsForContact(contact, daysAgo(31));
+    expect(suggestions[0]?.id).toBe("cnt-456-reactivate_contact");
   });
 });
 
@@ -222,7 +270,6 @@ describe("getAllSuggestions", () => {
     const contact = makeContact({ id: "contact-1", createdAt: daysAgo(31) });
     const entriesMap = new Map<string, TimelineEntry[]>();
     entriesMap.set("deal-1", [makeTimelineEntry({ type: "note", dealId: "deal-1" })]);
-    entriesMap.set("deal-2", [makeTimelineEntry({ type: "note", dealId: "deal-2" })]);
     const result = getAllSuggestions(
       [dealWithFollowUp, dealWithRequestDecision],
       [{ ...contact, lastActivityDate: null }],
@@ -231,10 +278,11 @@ describe("getAllSuggestions", () => {
     const priorities = result.suggestions.map((s) => s.priority);
     const highIdx = priorities.indexOf("high");
     const medIdx = priorities.indexOf("medium");
-    const lowIdx = priorities.lastIndexOf("low");
-    expect(highIdx).toBeLessThan(medIdx === -1 ? Infinity : medIdx);
-    if (medIdx !== -1 && lowIdx !== -1) {
-      expect(medIdx).toBeLessThan(lowIdx);
-    }
+    const lowIdx = priorities.indexOf("low");
+    expect(highIdx).not.toBe(-1);
+    expect(medIdx).not.toBe(-1);
+    expect(lowIdx).not.toBe(-1);
+    expect(highIdx).toBeLessThan(medIdx);
+    expect(medIdx).toBeLessThan(lowIdx);
   });
 });
