@@ -7,7 +7,10 @@ export async function POST() {
     await resetDatabase();
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error("[auth/guest] Reset failed:", error);
+    console.error(
+      "[auth/guest] Reset failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json({ success: false, error: "Reset fallito" }, { status: 500 });
   }
 }

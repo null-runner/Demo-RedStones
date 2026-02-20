@@ -108,7 +108,7 @@ describe("SignInForm", () => {
     fetchSpy.mockRestore();
   });
 
-  it("calls fetch then signIn on demo mode click", async () => {
+  it("calls fetch then signIn on demo mode click and redirects to /", async () => {
     const user = userEvent.setup();
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
@@ -129,6 +129,70 @@ describe("SignInForm", () => {
           redirect: false,
         }),
       );
+      expect(mockRouterPush).toHaveBeenCalledWith("/");
+    });
+  });
+
+  it("disables form inputs and submit button during demo loading", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(global, "fetch").mockImplementationOnce(() => new Promise(() => undefined));
+
+    render(<SignInForm />);
+    await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeDisabled();
+      expect(screen.getByLabelText(/password/i)).toBeDisabled();
+      expect(screen.getByRole("button", { name: /accedi/i })).toBeDisabled();
+    });
+  });
+
+  it("shows error when fetch to /api/auth/guest fails", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ success: false }),
+    } as Response);
+
+    render(<SignInForm />);
+    await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/errore durante la preparazione della demo/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows error when signIn returns error during demo mode", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    } as Response);
+    vi.mocked(signIn).mockResolvedValueOnce({
+      error: "CredentialsSignin",
+      ok: false,
+      status: 401,
+      url: null,
+    } as never);
+
+    render(<SignInForm />);
+    await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/errore di autenticazione demo/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows network error when fetch throws during demo mode", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network error"));
+
+    render(<SignInForm />);
+    await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/errore di rete/i)).toBeInTheDocument();
     });
   });
 });

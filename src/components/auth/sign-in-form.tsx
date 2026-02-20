@@ -8,8 +8,6 @@ import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v3";
 
-const GUEST_EMAIL = "guest@demo.redstones.local";
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -20,6 +18,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+
+const GUEST_EMAIL = "guest@demo.redstones.local";
 
 const signInSchema = z.object({
   email: z.string().email("Email non valida"),
@@ -104,7 +104,12 @@ export function SignInForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="nome@azienda.it" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="nome@azienda.it"
+                    disabled={isLoadingDemo}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -118,7 +123,12 @@ export function SignInForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    disabled={isLoadingDemo}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,7 +137,11 @@ export function SignInForm() {
 
           {formError && <p className="text-destructive text-sm font-medium">{formError}</p>}
 
-          <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={form.formState.isSubmitting || isLoadingDemo}
+          >
             {form.formState.isSubmitting ? "Accesso in corso..." : "Accedi"}
           </Button>
 
