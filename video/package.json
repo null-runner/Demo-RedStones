@@ -1,0 +1,30 @@
+{
+  "name": "redstones-crm-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hero GIF for RedStones CRM README",
+  "scripts": {
+    "start": "remotion preview src/index.tsx",
+    "build:gif": "remotion render src/index.tsx CrmHero --image-format=png --output=out/hero.gif --codec=gif",
+    "build:mp4": "remotion render src/index.tsx CrmHero --output=out/hero.mp4"
+  },
+  "dependencies": {
+    "@remotion/google-fonts": "4.0.409",
+    "lucide-react": "^0.330.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "4.0.409",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/web": "^0.0.138",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "@remotion/tailwind": "4.0.409",
+    "@remotion/cli": "4.0.409",
+    "@remotion/gif": "4.0.409"
+  }
+}

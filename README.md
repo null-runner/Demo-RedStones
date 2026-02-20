@@ -1,9 +1,10 @@
 # RedStones CRM
 
-> A full-featured sales CRM built as a custom solution demo — contact management, deal pipeline with drag-and-drop Kanban, AI-powered company enrichment, and real-time analytics dashboard.
+> Demo CRM built as a quick custom solution prototype — contact management, deal pipeline with Kanban, AI company enrichment, and analytics dashboard.
 
-<!-- TODO: Replace with Remotion-generated hero GIF -->
-<!-- ![RedStones CRM Demo](docs/assets/hero.gif) -->
+<p align="center">
+  <img src="docs/assets/hero.gif" alt="RedStones CRM Demo" width="720" />
+</p>
 
 ## Quick Start (Guest Mode)
 

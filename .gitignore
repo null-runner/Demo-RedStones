@@ -55,3 +55,7 @@ docs/research/
 docs/personal/
 scripts/
 backup-pre-ralph-*.tar.gz
+
+# remotion video
+video/node_modules/
+video/out/
