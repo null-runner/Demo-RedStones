@@ -7,8 +7,6 @@ vi.mock("bcryptjs", () => ({
   },
 }));
 
-vi.mock("server-only", () => ({}));
-
 import { usersService } from "./users.service";
 
 import { db } from "@/server/db";

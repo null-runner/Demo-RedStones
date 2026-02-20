@@ -5,8 +5,6 @@ import { prefetchSearchData } from "./search.actions";
 
 import { db } from "@/server/db";
 
-vi.mock("server-only", () => ({}));
-
 beforeEach(() => {
   vi.clearAllMocks();
 });

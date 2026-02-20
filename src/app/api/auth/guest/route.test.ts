@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-// Mock server-only to prevent Next.js server boundary error in tests
-vi.mock("server-only", () => ({}));
-
 // Mock the seed service
 vi.mock("@/server/services/seed.service", () => ({
   resetDatabase: vi.fn(),

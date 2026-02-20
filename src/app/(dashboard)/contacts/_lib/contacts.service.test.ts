@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock server-only before importing service
-vi.mock("server-only", () => ({}));
-
 // Mock db
 vi.mock("@/server/db", () => ({
   db: {

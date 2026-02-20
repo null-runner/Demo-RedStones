@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("@/server/db", () => ({
   db: {
     delete: vi.fn().mockReturnThis(),
