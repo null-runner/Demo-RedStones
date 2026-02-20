@@ -22,6 +22,50 @@ export type TimelineFeedRef = {
   setNoteText: (text: string) => void;
 };
 
+function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
+  const authorName = entry.author?.name ?? "Sistema";
+  const relativeDate = formatRelativeDate(entry.createdAt);
+
+  if (entry.type === "note") {
+    return (
+      <div className="flex gap-3 text-sm">
+        <div className="bg-muted flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full">
+          <MessageSquare className="text-muted-foreground h-3.5 w-3.5" />
+        </div>
+        <div className="flex-1 space-y-0.5">
+          <p className="text-foreground leading-snug">{entry.content}</p>
+          <p className="text-muted-foreground text-xs">
+            <span>{authorName}</span>
+            {" · "}
+            <span>{relativeDate}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-3 text-sm">
+      <div className="bg-muted flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full">
+        <ArrowRight className="text-muted-foreground h-3.5 w-3.5" />
+      </div>
+      <div className="flex-1 space-y-0.5">
+        <p className="text-muted-foreground">
+          Stage cambiato da{" "}
+          <span className="text-foreground font-medium">{entry.previousStage}</span>
+          {" → "}
+          <span className="text-foreground font-medium">{entry.newStage}</span>
+        </p>
+        <p className="text-muted-foreground text-xs">
+          <span>{authorName}</span>
+          {" · "}
+          <span>{relativeDate}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export const TimelineFeed = forwardRef<TimelineFeedRef, TimelineFeedProps>(function TimelineFeed(
   { dealId, entries },
   ref,
@@ -112,48 +156,3 @@ export const TimelineFeed = forwardRef<TimelineFeedRef, TimelineFeedProps>(funct
     </div>
   );
 });
-
-function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
-  const authorName = entry.author?.name ?? "Sistema";
-  const relativeDate = formatRelativeDate(entry.createdAt);
-
-  if (entry.type === "note") {
-    return (
-      <div className="flex gap-3 text-sm">
-        <div className="bg-muted flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full">
-          <MessageSquare className="text-muted-foreground h-3.5 w-3.5" />
-        </div>
-        <div className="flex-1 space-y-0.5">
-          <p className="text-foreground leading-snug">{entry.content}</p>
-          <p className="text-muted-foreground text-xs">
-            <span>{authorName}</span>
-            {" · "}
-            <span>{relativeDate}</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // stage_change
-  return (
-    <div className="flex gap-3 text-sm">
-      <div className="bg-muted flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full">
-        <ArrowRight className="text-muted-foreground h-3.5 w-3.5" />
-      </div>
-      <div className="flex-1 space-y-0.5">
-        <p className="text-muted-foreground">
-          Stage cambiato da{" "}
-          <span className="text-foreground font-medium">{entry.previousStage}</span>
-          {" → "}
-          <span className="text-foreground font-medium">{entry.newStage}</span>
-        </p>
-        <p className="text-muted-foreground text-xs">
-          <span>{authorName}</span>
-          {" · "}
-          <span>{relativeDate}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
