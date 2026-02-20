@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { startOfDay, subDays } from "date-fns";
 import { Info, LayoutGrid, List, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,7 +12,7 @@ import { LostReasonDialog } from "./lost-reason-dialog";
 import { PipelineBoard } from "./pipeline-board";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { DateRangePicker, type DateRangeValue } from "@/components/shared/date-range-picker";
+import { DateRangePicker } from "@/components/shared/date-range-picker";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDateRange } from "@/hooks/use-date-range";
 import { usePermission } from "@/hooks/use-permission";
 import type { PipelineStage } from "@/lib/constants/pipeline";
 import { toCents } from "@/lib/format";
@@ -47,10 +47,7 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [minValue, setMinValue] = useState("");
   const [maxValue, setMaxValue] = useState("");
-  const [dateRange, setDateRange] = useState<DateRangeValue>(() => ({
-    from: subDays(startOfDay(new Date()), 6),
-    to: new Date(),
-  }));
+  const [dateRange, setDateRange] = useDateRange("deals");
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);

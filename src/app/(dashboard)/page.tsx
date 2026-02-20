@@ -21,7 +21,7 @@ function parseSearchParams(params: { from?: string; to?: string }): {
       return { period: customDateRange(from, to), from, to };
     }
   }
-  const from = subDays(startOfDay(now), 6);
+  const from = subDays(startOfDay(now), 89);
   return { period: customDateRange(from, now), from, to: now };
 }
 
@@ -31,6 +31,7 @@ export default async function DashboardPage({
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const params = await searchParams;
+  const hasUrlParams = !!(params.from && params.to);
   const { period, from, to } = parseSearchParams(params);
   const [{ kpis, dealsByStage, stagnantDeals }, nbaResult] = await Promise.all([
     dashboardService.getDashboardData(period),
@@ -44,7 +45,7 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">KPI e overview pipeline</p>
         </div>
-        <PeriodFilter from={from.toISOString()} to={to.toISOString()} />
+        <PeriodFilter from={from.toISOString()} to={to.toISOString()} hasUrlParams={hasUrlParams} />
       </div>
       <KpiCards kpis={kpis} />
       <div className="grid gap-6 md:grid-cols-2">
