@@ -39,16 +39,18 @@ export function SignInForm() {
 
   const onSubmit = async (data: SignInValues) => {
     setFormError(null);
-    try {
-      await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
-      router.push(callbackUrl ?? "/");
-    } catch {
+    const result = (await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    })) as unknown as { error?: string } | undefined;
+    if (result?.error) {
       setFormError("Credenziali non valide");
+      return;
     }
+    const safeCallback =
+      callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/";
+    router.push(safeCallback);
   };
 
   return (

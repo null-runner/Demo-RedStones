@@ -12,6 +12,15 @@ import { authConfig } from "./config";
 import { db } from "@/server/db";
 import { users } from "@/server/db/schema";
 
+export async function authorizeCredentials(credentials: { email: string; password: string }) {
+  const result = await db.select().from(users).where(eq(users.email, credentials.email)).limit(1);
+  const user = result[0];
+  if (!user?.passwordHash) return null;
+  const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+  if (!isValid) return null;
+  return { id: user.id, email: user.email, name: user.name, role: user.role };
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   // Cast needed due to @auth/core version mismatch (0.41.0 vs 0.41.1 in pnpm)
@@ -20,12 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       async authorize(credentials) {
         const { email, password } = credentials as { email: string; password: string };
-        const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-        const user = result[0];
-        if (!user?.passwordHash) return null; // no user enumeration
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) return null;
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+        return authorizeCredentials({ email, password });
       },
     }),
   ],

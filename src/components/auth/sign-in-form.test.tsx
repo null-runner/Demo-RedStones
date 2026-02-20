@@ -31,7 +31,12 @@ describe("SignInForm", () => {
   it("shows inline error message on invalid credentials", async () => {
     const user = userEvent.setup();
     const mockSignIn = vi.mocked(signIn);
-    mockSignIn.mockRejectedValueOnce(new Error("CredentialsSignin"));
+    mockSignIn.mockResolvedValueOnce({
+      error: "CredentialsSignin",
+      ok: false,
+      status: 401,
+      url: null,
+    } as never);
 
     render(<SignInForm />);
 
@@ -47,7 +52,12 @@ describe("SignInForm", () => {
   it("URL stays on sign-in page after error (no redirect)", async () => {
     const user = userEvent.setup();
     const mockSignIn = vi.mocked(signIn);
-    mockSignIn.mockRejectedValueOnce(new Error("CredentialsSignin"));
+    mockSignIn.mockResolvedValueOnce({
+      error: "CredentialsSignin",
+      ok: false,
+      status: 401,
+      url: null,
+    } as never);
 
     render(<SignInForm />);
 
