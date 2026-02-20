@@ -4,6 +4,7 @@ import { prefetchSearchData } from "./_lib/search.actions";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { TutorialOverlay } from "@/components/onboarding/tutorial-overlay";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [nbaResult, searchDataset] = await Promise.all([
@@ -17,6 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Topbar searchDataset={searchDataset} />
         <DemoBanner />
         <main className="flex flex-1 flex-col overflow-auto p-6">{children}</main>
+        <TutorialOverlay />
       </div>
     </div>
   );
