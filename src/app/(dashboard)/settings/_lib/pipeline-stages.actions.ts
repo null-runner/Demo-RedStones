@@ -5,6 +5,7 @@ import { z } from "zod/v3";
 
 import { pipelineStagesService } from "./pipeline-stages.service";
 
+import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import type { PipelineStageRow } from "@/server/db/schema";
 
@@ -19,7 +20,12 @@ export async function createStage(name: string): Promise<ActionResult<PipelineSt
   if (!parsedName.success) {
     return { success: false, error: parsedName.error.issues[0]?.message ?? "Nome non valido" };
   }
-  // TODO Epic 8: requireRole("admin")
+  try {
+    await requireRole(["admin"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
   try {
     const stage = await pipelineStagesService.create(parsedName.data);
     revalidatePath("/deals");
@@ -41,7 +47,12 @@ export async function renameStage(
     return { success: false, error: parsedId.error.issues[0]?.message ?? "ID non valido" };
   if (!parsedName.success)
     return { success: false, error: parsedName.error.issues[0]?.message ?? "Nome non valido" };
-  // TODO Epic 8: requireRole("admin")
+  try {
+    await requireRole(["admin"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
   try {
     const stage = await pipelineStagesService.rename(parsedId.data, parsedName.data);
     revalidatePath("/deals");
@@ -61,7 +72,12 @@ export async function reorderStages(orderedIds: string[]): Promise<ActionResult<
   if (invalidId) {
     return { success: false, error: "ID stage non valido nella lista" };
   }
-  // TODO Epic 8: requireRole("admin")
+  try {
+    await requireRole(["admin"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
   try {
     await pipelineStagesService.reorder(orderedIds);
     revalidatePath("/deals");
@@ -77,7 +93,12 @@ export async function deleteStage(id: string): Promise<ActionResult<void>> {
   const parsedId = stageIdSchema.safeParse(id);
   if (!parsedId.success)
     return { success: false, error: parsedId.error.issues[0]?.message ?? "ID non valido" };
-  // TODO Epic 8: requireRole("admin")
+  try {
+    await requireRole(["admin"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
   try {
     await pipelineStagesService.delete(parsedId.data);
     revalidatePath("/deals");

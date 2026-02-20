@@ -1,5 +1,13 @@
 import { auth } from "@/server/auth";
 
+export class RBACError extends Error {
+  readonly statusCode = 403;
+  constructor(message = "Azione non consentita per il tuo ruolo") {
+    super(message);
+    this.name = "RBACError";
+  }
+}
+
 export async function getCurrentUser() {
   const session = await auth();
   return session?.user ?? null;
@@ -10,10 +18,8 @@ export async function isGuest() {
   return user?.role === "guest";
 }
 
-// Placeholder for Story 8.2 — RBAC enforcement
-export async function requireRole(allowedRoles: string[]) {
+export async function requireRole(allowedRoles: string[]): Promise<void> {
   const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
-  if (!allowedRoles.includes(user.role)) throw new Error("Forbidden");
-  return user;
+  if (!user) throw new RBACError("Unauthorized");
+  if (!allowedRoles.includes(user.role)) throw new RBACError();
 }

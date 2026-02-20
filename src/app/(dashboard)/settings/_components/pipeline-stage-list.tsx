@@ -14,9 +14,10 @@ import type { PipelineStageRow } from "@/server/db/schema";
 
 type PipelineStageListProps = {
   stages: PipelineStageRow[];
+  isAdmin: boolean;
 };
 
-export function PipelineStageList({ stages }: PipelineStageListProps) {
+export function PipelineStageList({ stages, isAdmin }: PipelineStageListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [newStageName, setNewStageName] = useState("");
@@ -84,7 +85,7 @@ export function PipelineStageList({ stages }: PipelineStageListProps) {
         <ul className="space-y-2">
           {nonProtectedStages.map((stage) => (
             <li key={stage.id} className="flex items-center gap-2 rounded-md border px-3 py-2">
-              {editingId === stage.id ? (
+              {isAdmin && editingId === stage.id ? (
                 <>
                   <Input
                     value={editingName}
@@ -127,30 +128,34 @@ export function PipelineStageList({ stages }: PipelineStageListProps) {
               ) : (
                 <>
                   <span className="flex-1 text-sm">{stage.name}</span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    aria-label="Rinomina"
-                    onClick={() => {
-                      handleStartRename(stage);
-                    }}
-                    disabled={isPending}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive h-7 w-7"
-                    aria-label="Elimina"
-                    onClick={() => {
-                      handleDelete(stage.id, stage.name);
-                    }}
-                    disabled={isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        aria-label="Rinomina"
+                        onClick={() => {
+                          handleStartRename(stage);
+                        }}
+                        disabled={isPending}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive h-7 w-7"
+                        aria-label="Elimina"
+                        onClick={() => {
+                          handleDelete(stage.id, stage.name);
+                        }}
+                        disabled={isPending}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </li>
@@ -174,54 +179,55 @@ export function PipelineStageList({ stages }: PipelineStageListProps) {
         ))}
       </ul>
 
-      {/* Add new stage */}
-      {showAddForm ? (
-        <div className="flex items-center gap-2">
-          <Input
-            value={newStageName}
-            onChange={(e) => {
-              setNewStageName(e.target.value);
-            }}
-            placeholder="Nome nuovo stage..."
-            className="h-8 text-sm"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleAddStage();
-              }
-              if (e.key === "Escape") {
+      {/* Add new stage — admin only */}
+      {isAdmin &&
+        (showAddForm ? (
+          <div className="flex items-center gap-2">
+            <Input
+              value={newStageName}
+              onChange={(e) => {
+                setNewStageName(e.target.value);
+              }}
+              placeholder="Nome nuovo stage..."
+              className="h-8 text-sm"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddStage();
+                }
+                if (e.key === "Escape") {
+                  setShowAddForm(false);
+                  setNewStageName("");
+                }
+              }}
+            />
+            <Button size="sm" onClick={handleAddStage} disabled={!newStageName.trim() || isPending}>
+              <Check className="mr-1 h-3.5 w-3.5" />
+              Salva
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
                 setShowAddForm(false);
                 setNewStageName("");
-              }
-            }}
-          />
-          <Button size="sm" onClick={handleAddStage} disabled={!newStageName.trim() || isPending}>
-            <Check className="mr-1 h-3.5 w-3.5" />
-            Salva
-          </Button>
+              }}
+            >
+              Annulla
+            </Button>
+          </div>
+        ) : (
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             onClick={() => {
-              setShowAddForm(false);
-              setNewStageName("");
+              setShowAddForm(true);
             }}
           >
-            Annulla
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            Aggiungi stage
           </Button>
-        </div>
-      ) : (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setShowAddForm(true);
-          }}
-        >
-          <Plus className="mr-1 h-3.5 w-3.5" />
-          Aggiungi stage
-        </Button>
-      )}
+        ))}
     </div>
   );
 }

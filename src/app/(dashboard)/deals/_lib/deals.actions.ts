@@ -7,6 +7,7 @@ import { createDealSchema, updateDealSchema } from "./deals.schema";
 import { dealsService } from "./deals.service";
 import { timelineService } from "./timeline.service";
 
+import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import type { Deal } from "@/server/db/schema";
 
@@ -14,6 +15,12 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
   const parsed = createDealSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
+  }
+  try {
+    await requireRole(["admin", "member"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
   }
   try {
     const deal = await dealsService.create(parsed.data);
@@ -29,6 +36,12 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
   const parsed = updateDealSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
+  }
+  try {
+    await requireRole(["admin", "member"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
   }
   try {
     const { id, ...rest } = parsed.data;
@@ -68,6 +81,12 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
 export async function deleteDeal(id: string): Promise<ActionResult<void>> {
   const parsed = z.string().uuid().safeParse(id);
   if (!parsed.success) return { success: false, error: "ID non valido" };
+  try {
+    await requireRole(["admin", "member"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
   try {
     await dealsService.delete(parsed.data);
     revalidatePath("/deals");

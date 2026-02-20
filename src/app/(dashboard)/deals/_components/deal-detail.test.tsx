@@ -12,6 +12,12 @@ vi.mock("../_lib/timeline.actions", () => ({
   addNote: vi.fn().mockResolvedValue({ success: true, data: {} }),
 }));
 
+vi.mock("../_lib/deals.actions", () => ({
+  createDeal: vi.fn().mockResolvedValue({ success: true }),
+  updateDeal: vi.fn().mockResolvedValue({ success: true }),
+  deleteDeal: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>

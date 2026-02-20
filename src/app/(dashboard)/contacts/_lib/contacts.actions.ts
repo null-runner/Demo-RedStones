@@ -7,6 +7,7 @@ import { z } from "zod/v3";
 import { createContactSchema, updateContactSchema } from "./contacts.schema";
 import { contactsService } from "./contacts.service";
 
+import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import { db } from "@/server/db";
 import { contactsToTags } from "@/server/db/schema";
@@ -16,6 +17,12 @@ export async function createContact(input: unknown): Promise<ActionResult<Contac
   const parsed = createContactSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
+  }
+  try {
+    await requireRole(["admin", "member"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
   }
   try {
     const contact = await contactsService.create(parsed.data);
@@ -34,6 +41,12 @@ export async function updateContact(input: unknown): Promise<ActionResult<Contac
   const parsed = updateContactSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
+  }
+  try {
+    await requireRole(["admin", "member"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
   }
   try {
     const contact = await contactsService.update(parsed.data);
@@ -58,6 +71,12 @@ export async function deleteContact(id: string): Promise<ActionResult<void>> {
   const parsed = deleteIdSchema.safeParse(id);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
+  }
+  try {
+    await requireRole(["admin", "member"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
   }
   try {
     await contactsService.delete(parsed.data);

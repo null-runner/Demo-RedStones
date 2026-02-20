@@ -9,6 +9,9 @@ import type { Deal } from "@/server/db/schema";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
+vi.mock("../_lib/deals.actions", () => ({
+  updateDeal: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 const defaultStages = [...PIPELINE_STAGES];
 

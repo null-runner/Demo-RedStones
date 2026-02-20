@@ -5,6 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContactWithCompanyAndTags } from "../_lib/contacts.service";
 import { ContactForm } from "./contact-form";
 
+vi.mock("../_lib/contacts.actions", () => ({
+  checkDuplicateContact: vi.fn().mockResolvedValue({ success: true, data: { isDuplicate: false } }),
+}));
+
 const mockCompanies = [
   { id: "00000000-0000-0000-0000-000000000010", name: "Acme Corp" },
   { id: "00000000-0000-0000-0000-000000000011", name: "Beta Srl" },
