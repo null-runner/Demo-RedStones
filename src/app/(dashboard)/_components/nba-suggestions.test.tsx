@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import { NbaSuggestions } from "./nba-suggestions";
 import type { NbaSuggestion } from "../_lib/nba.service";
@@ -101,5 +102,23 @@ describe("NbaSuggestions", () => {
     render(<NbaSuggestions suggestions={[s]} />);
     const badge = screen.getByText("Bassa");
     expect(badge).toHaveAttribute("data-variant", "outline");
+  });
+
+  it("renders buttons instead of links when onAction is provided", () => {
+    const s = makeSuggestion();
+    render(<NbaSuggestions suggestions={[s]} onAction={() => {}} />);
+    expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("calls onAction with the suggestion when button is clicked", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    const s = makeSuggestion({ type: "add_notes" });
+    render(<NbaSuggestions suggestions={[s]} onAction={onAction} />);
+
+    await user.click(screen.getByRole("button"));
+
+    expect(onAction).toHaveBeenCalledWith(s);
   });
 });

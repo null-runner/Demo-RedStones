@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 type NbaSuggestionsProps = {
   suggestions: NbaSuggestion[];
   emptyStateMessage?: string;
+  onAction?: (suggestion: NbaSuggestion) => void;
 };
 
 function getPriorityBadge(priority: NbaSuggestion["priority"]) {
@@ -24,7 +25,25 @@ function getEntityHref(suggestion: NbaSuggestion): string {
   return `/contacts/${suggestion.entityId}`;
 }
 
-export function NbaSuggestions({ suggestions, emptyStateMessage }: NbaSuggestionsProps) {
+function SuggestionContent({ suggestion }: { suggestion: NbaSuggestion }) {
+  return (
+    <>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-medium">{suggestion.message}</span>
+        <span className="text-muted-foreground truncate text-xs">{suggestion.entityTitle}</span>
+      </div>
+      <div className="flex flex-shrink-0 items-center gap-2">
+        {getPriorityBadge(suggestion.priority)}
+        <ChevronRight className="text-muted-foreground h-4 w-4" />
+      </div>
+    </>
+  );
+}
+
+const CARD_CLASSES =
+  "hover:bg-accent flex w-full items-center gap-3 rounded-md border p-3 text-left text-sm transition-colors";
+
+export function NbaSuggestions({ suggestions, emptyStateMessage, onAction }: NbaSuggestionsProps) {
   return (
     <Card>
       <CardHeader>
@@ -42,19 +61,21 @@ export function NbaSuggestions({ suggestions, emptyStateMessage }: NbaSuggestion
           <ul className="space-y-2">
             {suggestions.map((s) => (
               <li key={s.id}>
-                <Link
-                  href={getEntityHref(s)}
-                  className="hover:bg-accent flex items-center gap-3 rounded-md border p-3 text-sm transition-colors"
-                >
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="font-medium">{s.message}</span>
-                    <span className="text-muted-foreground truncate text-xs">{s.entityTitle}</span>
-                  </div>
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    {getPriorityBadge(s.priority)}
-                    <ChevronRight className="text-muted-foreground h-4 w-4" />
-                  </div>
-                </Link>
+                {onAction ? (
+                  <button
+                    type="button"
+                    className={CARD_CLASSES}
+                    onClick={() => {
+                      onAction(s);
+                    }}
+                  >
+                    <SuggestionContent suggestion={s} />
+                  </button>
+                ) : (
+                  <Link href={getEntityHref(s)} className={CARD_CLASSES}>
+                    <SuggestionContent suggestion={s} />
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
@@ -17,10 +17,29 @@ type TimelineFeedProps = {
   entries: TimelineEntryWithAuthor[];
 };
 
-export function TimelineFeed({ dealId, entries }: TimelineFeedProps) {
+export type TimelineFeedRef = {
+  focusTextarea: () => void;
+  setNoteText: (text: string) => void;
+};
+
+export const TimelineFeed = forwardRef<TimelineFeedRef, TimelineFeedProps>(function TimelineFeed(
+  { dealId, entries },
+  ref,
+) {
   const [noteText, setNoteText] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focusTextarea: () => {
+      textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      textareaRef.current?.focus();
+    },
+    setNoteText: (text: string) => {
+      setNoteText(text);
+    },
+  }));
 
   const handleAddNote = () => {
     const content = noteText.trim();
@@ -42,6 +61,7 @@ export function TimelineFeed({ dealId, entries }: TimelineFeedProps) {
       {/* Add note form */}
       <div className="space-y-2">
         <Textarea
+          ref={textareaRef}
           placeholder="Aggiungi una nota..."
           value={noteText}
           onChange={(e) => {
@@ -69,7 +89,7 @@ export function TimelineFeed({ dealId, entries }: TimelineFeedProps) {
       )}
     </div>
   );
-}
+});
 
 function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
   const authorName = entry.author?.name ?? "Sistema";

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, Edit, User } from "lucide-react";
 
 import { DealSheet } from "./deal-sheet";
 import { TimelineFeed } from "./timeline-feed";
+import type { TimelineFeedRef } from "./timeline-feed";
 import type { DealWithDetails } from "../_lib/deals.service";
 import type { NbaSuggestion } from "../../_lib/nba.service";
 import type { TimelineEntryWithAuthor } from "../_lib/timeline.service";
@@ -44,6 +45,19 @@ export function DealDetail({
 }: DealDetailProps) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const timelineRef = useRef<TimelineFeedRef>(null);
+
+  const handleNbaAction = (suggestion: NbaSuggestion) => {
+    if (suggestion.type === "add_notes") {
+      timelineRef.current?.focusTextarea();
+    } else if (suggestion.type === "follow_up") {
+      timelineRef.current?.setNoteText("Follow-up: ");
+      timelineRef.current?.focusTextarea();
+    } else if (suggestion.type === "request_decision") {
+      timelineRef.current?.setNoteText("Richiesta decisione: ");
+      timelineRef.current?.focusTextarea();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -125,6 +139,7 @@ export function DealDetail({
         {/* NBA Suggerimenti */}
         <NbaSuggestions
           suggestions={nbaSuggestions}
+          onAction={handleNbaAction}
           {...(isTerminalStage(deal.stage) && { emptyStateMessage: "Deal concluso" })}
         />
       </div>
@@ -135,7 +150,7 @@ export function DealDetail({
           <CardTitle className="text-base">Timeline Attività</CardTitle>
         </CardHeader>
         <CardContent>
-          <TimelineFeed dealId={deal.id} entries={timelineEntries} />
+          <TimelineFeed ref={timelineRef} dealId={deal.id} entries={timelineEntries} />
         </CardContent>
       </Card>
 
