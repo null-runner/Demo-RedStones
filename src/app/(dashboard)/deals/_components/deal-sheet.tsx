@@ -54,15 +54,16 @@ export function DealSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-md">
-        <SheetHeader className="px-6 pt-6">
+      <SheetContent className="overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
           <SheetTitle>{deal ? "Modifica Deal" : "Nuovo Deal"}</SheetTitle>
           <SheetDescription>
             {deal ? "Aggiorna le informazioni del deal." : "Crea un nuovo deal nella pipeline."}
           </SheetDescription>
         </SheetHeader>
-        <div className="px-6 pb-6">
+        <div className="px-4 pb-4">
           <DealForm
+            key={deal?.id ?? "new"}
             initialData={deal ?? null}
             companies={companies}
             contacts={contacts}

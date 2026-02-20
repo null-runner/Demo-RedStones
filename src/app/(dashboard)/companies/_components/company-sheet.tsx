@@ -8,7 +8,13 @@ import type { CreateCompanyInput } from "../_lib/companies.schema";
 import { CompanyForm } from "./company-form";
 
 import type { Company } from "@/server/db/schema";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 type CompanySheetProps = {
   open: boolean;
@@ -42,8 +48,11 @@ export function CompanySheet({ open, onOpenChange, company, onSuccess }: Company
       <SheetContent className="overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>{isEdit ? "Modifica Azienda" : "Nuova Azienda"}</SheetTitle>
+          <SheetDescription>
+            {isEdit ? "Modifica i dati dell'azienda." : "Aggiungi una nuova azienda al tuo CRM."}
+          </SheetDescription>
         </SheetHeader>
-        <div className="mt-6">
+        <div className="px-4 pb-4">
           <CompanyForm
             key={company?.id ?? "new"}
             initialData={company ?? null}

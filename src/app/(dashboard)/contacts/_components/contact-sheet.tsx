@@ -55,7 +55,7 @@ export function ContactSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+      <SheetContent className="overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>{isEditing ? "Modifica Contatto" : "Nuovo Contatto"}</SheetTitle>
           <SheetDescription>
@@ -64,6 +64,7 @@ export function ContactSheet({
         </SheetHeader>
         <div className="px-4 pb-4">
           <ContactForm
+            key={contact?.id ?? "new"}
             initialData={contact ?? null}
             companies={companies}
             allTags={allTags}
