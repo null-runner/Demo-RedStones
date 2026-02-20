@@ -16,6 +16,10 @@ vi.mock("../../_lib/contacts.actions", () => ({
   syncContactTags: vi.fn(),
 }));
 
+vi.mock("../../_components/contact-sheet", () => ({
+  ContactSheet: () => null,
+}));
+
 const mockCompanies = [{ id: "00000000-0000-0000-0000-000000000010", name: "Acme Corp" }];
 
 const mockTags = [
