@@ -1,0 +1,5 @@
+export const NBA_THRESHOLDS = {
+  FOLLOW_UP_DAYS: 7,
+  DECISION_DAYS: 14,
+  REACTIVATE_DAYS: 30,
+} as const;
