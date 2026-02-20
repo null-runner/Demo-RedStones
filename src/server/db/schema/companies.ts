@@ -4,6 +4,7 @@ export const enrichmentStatusEnum = pgEnum("enrichment_status", [
   "not_enriched",
   "enriched",
   "partial",
+  "processing",
 ]);
 
 export const companies = pgTable("companies", {

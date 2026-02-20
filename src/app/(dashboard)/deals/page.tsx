@@ -16,7 +16,6 @@ export default async function DealsPage() {
     pipelineStagesService.getAll(),
   ]);
 
-  // Use DB stages if available, fall back to hardcoded constants
   const stages = dbStages.length > 0 ? dbStages.map((s) => s.name) : [...PIPELINE_STAGES];
 
   return (

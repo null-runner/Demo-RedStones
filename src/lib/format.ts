@@ -4,6 +4,17 @@ export function formatEUR(value: number): string {
   return EUR_FORMATTER.format(value);
 }
 
+/** Convert string value to integer cents to avoid floating-point precision issues. */
+export function toCents(value: string): number {
+  return Math.round(parseFloat(value) * 100);
+}
+
+/** Sum an array of string currency values safely using integer cents. */
+export function sumCurrency(values: string[]): number {
+  const totalCents = values.reduce((sum, v) => sum + toCents(v), 0);
+  return totalCents / 100;
+}
+
 export function formatRelativeDate(date: Date): string {
   const now = Date.now();
   const diffMs = now - date.getTime();

@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
+import { auth } from "@/server/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,15 +23,17 @@ export const metadata: Metadata = {
   description: "Mini CRM per la gestione contatti, aziende e pipeline commerciale",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="it">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider session={session}>{children}</SessionProvider>
         <Toaster />
       </body>
     </html>

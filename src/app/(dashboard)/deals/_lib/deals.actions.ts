@@ -17,7 +17,7 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -38,7 +38,7 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -58,15 +58,10 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     const deal = await dealsService.update(id, rest);
     if (!deal) return { success: false, error: "Deal non trovato" };
 
-    // Registra cambio stage nella timeline (se avvenuto) — non-blocking:
-    // il deal è già aggiornato, un errore di timeline non deve invalidare l'operazione
     if (previousStage !== undefined && rest.stage !== undefined) {
       try {
         await timelineService.recordStageChange(id, previousStage, rest.stage, null);
-      } catch {
-        // Timeline recording failed but deal update succeeded — log silently
-        console.error(`Failed to record stage change for deal ${id}`);
-      }
+      } catch {}
     }
 
     revalidatePath("/deals");
@@ -82,7 +77,7 @@ export async function deleteDeal(id: string): Promise<ActionResult<void>> {
   const parsed = z.string().uuid().safeParse(id);
   if (!parsed.success) return { success: false, error: "ID non valido" };
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };

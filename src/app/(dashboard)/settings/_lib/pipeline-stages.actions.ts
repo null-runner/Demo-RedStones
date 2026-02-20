@@ -21,7 +21,7 @@ export async function createStage(name: string): Promise<ActionResult<PipelineSt
     return { success: false, error: parsedName.error.issues[0]?.message ?? "Nome non valido" };
   }
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -48,7 +48,7 @@ export async function renameStage(
   if (!parsedName.success)
     return { success: false, error: parsedName.error.issues[0]?.message ?? "Nome non valido" };
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -73,7 +73,7 @@ export async function reorderStages(orderedIds: string[]): Promise<ActionResult<
     return { success: false, error: "ID stage non valido nella lista" };
   }
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -94,7 +94,7 @@ export async function deleteStage(id: string): Promise<ActionResult<void>> {
   if (!parsedId.success)
     return { success: false, error: parsedId.error.issues[0]?.message ?? "ID non valido" };
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };

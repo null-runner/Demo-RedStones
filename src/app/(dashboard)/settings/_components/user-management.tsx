@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod/v3";
@@ -157,7 +158,7 @@ export function UserManagement({ initialUsers, currentUserId }: Props) {
                   {user.invitedAt !== null && <Badge variant="outline">Invitato</Badge>}
                 </div>
               </TableCell>
-              <TableCell>{user.createdAt.toLocaleDateString("it-IT")}</TableCell>
+              <TableCell>{format(user.createdAt, "dd/MM/yyyy")}</TableCell>
               <TableCell>
                 <Button
                   variant="ghost"

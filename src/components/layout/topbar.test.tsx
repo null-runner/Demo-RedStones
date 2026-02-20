@@ -51,7 +51,7 @@ describe("Topbar", () => {
 
   it("renders search hint with keyboard shortcut", () => {
     render(<Topbar searchDataset={emptyDataset} />);
-    expect(screen.getByText("⌘K")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl+K")).toBeInTheDocument();
   });
 
   it("search button has accessible label", () => {

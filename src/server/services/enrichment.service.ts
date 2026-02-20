@@ -19,24 +19,60 @@ export type EnrichmentSuccess = {
   status: "enriched" | "partial";
 };
 
+export type EnrichmentProcessing = {
+  success: true;
+  status: "processing";
+};
+
 export type EnrichmentError = {
   success: false;
   error: "not_found" | "timeout" | "service_unavailable" | "network_error" | "api_key_missing";
 };
 
-export type EnrichmentResult = EnrichmentSuccess | EnrichmentError;
+export type EnrichmentResult = EnrichmentSuccess | EnrichmentProcessing | EnrichmentError;
 
 export const enrichmentService = {
-  enrich,
+  startEnrichment,
+  runEnrichment,
+  getStatus,
 };
 
-async function enrich(
+async function getStatus(companyId: string): Promise<EnrichmentResult> {
+  const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+  const company = rows[0];
+  if (!company) {
+    return { success: false, error: "not_found" };
+  }
+
+  if (company.enrichmentStatus === "processing") {
+    return { success: true, status: "processing" };
+  }
+
+  if (company.enrichmentStatus === "not_enriched") {
+    return { success: false, error: "not_found" };
+  }
+
+  return {
+    success: true,
+    status: company.enrichmentStatus,
+    data: {
+      description: company.enrichmentDescription ?? null,
+      sector: company.enrichmentSector ?? null,
+      estimatedSize: company.enrichmentSize ?? null,
+      painPoints: company.enrichmentPainPoints
+        ? company.enrichmentPainPoints.split("\n").filter(Boolean)
+        : [],
+    },
+  };
+}
+
+async function startEnrichment(
   companyId: string,
   options: { force?: boolean } = {},
 ): Promise<EnrichmentResult> {
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) {
-    console.warn("[enrichment] GEMINI_API_KEY non impostata — enrichment disabilitato");
+    console.warn("[enrichment] GEMINI_API_KEY not set");
     return { success: false, error: "api_key_missing" };
   }
 
@@ -47,6 +83,11 @@ async function enrich(
   }
 
   const force = options.force ?? false;
+
+  if (!force && company.enrichmentStatus === "processing") {
+    return { success: true, status: "processing" };
+  }
+
   if (!force && company.enrichmentStatus !== "not_enriched") {
     return {
       success: true,
@@ -62,11 +103,27 @@ async function enrich(
     };
   }
 
+  await db
+    .update(companies)
+    .set({ enrichmentStatus: "processing", updatedAt: new Date() })
+    .where(eq(companies.id, companyId));
+
+  return { success: true, status: "processing" };
+}
+
+async function runEnrichment(companyId: string): Promise<void> {
+  const apiKey = process.env["GEMINI_API_KEY"];
+  if (!apiKey) return;
+
+  const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+  const company = rows[0];
+  if (!company) return;
+
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null);
 
-  const TIMEOUT_MS = 9_500;
+  const TIMEOUT_MS = 120_000;
 
   let rawResult;
   try {
@@ -77,25 +134,33 @@ async function enrich(
     });
     rawResult = await Promise.race([model.generateContent(prompt), timeoutPromise]);
   } catch (error) {
-    if (error instanceof Error && error.message === "ENRICHMENT_TIMEOUT") {
-      return { success: false, error: "timeout" };
-    }
-    if (isHttpError(error)) {
-      return { success: false, error: "service_unavailable" };
-    }
-    return { success: false, error: "network_error" };
+    const errorReason = getErrorReason(error);
+    console.error(`[enrichment] Failed for ${companyId}: ${errorReason}`);
+    await db
+      .update(companies)
+      .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return;
   }
 
   let text: string;
   try {
     text = rawResult.response.text();
   } catch {
-    return { success: false, error: "service_unavailable" };
+    await db
+      .update(companies)
+      .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return;
   }
 
   const data = parseGeminiResponse(text);
   if (!data) {
-    return { success: false, error: "service_unavailable" };
+    await db
+      .update(companies)
+      .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return;
   }
 
   const status = detectStatus(data);
@@ -111,18 +176,18 @@ async function enrich(
       updatedAt: new Date(),
     })
     .where(eq(companies.id, companyId));
-
-  return { success: true, data, status };
 }
 
 function buildGeminiPrompt(name: string, domain: string | null): string {
-  return `Analizza l'azienda "${name}"${domain ? ` (dominio: ${domain})` : ""} e restituisci un JSON con:
+  return `Sei un analista CRM. Un venditore sta valutando "${name}"${domain ? ` (dominio: ${domain})` : ""} come potenziale cliente.
+Analizza questa azienda e restituisci un JSON con:
 {
-  "description": "descrizione breve dell'azienda (max 200 caratteri) o null",
-  "sector": "settore di business (es: SaaS, Manifattura, Retail) o null",
-  "estimatedSize": "stima dimensione (es: 1-10, 11-50, 51-200, 200+) o null",
-  "painPoints": ["pain point 1", "pain point 2"] oppure []
+  "description": "cosa fa l'azienda, in max 200 caratteri, o null se non trovi info",
+  "sector": "settore principale (es: SaaS, Manifattura, Retail, Consulenza IT) o null",
+  "estimatedSize": "stima numero dipendenti (es: 1-10, 11-50, 51-200, 200+) o null",
+  "painPoints": ["sfida operativa 1", "sfida operativa 2"] oppure []
 }
+IMPORTANTE per painPoints: indica le sfide operative e i problemi interni che questa azienda probabilmente affronta nel proprio business quotidiano (es: gestione clienti frammentata, difficoltà di scaling, processi manuali). NON indicare i problemi dei loro clienti.
 Rispondi SOLO con il JSON, senza markdown.`;
 }
 
@@ -151,6 +216,12 @@ function detectStatus(data: EnrichmentData): "enriched" | "partial" {
     data.estimatedSize !== null &&
     data.painPoints.length > 0;
   return hasAllFields ? "enriched" : "partial";
+}
+
+function getErrorReason(error: unknown): string {
+  if (error instanceof Error && error.message === "ENRICHMENT_TIMEOUT") return "timeout";
+  if (isHttpError(error)) return "service_unavailable";
+  return "network_error";
 }
 
 function isHttpError(error: unknown): boolean {

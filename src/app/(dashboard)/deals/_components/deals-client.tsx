@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, List, Plus } from "lucide-react";
+import { startOfDay, subDays } from "date-fns";
+import { Info, LayoutGrid, List, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteDeal, updateDeal } from "../_lib/deals.actions";
@@ -12,6 +13,7 @@ import { LostReasonDialog } from "./lost-reason-dialog";
 import { PipelineBoard } from "./pipeline-board";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { DateRangePicker, type DateRangeValue } from "@/components/shared/date-range-picker";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +29,6 @@ import { usePermission } from "@/hooks/use-permission";
 import type { PipelineStage } from "@/lib/constants/pipeline";
 import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Deal } from "@/server/db/schema";
-
-const PERIOD_OPTIONS = [
-  { value: "all", label: "Tutti i periodi" },
-  { value: "30d", label: "Ultimi 30 giorni" },
-  { value: "90d", label: "Ultimi 90 giorni" },
-] as const;
 
 type DealsClientProps = {
   deals: Deal[];
@@ -50,7 +46,10 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [minValue, setMinValue] = useState("");
   const [maxValue, setMaxValue] = useState("");
-  const [periodFilter, setPeriodFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRangeValue>(() => ({
+    from: subDays(startOfDay(new Date()), 6),
+    to: new Date(),
+  }));
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
@@ -63,25 +62,25 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
-    const now = new Date();
     return deals.filter((deal) => {
-      if (query.trim() && !deal.title.toLowerCase().includes(query.toLowerCase())) return false;
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const companyName = companies.find((c) => c.id === deal.companyId)?.name ?? "";
+        const ownerName = users.find((u) => u.id === deal.ownerId)?.name ?? "";
+        const matchesTitle = deal.title.toLowerCase().includes(q);
+        const matchesCompany = companyName.toLowerCase().includes(q);
+        const matchesOwner = ownerName.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesCompany && !matchesOwner) return false;
+      }
       if (stageFilter !== "all" && deal.stage !== stageFilter) return false;
       if (ownerFilter !== "all" && deal.ownerId !== ownerFilter) return false;
       const numVal = parseFloat(deal.value);
       if (minValue !== "" && numVal < parseFloat(minValue)) return false;
       if (maxValue !== "" && numVal > parseFloat(maxValue)) return false;
-      if (periodFilter === "30d") {
-        const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        if (deal.createdAt < cutoff) return false;
-      }
-      if (periodFilter === "90d") {
-        const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        if (deal.createdAt < cutoff) return false;
-      }
+      if (deal.createdAt < dateRange.from || deal.createdAt > dateRange.to) return false;
       return true;
     });
-  }, [deals, query, stageFilter, ownerFilter, minValue, maxValue, periodFilter]);
+  }, [deals, query, stageFilter, ownerFilter, minValue, maxValue, dateRange, companies, users]);
 
   const handleEdit = (deal: Deal) => {
     if (!canWrite) {
@@ -155,7 +154,7 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   };
 
   return (
-    <div className="space-y-6">
+    <div className={view === "kanban" ? "flex min-h-0 flex-1 flex-col" : "space-y-6"}>
       <PageHeader
         title="Pipeline"
         description="Gestisci le opportunità commerciali"
@@ -197,12 +196,17 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
       />
 
       {/* Filtri */}
-      <div className="bg-muted/50 rounded-lg border p-4">
+      <div className="bg-muted/50 mt-6 flex-shrink-0 rounded-lg border p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="space-y-1">
-            <Label className="text-xs">Cerca</Label>
+            <Label className="flex items-center gap-1 text-xs">
+              Cerca
+              <span title="Cerca per titolo deal, azienda o owner">
+                <Info className="text-muted-foreground h-3.5 w-3.5" />
+              </span>
+            </Label>
             <Input
-              placeholder="Cerca per titolo..."
+              placeholder="Titolo, azienda, owner..."
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -269,18 +273,7 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Periodo</Label>
-            <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIOD_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
         </div>
         <div className="mt-2 text-right">
@@ -289,12 +282,15 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
       </div>
 
       {view === "kanban" ? (
-        <PipelineBoard
-          deals={filtered}
-          contacts={contacts}
-          onLostReasonNeeded={handleLostReasonNeeded}
-          stages={stages}
-        />
+        <div className="mt-4 flex min-h-0 flex-1 flex-col">
+          <PipelineBoard
+            deals={filtered}
+            contacts={contacts}
+            companies={companies}
+            onLostReasonNeeded={handleLostReasonNeeded}
+            stages={stages}
+          />
+        </div>
       ) : (
         <DealTable
           deals={filtered}

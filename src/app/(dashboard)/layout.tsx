@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar searchDataset={searchDataset} />
         <DemoBanner />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex flex-1 flex-col overflow-auto p-6">{children}</main>
       </div>
     </div>
   );

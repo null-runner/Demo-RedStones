@@ -32,7 +32,6 @@ interface SeedData {
 }
 
 export function generateSeedData(): SeedData {
-  // Generate IDs upfront for cross-referencing
   const companyIds = {
     redstones: crypto.randomUUID(),
     eter: crypto.randomUUID(),
@@ -42,10 +41,10 @@ export function generateSeedData(): SeedData {
   };
 
   const contactIds = {
-    // RedStones (3 contacts)
-    jacopoPellegrini: crypto.randomUUID(),
-    martinaConti: crypto.randomUUID(),
-    lucaFerri: crypto.randomUUID(),
+    // RedStones
+    jacopoCrincoli: crypto.randomUUID(),
+    redstonesDev: crypto.randomUUID(),
+    redstonesOps: crypto.randomUUID(),
     // Eter (3 contacts)
     sofiaRicci: crypto.randomUUID(),
     marcoRusso: crypto.randomUUID(),
@@ -75,6 +74,14 @@ export function generateSeedData(): SeedData {
     fornituraComponenti: crypto.randomUUID(),
     dueDiligence: crypto.randomUUID(),
     pianoRistrutturazione: crypto.randomUUID(),
+    // Won deals for velocity/win rate
+    setupAccessiSede: crypto.randomUUID(),
+    auditProcessi: crypto.randomUUID(),
+    advisoryMa: crypto.randomUUID(),
+    strategiaSocial: crypto.randomUUID(),
+    // Extra lost deals for win rate
+    softwareVisitatori: crypto.randomUUID(),
+    ristrutturazioneDebito: crypto.randomUUID(),
   };
 
   const guestUserId = crypto.randomUUID();
@@ -95,7 +102,7 @@ export function generateSeedData(): SeedData {
     {
       id: companyIds.redstones,
       name: "RedStones",
-      domain: "redstones.io",
+      domain: "red-stones.it",
       sector: "Software / SaaS",
       description: "Software house specializzata in soluzioni SaaS per il mercato italiano.",
       enrichmentStatus: "not_enriched",
@@ -171,36 +178,35 @@ export function generateSeedData(): SeedData {
   ];
 
   const seedContacts: NewContact[] = [
-    // RedStones — 3 contacts
     {
-      id: contactIds.jacopoPellegrini,
+      id: contactIds.jacopoCrincoli,
       firstName: "Jacopo",
-      lastName: "Pellegrini",
-      email: "j.pellegrini@redstones.io",
+      lastName: "Crincoli",
+      email: "jacopo@red-stones.it",
       phone: "+39 059 123 4567",
-      role: "CEO",
+      role: "Founder",
       companyId: companyIds.redstones,
       createdAt: daysAgo(58),
       updatedAt: daysAgo(58),
     },
     {
-      id: contactIds.martinaConti,
-      firstName: "Martina",
-      lastName: "Conti",
-      email: "m.conti@redstones.io",
-      phone: "+39 059 123 4568",
-      role: "CTO",
+      id: contactIds.redstonesDev,
+      firstName: "Dev",
+      lastName: "Team",
+      email: "dev@red-stones.it",
+      phone: null,
+      role: "Development",
       companyId: companyIds.redstones,
       createdAt: daysAgo(57),
       updatedAt: daysAgo(57),
     },
     {
-      id: contactIds.lucaFerri,
-      firstName: "Luca",
-      lastName: "Ferri",
-      email: "l.ferri@redstones.io",
-      phone: "+39 059 123 4569",
-      role: "Sales Director",
+      id: contactIds.redstonesOps,
+      firstName: "Operations",
+      lastName: "Team",
+      email: "ops@red-stones.it",
+      phone: null,
+      role: "Operations",
       companyId: companyIds.redstones,
       createdAt: daysAgo(56),
       updatedAt: daysAgo(56),
@@ -349,7 +355,7 @@ export function generateSeedData(): SeedData {
       title: "Implementazione CRM Enterprise",
       value: "28000.00",
       stage: "Proposta",
-      contactId: contactIds.jacopoPellegrini,
+      contactId: contactIds.jacopoCrincoli,
       companyId: companyIds.redstones,
       ownerId: guestUserId,
       lostReason: null,
@@ -361,7 +367,7 @@ export function generateSeedData(): SeedData {
       title: "Licenze Software Annuali",
       value: "15000.00",
       stage: "Negoziazione",
-      contactId: contactIds.martinaConti,
+      contactId: contactIds.redstonesDev,
       companyId: companyIds.redstones,
       ownerId: guestUserId,
       lostReason: null,
@@ -390,7 +396,7 @@ export function generateSeedData(): SeedData {
       ownerId: guestUserId,
       lostReason: null,
       createdAt: daysAgo(15),
-      updatedAt: daysAgo(10),
+      updatedAt: daysAgo(18),
     },
     {
       id: dealIds.campagnaSeo,
@@ -437,8 +443,8 @@ export function generateSeedData(): SeedData {
       companyId: companyIds.produzione,
       ownerId: guestUserId,
       lostReason: null,
-      createdAt: daysAgo(12),
-      updatedAt: daysAgo(9),
+      createdAt: daysAgo(30),
+      updatedAt: daysAgo(22),
     },
     {
       id: dealIds.dueDiligence,
@@ -463,6 +469,80 @@ export function generateSeedData(): SeedData {
       lostReason: null,
       createdAt: daysAgo(4),
       updatedAt: daysAgo(4),
+    },
+    // Won deals — for pipeline velocity and win rate
+    {
+      id: dealIds.setupAccessiSede,
+      title: "Setup Sistema Accessi Sede Centrale",
+      value: "18500.00",
+      stage: "Chiuso Vinto",
+      contactId: contactIds.sofiaRicci,
+      companyId: companyIds.eter,
+      ownerId: guestUserId,
+      lostReason: null,
+      createdAt: daysAgo(45),
+      updatedAt: daysAgo(20),
+    },
+    {
+      id: dealIds.auditProcessi,
+      title: "Audit Processi Produttivi",
+      value: "9200.00",
+      stage: "Chiuso Vinto",
+      contactId: contactIds.robertoColombo,
+      companyId: companyIds.produzione,
+      ownerId: guestUserId,
+      lostReason: null,
+      createdAt: daysAgo(55),
+      updatedAt: daysAgo(30),
+    },
+    {
+      id: dealIds.advisoryMa,
+      title: "Advisory M&A Piccola Acquisizione",
+      value: "32000.00",
+      stage: "Chiuso Vinto",
+      contactId: contactIds.alessiaGallo,
+      companyId: companyIds.studio,
+      ownerId: guestUserId,
+      lostReason: null,
+      createdAt: daysAgo(50),
+      updatedAt: daysAgo(8),
+    },
+    {
+      id: dealIds.strategiaSocial,
+      title: "Strategia Social Media Q4",
+      value: "7800.00",
+      stage: "Chiuso Vinto",
+      contactId: contactIds.davideFerrari,
+      companyId: companyIds.axis,
+      ownerId: guestUserId,
+      lostReason: null,
+      createdAt: daysAgo(60),
+      updatedAt: daysAgo(35),
+    },
+    // Extra lost deals — for win rate
+    {
+      id: dealIds.softwareVisitatori,
+      title: "Software Gestione Visitatori",
+      value: "14000.00",
+      stage: "Chiuso Perso",
+      contactId: contactIds.elenaMoretti,
+      companyId: companyIds.eter,
+      ownerId: guestUserId,
+      lostReason: "Scelta competitor: hanno scelto soluzione open-source",
+      createdAt: daysAgo(50),
+      updatedAt: daysAgo(25),
+    },
+    {
+      id: dealIds.ristrutturazioneDebito,
+      title: "Ristrutturazione Debito Aziendale",
+      value: "25000.00",
+      stage: "Chiuso Perso",
+      contactId: contactIds.giuliaCosta,
+      companyId: companyIds.studio,
+      ownerId: guestUserId,
+      lostReason: "Nessuna risposta: contatto perso dopo seconda proposta",
+      createdAt: daysAgo(45),
+      updatedAt: daysAgo(18),
     },
   ];
 
@@ -671,6 +751,167 @@ export function generateSeedData(): SeedData {
       authorId: guestUserId,
       createdAt: daysAgo(4),
     },
+    // Won deal: Setup Accessi Sede
+    {
+      dealId: dealIds.setupAccessiSede,
+      type: "stage_change",
+      content: null,
+      previousStage: "Lead",
+      newStage: "Demo",
+      authorId: guestUserId,
+      createdAt: daysAgo(35),
+    },
+    {
+      dealId: dealIds.setupAccessiSede,
+      type: "stage_change",
+      content: null,
+      previousStage: "Demo",
+      newStage: "Chiuso Vinto",
+      authorId: guestUserId,
+      createdAt: daysAgo(20),
+    },
+    {
+      dealId: dealIds.setupAccessiSede,
+      type: "note",
+      content: "Contratto firmato. Installazione programmata per il mese prossimo.",
+      previousStage: null,
+      newStage: null,
+      authorId: guestUserId,
+      createdAt: daysAgo(20),
+    },
+    // Won deal: Audit Processi
+    {
+      dealId: dealIds.auditProcessi,
+      type: "stage_change",
+      content: null,
+      previousStage: "Lead",
+      newStage: "Qualificato",
+      authorId: guestUserId,
+      createdAt: daysAgo(48),
+    },
+    {
+      dealId: dealIds.auditProcessi,
+      type: "stage_change",
+      content: null,
+      previousStage: "Qualificato",
+      newStage: "Chiuso Vinto",
+      authorId: guestUserId,
+      createdAt: daysAgo(30),
+    },
+    {
+      dealId: dealIds.auditProcessi,
+      type: "note",
+      content: "Audit completato. Cliente soddisfatto, possibilità di upsell su automazione.",
+      previousStage: null,
+      newStage: null,
+      authorId: guestUserId,
+      createdAt: daysAgo(30),
+    },
+    // Won deal: Advisory M&A
+    {
+      dealId: dealIds.advisoryMa,
+      type: "note",
+      content:
+        "Engagement complesso, due diligence su target regionale. Partner Gallo soddisfatta del lavoro.",
+      previousStage: null,
+      newStage: null,
+      authorId: guestUserId,
+      createdAt: daysAgo(40),
+    },
+    {
+      dealId: dealIds.advisoryMa,
+      type: "stage_change",
+      content: null,
+      previousStage: "Lead",
+      newStage: "Negoziazione",
+      authorId: guestUserId,
+      createdAt: daysAgo(30),
+    },
+    {
+      dealId: dealIds.advisoryMa,
+      type: "stage_change",
+      content: null,
+      previousStage: "Negoziazione",
+      newStage: "Chiuso Vinto",
+      authorId: guestUserId,
+      createdAt: daysAgo(8),
+    },
+    // Won deal: Strategia Social
+    {
+      dealId: dealIds.strategiaSocial,
+      type: "stage_change",
+      content: null,
+      previousStage: "Lead",
+      newStage: "Qualificato",
+      authorId: guestUserId,
+      createdAt: daysAgo(52),
+    },
+    {
+      dealId: dealIds.strategiaSocial,
+      type: "stage_change",
+      content: null,
+      previousStage: "Qualificato",
+      newStage: "Chiuso Vinto",
+      authorId: guestUserId,
+      createdAt: daysAgo(35),
+    },
+    // Lost deal: Software Visitatori
+    {
+      dealId: dealIds.softwareVisitatori,
+      type: "stage_change",
+      content: null,
+      previousStage: "Lead",
+      newStage: "Demo",
+      authorId: guestUserId,
+      createdAt: daysAgo(40),
+    },
+    {
+      dealId: dealIds.softwareVisitatori,
+      type: "stage_change",
+      content: null,
+      previousStage: "Demo",
+      newStage: "Chiuso Perso",
+      authorId: guestUserId,
+      createdAt: daysAgo(25),
+    },
+    {
+      dealId: dealIds.softwareVisitatori,
+      type: "note",
+      content:
+        "Perso contro competitor open-source. Il budget era limitato e hanno preferito la soluzione gratuita.",
+      previousStage: null,
+      newStage: null,
+      authorId: guestUserId,
+      createdAt: daysAgo(25),
+    },
+    // Lost deal: Ristrutturazione Debito
+    {
+      dealId: dealIds.ristrutturazioneDebito,
+      type: "stage_change",
+      content: null,
+      previousStage: "Lead",
+      newStage: "Proposta",
+      authorId: guestUserId,
+      createdAt: daysAgo(35),
+    },
+    {
+      dealId: dealIds.ristrutturazioneDebito,
+      type: "stage_change",
+      content: null,
+      previousStage: "Proposta",
+      newStage: "Chiuso Perso",
+      authorId: guestUserId,
+      createdAt: daysAgo(18),
+    },
+    {
+      dealId: dealIds.ristrutturazioneDebito,
+      type: "note",
+      content: "Contatto perso dopo seconda proposta. Probabilmente hanno scelto altro consulente.",
+      previousStage: null,
+      newStage: null,
+      authorId: guestUserId,
+      createdAt: daysAgo(18),
+    },
   ];
 
   return {
@@ -704,19 +945,17 @@ export async function resetDatabase(): Promise<void> {
 
   await seedPipelineStages();
 
-  await db.transaction(async (tx) => {
-    await tx.delete(timelineEntries);
-    await tx.delete(contactsToTags);
-    await tx.delete(deals);
-    await tx.delete(contacts);
-    await tx.delete(tags);
-    await tx.delete(companies);
-    await tx.delete(users);
+  await db.delete(timelineEntries);
+  await db.delete(contactsToTags);
+  await db.delete(deals);
+  await db.delete(contacts);
+  await db.delete(tags);
+  await db.delete(companies);
+  await db.delete(users);
 
-    await tx.insert(users).values(data.users);
-    await tx.insert(companies).values(data.companies);
-    await tx.insert(contacts).values(data.contacts);
-    await tx.insert(deals).values(data.deals);
-    await tx.insert(timelineEntries).values(data.timelineEntries);
-  });
+  await db.insert(users).values(data.users);
+  await db.insert(companies).values(data.companies);
+  await db.insert(contacts).values(data.contacts);
+  await db.insert(deals).values(data.deals);
+  await db.insert(timelineEntries).values(data.timelineEntries);
 }

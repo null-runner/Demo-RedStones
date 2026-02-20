@@ -67,7 +67,6 @@ async function update(id: string, input: Omit<UpdateDealInput, "id">): Promise<D
 }
 
 async function deleteDeal(id: string): Promise<void> {
-  // timeline_entries si eliminano in cascade (onDelete: "cascade" in schema)
   await db.delete(deals).where(eq(deals.id, id));
 }
 

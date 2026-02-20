@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { format } from "date-fns";
 
 import type { ContactWithDetails } from "../../_lib/contacts.service";
 
@@ -24,7 +25,7 @@ function formatRelativeDate(date: Date): string {
   if (diffDays === 0) return "oggi";
   if (diffDays === 1) return "ieri";
   if (diffDays < 7) return `${String(diffDays)} giorni fa`;
-  return date.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+  return format(date, "dd MMM yyyy");
 }
 
 export function ContactDetail({ contact }: ContactDetailProps) {

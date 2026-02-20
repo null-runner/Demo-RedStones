@@ -8,7 +8,7 @@ import { EnrichmentSection } from "./enrichment-section";
 
 // Mock sonner — factory must not reference outer variables (hoisting)
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn() },
+  toast: { error: vi.fn(), success: vi.fn() },
 }));
 
 // Mock fetch
@@ -49,15 +49,13 @@ describe("EnrichmentSection", () => {
     vi.mocked(toast.error).mockReset();
   });
 
-  // AC1: not_enriched → bottone "Arricchisci con AI" visibile
-  it("AC1: azienda not_enriched mostra bottone Arricchisci con AI", () => {
+  it("azienda not_enriched mostra bottone Arricchisci con AI", () => {
     render(<EnrichmentSection company={makeCompany()} />);
 
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).toBeInTheDocument();
   });
 
-  // AC2: loading state dopo click
-  it("AC2: durante loading bottone disabilitato con testo Arricchimento in corso...", async () => {
+  it("durante loading bottone disabilitato con testo Arricchimento in corso...", async () => {
     const user = userEvent.setup();
     mockFetch.mockImplementation(() => new Promise(() => {}));
 
@@ -67,8 +65,7 @@ describe("EnrichmentSection", () => {
     expect(screen.getByRole("button", { name: /arricchimento in corso/i })).toBeDisabled();
   });
 
-  // AC3 + AC4: enrichment completo → dati + bottone "Aggiorna dati"
-  it("AC3+AC4: enrichment completato mostra dati e bottone Aggiorna dati", async () => {
+  it("enrichment completato mostra dati e bottone Aggiorna dati", async () => {
     const user = userEvent.setup();
     mockFetchResponse({
       success: true,
@@ -93,8 +90,7 @@ describe("EnrichmentSection", () => {
     expect(screen.getByRole("button", { name: /aggiorna dati/i })).toBeInTheDocument();
   });
 
-  // AC5: partial → badge "Dati parziali" + campi null mostrano "— non disponibile"
-  it("AC5: enrichment partial mostra badge Dati parziali e campi mancanti", async () => {
+  it("enrichment partial mostra badge Dati parziali e campi mancanti", async () => {
     const user = userEvent.setup();
     mockFetchResponse({
       success: true,
@@ -117,22 +113,22 @@ describe("EnrichmentSection", () => {
     expect(screen.getAllByText(/— non disponibile/i).length).toBeGreaterThan(0);
   });
 
-  // AC6: errore timeout → toast con messaggio timeout
-  it("AC6: errore timeout mostra toast con messaggio user-friendly", async () => {
+  it("errore dal server mostra toast con messaggio user-friendly", async () => {
     const user = userEvent.setup();
-    mockFetchResponse({ success: false, error: "timeout" });
+    mockFetchResponse({ success: false, error: "api_key_missing" });
 
     render(<EnrichmentSection company={makeCompany()} />);
     await user.click(screen.getByRole("button", { name: /arricchisci con ai/i }));
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("troppo tempo"));
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining("temporaneamente non disponibile"),
+      );
     });
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
   });
 
-  // AC7: errore servizio → toast con messaggio servizio
-  it("AC7: errore service_unavailable mostra toast con messaggio non tecnico", async () => {
+  it("errore service_unavailable mostra toast con messaggio non tecnico", async () => {
     const user = userEvent.setup();
     mockFetchResponse({ success: false, error: "service_unavailable" });
 
@@ -147,8 +143,7 @@ describe("EnrichmentSection", () => {
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
   });
 
-  // AC8: azienda già enriched → bottone "Aggiorna dati"
-  it("AC8: azienda enriched mostra bottone Aggiorna dati", () => {
+  it("azienda enriched mostra bottone Aggiorna dati", () => {
     render(
       <EnrichmentSection
         company={makeCompany({
@@ -165,8 +160,7 @@ describe("EnrichmentSection", () => {
     expect(screen.queryByRole("button", { name: /arricchisci con ai/i })).not.toBeInTheDocument();
   });
 
-  // AC9: click "Aggiorna dati" → dialog con testo conferma
-  it("AC9: click Aggiorna dati apre dialog di conferma", async () => {
+  it("click Aggiorna dati apre dialog di conferma", async () => {
     const user = userEvent.setup();
 
     render(
@@ -180,8 +174,7 @@ describe("EnrichmentSection", () => {
     expect(screen.getByText(/i dati attuali verranno sovrascritti/i)).toBeInTheDocument();
   });
 
-  // AC10: click "Annulla" → dialog chiuso, fetch non chiamato
-  it("AC10: click Annulla nel dialog chiude dialog e non chiama fetch", async () => {
+  it("click Annulla nel dialog chiude dialog e non chiama fetch", async () => {
     const user = userEvent.setup();
 
     render(
@@ -199,8 +192,7 @@ describe("EnrichmentSection", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  // AC11: click "Aggiorna" nel dialog → fetch con force:true
-  it("AC11: click Aggiorna nel dialog chiama fetch con force:true", async () => {
+  it("click Aggiorna nel dialog chiama fetch con force:true", async () => {
     const user = userEvent.setup();
     mockFetchResponse({
       success: true,
@@ -242,8 +234,7 @@ describe("EnrichmentSection", () => {
     });
   });
 
-  // AC12: azienda seed pre-arricchita → nessuna API call al mount
-  it("AC12: azienda enriched non chiama fetch al mount", () => {
+  it("azienda enriched non chiama fetch al mount", () => {
     render(
       <EnrichmentSection
         company={makeCompany({
@@ -259,8 +250,7 @@ describe("EnrichmentSection", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  // AC13: pain points con \n → lista puntata
-  it("AC13: pain points con newline visualizzati come lista separata", () => {
+  it("pain points con newline visualizzati come lista separata", () => {
     render(
       <EnrichmentSection
         company={makeCompany({
@@ -278,7 +268,6 @@ describe("EnrichmentSection", () => {
     expect(screen.getByText("Scalabilità")).toBeInTheDocument();
   });
 
-  // Network failure: fetch throws → toast error
   it("errore di rete (fetch throws) mostra toast servizio non disponibile", async () => {
     const user = userEvent.setup();
     mockFetch.mockRejectedValue(new Error("Failed to fetch"));

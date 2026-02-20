@@ -31,6 +31,6 @@ export default tseslint.config(
   },
   eslintConfigPrettier,
   {
-    ignores: [".next/**", "out/**", "build/**", "drizzle/**", "node_modules/**"],
+    ignores: [".next/**", "out/**", "build/**", "drizzle/**", "node_modules/**", "e2e/**"],
   },
 );

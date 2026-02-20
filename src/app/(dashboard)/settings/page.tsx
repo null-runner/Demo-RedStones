@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import { pipelineStagesService } from "./_lib/pipeline-stages.service";
 import { usersService } from "./_lib/users.service";
 import { PipelineStageList } from "./_components/pipeline-stage-list";
@@ -11,12 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default async function SettingsPage() {
   const user = await getCurrentUser();
 
-  if (user?.role === "guest") {
-    redirect("/");
-  }
-
   const stages = await pipelineStagesService.getAll();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "guest";
   const allUsers = isAdmin ? await usersService.getAllUsers() : [];
 
   return (

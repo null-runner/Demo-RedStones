@@ -1,4 +1,3 @@
-// Mock for '@/server/db' in Vitest test environment
 import { vi } from "vitest";
 
 export const db = {
@@ -6,5 +5,6 @@ export const db = {
   insert: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
+  transaction: vi.fn(),
   query: {},
 };

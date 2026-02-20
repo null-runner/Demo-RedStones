@@ -59,21 +59,20 @@ async function inviteUser(email: string, role: "admin" | "member"): Promise<User
   const created = result[0];
   if (!created) throw new Error("Failed to create user");
 
-  console.log(
-    `[INVITE] Nuovo utente: ${email} | Password temporanea: ${tempPassword} | Ruolo: ${role}`,
-  );
   return created;
 }
 
 async function deleteUser(targetId: string, currentUserId: string): Promise<void> {
   if (targetId === currentUserId) throw new Error("SELF_DELETE");
 
-  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  await db.transaction(async (tx) => {
+    const admins = await tx.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
 
-  const targetIsAdmin = admins.some((a) => a.id === targetId);
-  if (targetIsAdmin && admins.length <= 1) throw new Error("LAST_ADMIN");
+    const targetIsAdmin = admins.some((a) => a.id === targetId);
+    if (targetIsAdmin && admins.length <= 1) throw new Error("LAST_ADMIN");
 
-  await db.delete(users).where(eq(users.id, targetId));
+    await tx.delete(users).where(eq(users.id, targetId));
+  });
 }
 
 export const usersService = { getAllUsers, inviteUser, deleteUser };

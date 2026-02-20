@@ -77,7 +77,7 @@ describe("CommandMenu", () => {
     renderMenu();
     expect(screen.getByRole("button", { name: /ricerca/i })).toBeInTheDocument();
     expect(screen.getByText("Cerca...")).toBeInTheDocument();
-    expect(screen.getByText("⌘K")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl+K")).toBeInTheDocument();
   });
 
   it("apre l'overlay con Ctrl+K", () => {

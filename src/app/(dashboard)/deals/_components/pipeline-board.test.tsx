@@ -38,6 +38,7 @@ describe("PipelineBoard", () => {
       <PipelineBoard
         deals={[]}
         contacts={[]}
+        companies={[]}
         onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,
@@ -57,6 +58,7 @@ describe("PipelineBoard", () => {
       <PipelineBoard
         deals={[mockDeal]}
         contacts={[]}
+        companies={[]}
         onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,
@@ -74,6 +76,7 @@ describe("PipelineBoard", () => {
       <PipelineBoard
         deals={[mockDeal]}
         contacts={[]}
+        companies={[]}
         onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,
@@ -90,6 +93,7 @@ describe("PipelineBoard", () => {
       <PipelineBoard
         deals={[mockDeal]}
         contacts={mockContacts}
+        companies={[]}
         onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,
@@ -103,6 +107,7 @@ describe("PipelineBoard", () => {
       <PipelineBoard
         deals={[mockDeal]}
         contacts={[]}
+        companies={[]}
         onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,
@@ -117,6 +122,7 @@ describe("PipelineBoard", () => {
       <PipelineBoard
         deals={[mockDeal]}
         contacts={[]}
+        companies={[]}
         onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,

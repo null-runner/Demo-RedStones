@@ -16,7 +16,7 @@ export async function createCompany(input: unknown): Promise<ActionResult<Compan
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -37,7 +37,7 @@ export async function updateCompany(input: unknown): Promise<ActionResult<Compan
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -58,7 +58,7 @@ export async function deleteCompany(id: string): Promise<ActionResult<void>> {
   const parsed = z.string().uuid().safeParse(id);
   if (!parsed.success) return { success: false, error: "ID non valido" };
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };

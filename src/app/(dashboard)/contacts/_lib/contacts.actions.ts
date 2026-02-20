@@ -19,7 +19,7 @@ export async function createContact(input: unknown): Promise<ActionResult<Contac
     return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -43,7 +43,7 @@ export async function updateContact(input: unknown): Promise<ActionResult<Contac
     return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -73,7 +73,7 @@ export async function deleteContact(id: string): Promise<ActionResult<void>> {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Input non valido" };
   }
   try {
-    await requireRole(["admin", "member"]);
+    await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };

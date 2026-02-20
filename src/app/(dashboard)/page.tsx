@@ -1,23 +1,37 @@
+import { startOfDay, subDays } from "date-fns";
+
 import { DealsByStageChart } from "./_components/deals-by-stage-chart";
 import { KpiCards } from "./_components/kpi-cards";
 import { NbaSuggestions } from "./_components/nba-suggestions";
 import { PeriodFilter } from "./_components/period-filter";
 import { StagnantDealsList } from "./_components/stagnant-deals-list";
-import { dashboardService } from "./_lib/dashboard.service";
+import { customDateRange, dashboardService } from "./_lib/dashboard.service";
 import type { PeriodFilter as PeriodFilterType } from "./_lib/dashboard.service";
 
-function parsePeriod(period?: string): PeriodFilterType {
-  if (period === "prev-month" || period === "last-90-days") return period;
-  return "current-month";
+function parseSearchParams(params: { from?: string; to?: string }): {
+  period: PeriodFilterType;
+  from: Date;
+  to: Date;
+} {
+  const now = new Date();
+  if (params.from && params.to) {
+    const from = new Date(params.from);
+    const to = new Date(params.to);
+    if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+      return { period: customDateRange(from, to), from, to };
+    }
+  }
+  const from = subDays(startOfDay(now), 6);
+  return { period: customDateRange(from, now), from, to: now };
 }
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const { period: periodParam } = await searchParams;
-  const period = parsePeriod(periodParam);
+  const params = await searchParams;
+  const { period, from, to } = parseSearchParams(params);
   const [{ kpis, dealsByStage, stagnantDeals }, nbaResult] = await Promise.all([
     dashboardService.getDashboardData(period),
     dashboardService.getNbaData(),
@@ -30,7 +44,7 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">KPI e overview pipeline</p>
         </div>
-        <PeriodFilter value={period} />
+        <PeriodFilter from={from.toISOString()} to={to.toISOString()} />
       </div>
       <KpiCards kpis={kpis} />
       <div className="grid gap-6 md:grid-cols-2">

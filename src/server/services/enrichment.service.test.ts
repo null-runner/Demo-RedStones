@@ -24,7 +24,6 @@ import { enrichmentService } from "./enrichment.service";
 
 import { db } from "@/server/db";
 
-// Helper: mock DB finds a company
 function mockCompanyFound(enrichmentStatus = "not_enriched") {
   const chain = {
     from: vi.fn().mockReturnThis(),
@@ -33,7 +32,7 @@ function mockCompanyFound(enrichmentStatus = "not_enriched") {
       {
         id: "00000000-0000-0000-0000-000000000001",
         name: "RedStones Srl",
-        domain: "redstones.it",
+        domain: "red-stones.it",
         enrichmentStatus,
         enrichmentDescription: enrichmentStatus !== "not_enriched" ? "Desc esistente" : null,
         enrichmentSector: enrichmentStatus !== "not_enriched" ? "SaaS" : null,
@@ -46,7 +45,6 @@ function mockCompanyFound(enrichmentStatus = "not_enriched") {
   return chain;
 }
 
-// Helper: mock DB finds no company
 function mockCompanyNotFound() {
   const chain = {
     from: vi.fn().mockReturnThis(),
@@ -56,7 +54,6 @@ function mockCompanyNotFound() {
   vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
 }
 
-// Helper: mock DB update chain
 function mockDbUpdate() {
   const chain = {
     set: vi.fn().mockReturnThis(),
@@ -66,7 +63,6 @@ function mockDbUpdate() {
   return chain;
 }
 
-// Helper: mock full Gemini response
 function mockGeminiSuccess(partial = false) {
   const data = partial
     ? { description: "Desc", sector: null, estimatedSize: null, painPoints: [] }
@@ -82,146 +78,23 @@ beforeEach(() => {
   vi.stubEnv("GEMINI_API_KEY", "test-api-key");
 });
 
-describe("enrichment service — risposta completa", () => {
-  it("ritorna success:true con status enriched e tutti i 4 campi", async () => {
-    mockCompanyFound();
-    mockDbUpdate();
-    mockGeminiSuccess();
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(result).toEqual({
-      success: true,
-      status: "enriched",
-      data: {
-        description: "Desc",
-        sector: "SaaS",
-        estimatedSize: "11-50",
-        painPoints: ["Pain 1"],
-      },
-    });
-  });
-
-  it("chiama db.update con enrichmentStatus: enriched e tutti i campi incluso painPoints", async () => {
+describe("startEnrichment", () => {
+  it("sets processing status and returns processing result", async () => {
     mockCompanyFound();
     const updateChain = mockDbUpdate();
-    mockGeminiSuccess();
 
-    await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
+    const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000001");
 
+    expect(result).toEqual({ success: true, status: "processing" });
     expect(updateChain.set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        enrichmentStatus: "enriched",
-        enrichmentDescription: "Desc",
-        enrichmentSector: "SaaS",
-        enrichmentSize: "11-50",
-        enrichmentPainPoints: "Pain 1",
-      }),
+      expect.objectContaining({ enrichmentStatus: "processing" }),
     );
   });
-});
 
-describe("enrichment service — risposta parziale", () => {
-  it("ritorna success:true con status partial quando alcuni campi sono null", async () => {
-    mockCompanyFound();
-    mockDbUpdate();
-    mockGeminiSuccess(true);
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(result).toEqual({
-      success: true,
-      status: "partial",
-      data: {
-        description: "Desc",
-        sector: null,
-        estimatedSize: null,
-        painPoints: [],
-      },
-    });
-  });
-
-  it("chiama db.update con enrichmentStatus: partial", async () => {
-    mockCompanyFound();
-    const updateChain = mockDbUpdate();
-    mockGeminiSuccess(true);
-
-    await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(updateChain.set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        enrichmentStatus: "partial",
-      }),
-    );
-  });
-});
-
-describe("enrichment service — errori", () => {
-  it("timeout: ritorna error timeout senza DB write", async () => {
-    mockCompanyFound();
-    const updateChain = mockDbUpdate();
-    mockGenerateContent.mockRejectedValue(new Error("ENRICHMENT_TIMEOUT"));
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(result).toEqual({ success: false, error: "timeout" });
-    expect(updateChain.set).not.toHaveBeenCalled();
-  });
-
-  it("errore HTTP 503: ritorna service_unavailable senza DB write", async () => {
-    mockCompanyFound();
-    const updateChain = mockDbUpdate();
-    mockGenerateContent.mockRejectedValue(
-      new Error("GoogleGenerativeAI Error: 503 Service Unavailable"),
-    );
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(result).toEqual({ success: false, error: "service_unavailable" });
-    expect(updateChain.set).not.toHaveBeenCalled();
-  });
-
-  it("errore di rete: ritorna network_error senza DB write", async () => {
-    mockCompanyFound();
-    const updateChain = mockDbUpdate();
-    mockGenerateContent.mockRejectedValue(new TypeError("fetch failed"));
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(result).toEqual({ success: false, error: "network_error" });
-    expect(updateChain.set).not.toHaveBeenCalled();
-  });
-
-  it("risposta Gemini non-JSON: ritorna service_unavailable senza DB write", async () => {
-    mockCompanyFound();
-    const updateChain = mockDbUpdate();
-    mockGenerateContent.mockResolvedValue({
-      response: { text: () => "I cannot help with that request." },
-    });
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
-
-    expect(result).toEqual({ success: false, error: "service_unavailable" });
-    expect(updateChain.set).not.toHaveBeenCalled();
-  });
-
-  it("companyId non trovato: ritorna not_found senza chiamare Gemini", async () => {
-    mockCompanyNotFound();
-    mockDbUpdate();
-
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000099");
-
-    expect(result).toEqual({ success: false, error: "not_found" });
-    expect(mockGenerateContent).not.toHaveBeenCalled();
-  });
-});
-
-describe("enrichment service — force flag", () => {
-  it("azienda enriched + force:false: ritorna dati esistenti senza chiamare Gemini", async () => {
+  it("returns existing data when already enriched and force:false", async () => {
     mockCompanyFound("enriched");
-    mockDbUpdate();
 
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001", {
+    const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000001", {
       force: false,
     });
 
@@ -235,45 +108,176 @@ describe("enrichment service — force flag", () => {
         painPoints: ["pain1", "pain2"],
       },
     });
-    expect(mockGenerateContent).not.toHaveBeenCalled();
   });
 
-  it("azienda partial + force:false: ritorna dati esistenti senza chiamare Gemini", async () => {
-    mockCompanyFound("partial");
-    mockDbUpdate();
+  it("returns processing when already processing and force:false", async () => {
+    mockCompanyFound("processing");
 
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001", {
-      force: false,
-    });
+    const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000001");
 
-    expect(result).toMatchObject({ success: true });
-    expect(mockGenerateContent).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, status: "processing" });
   });
 
-  it("azienda enriched + force:true: chiama Gemini e sovrascrive dati", async () => {
+  it("sets processing when force:true even if already enriched", async () => {
     mockCompanyFound("enriched");
     const updateChain = mockDbUpdate();
-    mockGeminiSuccess();
 
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001", {
+    const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000001", {
       force: true,
     });
 
-    expect(result).toMatchObject({ success: true, status: "enriched" });
-    expect(mockGenerateContent).toHaveBeenCalledOnce();
-    expect(updateChain.set).toHaveBeenCalled();
+    expect(result).toEqual({ success: true, status: "processing" });
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "processing" }),
+    );
+  });
+
+  it("returns not_found when company does not exist", async () => {
+    mockCompanyNotFound();
+
+    const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000099");
+
+    expect(result).toEqual({ success: false, error: "not_found" });
+  });
+
+  it("returns api_key_missing when GEMINI_API_KEY is empty", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "");
+    mockCompanyFound();
+
+    const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000001");
+
+    expect(result).toEqual({ success: false, error: "api_key_missing" });
   });
 });
 
-describe("enrichment service — api_key_missing", () => {
-  it("GEMINI_API_KEY mancante: ritorna api_key_missing senza chiamare Gemini", async () => {
-    vi.stubEnv("GEMINI_API_KEY", "");
+describe("runEnrichment — success", () => {
+  it("calls Gemini and updates DB with enriched status", async () => {
     mockCompanyFound();
-    mockDbUpdate();
+    const updateChain = mockDbUpdate();
+    mockGeminiSuccess();
 
-    const result = await enrichmentService.enrich("00000000-0000-0000-0000-000000000001");
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000001");
 
-    expect(result).toEqual({ success: false, error: "api_key_missing" });
+    expect(mockGenerateContent).toHaveBeenCalledOnce();
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enrichmentStatus: "enriched",
+        enrichmentDescription: "Desc",
+        enrichmentSector: "SaaS",
+        enrichmentSize: "11-50",
+        enrichmentPainPoints: "Pain 1",
+      }),
+    );
+  });
+
+  it("sets partial status when some fields are null", async () => {
+    mockCompanyFound();
+    const updateChain = mockDbUpdate();
+    mockGeminiSuccess(true);
+
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000001");
+
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "partial" }),
+    );
+  });
+});
+
+describe("runEnrichment — errors reset to not_enriched", () => {
+  it("timeout resets status to not_enriched", async () => {
+    mockCompanyFound();
+    const updateChain = mockDbUpdate();
+    mockGenerateContent.mockRejectedValue(new Error("ENRICHMENT_TIMEOUT"));
+
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000001");
+
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "not_enriched" }),
+    );
+  });
+
+  it("HTTP 503 resets status to not_enriched", async () => {
+    mockCompanyFound();
+    const updateChain = mockDbUpdate();
+    mockGenerateContent.mockRejectedValue(
+      new Error("GoogleGenerativeAI Error: 503 Service Unavailable"),
+    );
+
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000001");
+
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "not_enriched" }),
+    );
+  });
+
+  it("network error resets status to not_enriched", async () => {
+    mockCompanyFound();
+    const updateChain = mockDbUpdate();
+    mockGenerateContent.mockRejectedValue(new TypeError("fetch failed"));
+
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000001");
+
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "not_enriched" }),
+    );
+  });
+
+  it("non-JSON Gemini response resets status to not_enriched", async () => {
+    mockCompanyFound();
+    const updateChain = mockDbUpdate();
+    mockGenerateContent.mockResolvedValue({
+      response: { text: () => "I cannot help with that request." },
+    });
+
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000001");
+
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "not_enriched" }),
+    );
+  });
+
+  it("does nothing if company not found", async () => {
+    mockCompanyNotFound();
+    const updateChain = mockDbUpdate();
+
+    await enrichmentService.runEnrichment("00000000-0000-0000-0000-000000000099");
+
     expect(mockGenerateContent).not.toHaveBeenCalled();
+    expect(updateChain.set).not.toHaveBeenCalled();
+  });
+});
+
+describe("getStatus", () => {
+  it("returns enrichment data when enriched", async () => {
+    mockCompanyFound("enriched");
+
+    const result = await enrichmentService.getStatus("00000000-0000-0000-0000-000000000001");
+
+    expect(result).toEqual({
+      success: true,
+      status: "enriched",
+      data: {
+        description: "Desc esistente",
+        sector: "SaaS",
+        estimatedSize: "11-50",
+        painPoints: ["pain1", "pain2"],
+      },
+    });
+  });
+
+  it("returns processing when status is processing", async () => {
+    mockCompanyFound("processing");
+
+    const result = await enrichmentService.getStatus("00000000-0000-0000-0000-000000000001");
+
+    expect(result).toEqual({ success: true, status: "processing" });
+  });
+
+  it("returns not_found when company does not exist", async () => {
+    mockCompanyNotFound();
+
+    const result = await enrichmentService.getStatus("00000000-0000-0000-0000-000000000099");
+
+    expect(result).toEqual({ success: false, error: "not_found" });
   });
 });

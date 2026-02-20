@@ -8,9 +8,11 @@ import type { ContactWithLastActivity, NbaResult } from "./nba.service";
 import { db } from "@/server/db";
 import { contacts, deals, timelineEntries } from "@/server/db/schema";
 import type { Deal, TimelineEntry } from "@/server/db/schema";
+import { sumCurrency } from "@/lib/format";
 import { isTerminalStage, TERMINAL_STAGES } from "@/lib/constants/pipeline";
 
-export type PeriodFilter = "current-month" | "prev-month" | "last-90-days";
+export type PeriodFilterPreset = "current-month" | "prev-month" | "last-90-days";
+export type PeriodFilter = PeriodFilterPreset | PeriodDateRange;
 
 export type PeriodDateRange = {
   start: Date;
@@ -58,7 +60,10 @@ export type DashboardKPIs = {
 const STAGE_WON = TERMINAL_STAGES[0]; // "Chiuso Vinto"
 const STAGE_LOST = TERMINAL_STAGES[1]; // "Chiuso Perso"
 
-export function getPeriodDateRange(period: PeriodFilter, now: Date = new Date()): PeriodDateRange {
+export function getPeriodDateRange(
+  period: PeriodFilterPreset,
+  now: Date = new Date(),
+): PeriodDateRange {
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
 
@@ -80,7 +85,6 @@ export function getPeriodDateRange(period: PeriodFilter, now: Date = new Date())
     };
   }
 
-  // "last-90-days"
   const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
   return {
     start: new Date(now.getTime() - ninetyDaysMs),
@@ -88,6 +92,20 @@ export function getPeriodDateRange(period: PeriodFilter, now: Date = new Date())
     prevStart: new Date(now.getTime() - 2 * ninetyDaysMs),
     prevEnd: new Date(now.getTime() - ninetyDaysMs - 1),
   };
+}
+
+export function customDateRange(from: Date, to: Date): PeriodDateRange {
+  const durationMs = to.getTime() - from.getTime();
+  return {
+    start: from,
+    end: to,
+    prevStart: new Date(from.getTime() - durationMs - 1),
+    prevEnd: new Date(from.getTime() - 1),
+  };
+}
+
+function resolvePeriod(period: PeriodFilter, now: Date): PeriodDateRange {
+  return typeof period === "string" ? getPeriodDateRange(period, now) : period;
 }
 
 function calcWinRate(won: number, lost: number): number {
@@ -102,7 +120,7 @@ function calcVelocity(allWonDeals: Deal[], winRateDecimal: number): number {
   const wonCount = allWonDeals.length;
   if (wonCount === 0) return 0;
 
-  const totalValue = allWonDeals.reduce((sum, d) => sum + parseFloat(d.value), 0);
+  const totalValue = sumCurrency(allWonDeals.map((d) => d.value));
   const avgValue = totalValue / wonCount;
 
   const totalCycleDays = allWonDeals.reduce((sum, d) => {
@@ -110,7 +128,6 @@ function calcVelocity(allWonDeals: Deal[], winRateDecimal: number): number {
     return sum + cycleDays;
   }, 0);
   const avgCycleDays = totalCycleDays / wonCount;
-  // Prevent division by zero: if avg cycle is 0, use 1 day
   const safeCycleDays = avgCycleDays <= 0 ? 1 : avgCycleDays;
 
   return (wonCount * avgValue * winRateDecimal) / safeCycleDays;
@@ -121,11 +138,12 @@ export function calculateKPIs(
   now: Date = new Date(),
   period: PeriodFilter = "current-month",
 ): DashboardKPIs {
-  const { start, end, prevStart, prevEnd } = getPeriodDateRange(period, now);
+  const { start, end, prevStart, prevEnd } = resolvePeriod(period, now);
 
-  const pipelineValue = allDeals
-    .filter((d) => !isTerminalStage(d.stage) && d.createdAt >= start && d.createdAt <= end)
-    .reduce((sum, d) => sum + parseFloat(d.value), 0);
+  const pipelineDeals = allDeals.filter(
+    (d) => !isTerminalStage(d.stage) && d.createdAt >= start && d.createdAt <= end,
+  );
+  const pipelineValue = sumCurrency(pipelineDeals.map((d) => d.value));
 
   const wonCurrent = allDeals.filter(
     (d) => d.stage === STAGE_WON && d.createdAt >= start && d.createdAt <= end,
@@ -155,7 +173,7 @@ export function calculateKPIs(
     winRateTrend: { direction, delta },
     velocity,
     wonDealsCount: wonCurrent.length,
-    wonDealsValue: wonCurrent.reduce((sum, d) => sum + parseFloat(d.value), 0),
+    wonDealsValue: sumCurrency(wonCurrent.map((d) => d.value)),
   };
 }
 
@@ -167,7 +185,8 @@ export function calculateDealsPerStage(allDeals: Deal[]): DealsByStageItem[] {
     const current = stageMap.get(deal.stage) ?? { count: 0, totalValue: 0 };
     stageMap.set(deal.stage, {
       count: current.count + 1,
-      totalValue: current.totalValue + parseFloat(deal.value),
+      totalValue:
+        (Math.round(current.totalValue * 100) + Math.round(parseFloat(deal.value) * 100)) / 100,
     });
   }
 
@@ -197,7 +216,7 @@ async function getDashboardData(
   now: Date = new Date(),
 ): Promise<DashboardData> {
   const allDeals = await db.select().from(deals);
-  const { start, end } = getPeriodDateRange(period, now);
+  const { start, end } = resolvePeriod(period, now);
   const periodDeals = allDeals.filter((d) => d.createdAt >= start && d.createdAt <= end);
 
   return {

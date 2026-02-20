@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import type { NbaSuggestion } from "@/app/(dashboard)/_lib/nba.service";
@@ -44,13 +44,16 @@ export function NbaSuggestions({ suggestions, emptyStateMessage }: NbaSuggestion
               <li key={s.id}>
                 <Link
                   href={getEntityHref(s)}
-                  className="hover:bg-accent flex items-center justify-between rounded-md border p-3 text-sm transition-colors"
+                  className="hover:bg-accent flex items-center gap-3 rounded-md border p-3 text-sm transition-colors"
                 >
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="font-medium">{s.message}</span>
-                    <span className="text-muted-foreground text-xs">{s.entityTitle}</span>
+                    <span className="text-muted-foreground truncate text-xs">{s.entityTitle}</span>
                   </div>
-                  {getPriorityBadge(s.priority)}
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    {getPriorityBadge(s.priority)}
+                    <ChevronRight className="text-muted-foreground h-4 w-4" />
+                  </div>
                 </Link>
               </li>
             ))}

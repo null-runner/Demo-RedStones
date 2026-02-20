@@ -31,12 +31,12 @@ const mockData: DealsByStageItem[] = [
 ];
 
 describe("DealsByStageChart", () => {
-  it("renders without crash with empty data", () => {
+  it("shows empty state message when no deals exist", () => {
     render(<DealsByStageChart data={[]} />);
     expect(screen.getByText("Nessun deal in pipeline")).toBeInTheDocument();
   });
 
-  it("renders without crash with valid data", () => {
+  it("shows chart title with valid data", () => {
     render(<DealsByStageChart data={mockData} />);
     expect(screen.getByText("Deal per Stage")).toBeInTheDocument();
   });

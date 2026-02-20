@@ -30,7 +30,6 @@ async function create(name: string): Promise<PipelineStageRow> {
     nonProtected.length > 0 ? (nonProtected[nonProtected.length - 1]?.sortOrder ?? 0) + 1 : 1;
 
   return db.transaction(async (tx) => {
-    // Bump protected stages to keep them at the end
     for (const ps of protectedStages) {
       if (ps.sortOrder >= nextOrder) {
         await tx

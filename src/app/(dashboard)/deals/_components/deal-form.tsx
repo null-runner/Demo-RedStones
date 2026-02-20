@@ -50,7 +50,6 @@ export function DealForm({
   onCancel,
   isLoading,
 }: DealFormProps) {
-  // Parse stored "reason: notes" format back into separate fields
   const storedLostReason = initialData?.lostReason ?? "";
   const matchedReason = LOST_REASONS.find((r) => storedLostReason.startsWith(r));
   const [lostReason, setLostReason] = useState<string>(matchedReason ?? "");
@@ -146,7 +145,6 @@ export function DealForm({
               <Select
                 onValueChange={(val) => {
                   field.onChange(val);
-                  // Reset lostReason fields when leaving "Chiuso Perso"
                   if (val !== "Chiuso Perso") {
                     setLostReason("");
                     setLostReasonNotes("");

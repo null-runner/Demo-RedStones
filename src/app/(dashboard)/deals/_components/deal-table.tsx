@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import { Pencil, Trash2, TrendingUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +64,7 @@ export function DealTable({ deals, onEdit, onDelete, canWrite = true }: DealTabl
                 <Badge variant="outline">{deal.stage}</Badge>
               </TableCell>
               <TableCell>{formatEUR(parseFloat(deal.value))}</TableCell>
-              <TableCell>{deal.createdAt.toLocaleDateString("it-IT")}</TableCell>
+              <TableCell>{format(deal.createdAt, "dd/MM/yyyy")}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
                   <Button

@@ -61,14 +61,13 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
     };
   }, [searchQuery]);
 
-  const roles = useMemo(
-    () => [...new Set(contacts.map((c) => c.role).filter((r): r is string => r != null))].sort(),
-    [contacts],
-  );
+  const roles = [
+    ...new Set(contacts.map((c) => c.role).filter((r): r is string => r != null)),
+  ].sort();
 
-  const filtered = useMemo(() => {
+  const sorted = useMemo(() => {
     const q = debouncedQuery.toLowerCase();
-    return contacts.filter((c) => {
+    const filtered = contacts.filter((c) => {
       const matchSearch =
         !q ||
         `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
@@ -79,16 +78,21 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
       const matchRole = !filterRole || c.role === filterRole;
       return matchSearch && matchCompany && matchTag && matchRole;
     });
-  }, [contacts, debouncedQuery, filterCompanyId, filterTagName, filterRole]);
-
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
+    return filtered.sort((a, b) => {
       const aVal = getSortValue(a, sortKey);
       const bVal = getSortValue(b, sortKey);
       const cmp = aVal.localeCompare(bVal, "it");
       return sortDirection === "asc" ? cmp : -cmp;
     });
-  }, [filtered, sortKey, sortDirection]);
+  }, [
+    contacts,
+    debouncedQuery,
+    filterCompanyId,
+    filterTagName,
+    filterRole,
+    sortKey,
+    sortDirection,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
   const paginated = sorted.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
