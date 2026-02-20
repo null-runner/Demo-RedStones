@@ -1,5 +1,6 @@
 import { DealsByStageChart } from "./_components/deals-by-stage-chart";
 import { KpiCards } from "./_components/kpi-cards";
+import { NbaSuggestions } from "./_components/nba-suggestions";
 import { PeriodFilter } from "./_components/period-filter";
 import { StagnantDealsList } from "./_components/stagnant-deals-list";
 import { dashboardService } from "./_lib/dashboard.service";
@@ -17,7 +18,10 @@ export default async function DashboardPage({
 }) {
   const { period: periodParam } = await searchParams;
   const period = parsePeriod(periodParam);
-  const { kpis, dealsByStage, stagnantDeals } = await dashboardService.getDashboardData(period);
+  const [{ kpis, dealsByStage, stagnantDeals }, nbaResult] = await Promise.all([
+    dashboardService.getDashboardData(period),
+    dashboardService.getNbaData(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -33,6 +37,7 @@ export default async function DashboardPage({
         <DealsByStageChart data={dealsByStage} />
         <StagnantDealsList deals={stagnantDeals} />
       </div>
+      <NbaSuggestions suggestions={nbaResult.suggestions} />
     </div>
   );
 }

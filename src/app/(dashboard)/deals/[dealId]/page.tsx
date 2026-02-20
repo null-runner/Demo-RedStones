@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DealDetail } from "../_components/deal-detail";
 import { dealsService } from "../_lib/deals.service";
+import { getSuggestionsForDeal } from "../../_lib/nba.service";
 import { timelineService } from "../_lib/timeline.service";
 
 import { getCompaniesForSelect } from "@/server/services/companies.service";
@@ -25,6 +26,8 @@ export default async function DealDetailPage({ params }: { params: Promise<{ dea
 
   if (!deal) notFound();
 
+  const nbaSuggestions = getSuggestionsForDeal(deal, timelineEntries);
+
   return (
     <DealDetail
       deal={deal}
@@ -32,6 +35,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ dea
       contacts={contacts}
       users={users}
       timelineEntries={timelineEntries}
+      nbaSuggestions={nbaSuggestions}
     />
   );
 }

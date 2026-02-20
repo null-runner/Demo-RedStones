@@ -1,10 +1,13 @@
+import { dashboardService } from "./_lib/dashboard.service";
+
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const nbaResult = await dashboardService.getNbaData();
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar nbaBadgeCount={nbaResult.totalCount} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-auto p-6">{children}</main>

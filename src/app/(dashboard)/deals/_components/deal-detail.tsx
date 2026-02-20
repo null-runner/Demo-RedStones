@@ -2,18 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2, Clock, Edit, User } from "lucide-react";
+import { ArrowLeft, Building2, Edit, User } from "lucide-react";
 
 import { DealSheet } from "./deal-sheet";
 import { TimelineFeed } from "./timeline-feed";
 import type { DealWithDetails } from "../_lib/deals.service";
+import type { NbaSuggestion } from "../../_lib/nba.service";
 import type { TimelineEntryWithAuthor } from "../_lib/timeline.service";
 
+import { NbaSuggestions } from "@/app/(dashboard)/_components/nba-suggestions";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEUR } from "@/lib/format";
+import { isTerminalStage } from "@/lib/constants/pipeline";
 import type { Deal } from "@/server/db/schema";
 
 type DealDetailProps = {
@@ -22,6 +25,7 @@ type DealDetailProps = {
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   users: Array<{ id: string; name: string }>;
   timelineEntries: TimelineEntryWithAuthor[];
+  nbaSuggestions: NbaSuggestion[];
 };
 
 function getStageBadgeVariant(stage: string): "default" | "destructive" | "secondary" | "outline" {
@@ -30,7 +34,14 @@ function getStageBadgeVariant(stage: string): "default" | "destructive" | "secon
   return "secondary";
 }
 
-export function DealDetail({ deal, companies, contacts, users, timelineEntries }: DealDetailProps) {
+export function DealDetail({
+  deal,
+  companies,
+  contacts,
+  users,
+  timelineEntries,
+  nbaSuggestions,
+}: DealDetailProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -110,20 +121,11 @@ export function DealDetail({ deal, companies, contacts, users, timelineEntries }
           </CardContent>
         </Card>
 
-        {/* NBA Placeholder */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Prossima Azione Suggerita</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <Clock className="text-muted-foreground mb-2 h-8 w-8" />
-              <p className="text-muted-foreground text-sm">
-                I suggerimenti NBA saranno disponibili nella prossima versione.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* NBA Suggerimenti */}
+        <NbaSuggestions
+          suggestions={nbaSuggestions}
+          {...(isTerminalStage(deal.stage) && { emptyStateMessage: "Deal concluso" })}
+        />
       </div>
 
       {/* Timeline Attività */}

@@ -14,7 +14,11 @@ const NAV_ITEMS = [
   { label: "Impostazioni", href: "/settings", icon: Settings },
 ] as const;
 
-export function Sidebar() {
+type SidebarProps = {
+  nbaBadgeCount?: number;
+};
+
+export function Sidebar({ nbaBadgeCount }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -38,6 +42,11 @@ export function Sidebar() {
               >
                 <Icon className="h-4 w-4" />
                 {label}
+                {href === "/" && nbaBadgeCount !== undefined && nbaBadgeCount > 0 && (
+                  <span className="bg-destructive text-destructive-foreground ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none font-medium">
+                    {nbaBadgeCount >= 10 ? "9+" : String(nbaBadgeCount)}
+                  </span>
+                )}
               </Link>
             </li>
           );

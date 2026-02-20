@@ -1,8 +1,11 @@
 import "server-only";
 
+import { getAllSuggestions } from "./nba.service";
+import type { ContactWithLastActivity, NbaResult } from "./nba.service";
+
 import { db } from "@/server/db";
-import { deals } from "@/server/db/schema";
-import type { Deal } from "@/server/db/schema";
+import { contacts, deals, timelineEntries } from "@/server/db/schema";
+import type { Deal, TimelineEntry } from "@/server/db/schema";
 import { isTerminalStage, TERMINAL_STAGES } from "@/lib/constants/pipeline";
 
 export type PeriodFilter = "current-month" | "prev-month" | "last-90-days";
@@ -202,4 +205,46 @@ async function getDashboardData(
   };
 }
 
-export const dashboardService = { getDashboardData };
+async function getNbaData(): Promise<NbaResult> {
+  const [allDeals, allContacts, allTimelineEntries] = await Promise.all([
+    db.select().from(deals),
+    db.select().from(contacts),
+    db.select().from(timelineEntries),
+  ]);
+
+  const activeDeals = allDeals.filter((d) => !isTerminalStage(d.stage));
+
+  const entriesByDealId = new Map<string, TimelineEntry[]>();
+  for (const entry of allTimelineEntries) {
+    const existing = entriesByDealId.get(entry.dealId) ?? [];
+    existing.push(entry);
+    entriesByDealId.set(entry.dealId, existing);
+  }
+
+  const dealsByContactId = new Map<string, Deal[]>();
+  for (const deal of allDeals) {
+    if (deal.contactId) {
+      const existing = dealsByContactId.get(deal.contactId) ?? [];
+      existing.push(deal);
+      dealsByContactId.set(deal.contactId, existing);
+    }
+  }
+
+  const contactsWithActivity: ContactWithLastActivity[] = allContacts.map((contact) => {
+    const contactDeals = dealsByContactId.get(contact.id) ?? [];
+    let lastActivityDate: Date | null = null;
+    for (const deal of contactDeals) {
+      const entries = entriesByDealId.get(deal.id) ?? [];
+      for (const entry of entries) {
+        if (!lastActivityDate || entry.createdAt > lastActivityDate) {
+          lastActivityDate = entry.createdAt;
+        }
+      }
+    }
+    return { ...contact, lastActivityDate };
+  });
+
+  return getAllSuggestions(activeDeals, contactsWithActivity, entriesByDealId);
+}
+
+export const dashboardService = { getDashboardData, getNbaData };

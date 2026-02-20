@@ -52,6 +52,7 @@ const baseProps = {
   contacts: [{ id: "ct1", firstName: "A", lastName: "B" }],
   users: [{ id: "u1", name: "Admin" }],
   timelineEntries: [],
+  nbaSuggestions: [],
 };
 
 describe("DealDetail", () => {
@@ -99,10 +100,22 @@ describe("DealDetail", () => {
     expect(screen.queryByText("Motivo perdita")).not.toBeInTheDocument();
   });
 
-  it("renders NBA placeholder section", () => {
+  it("renders NBA suggestions section", () => {
     render(<DealDetail {...baseProps} />);
 
-    expect(screen.getByText("Prossima Azione Suggerita")).toBeInTheDocument();
+    expect(screen.getByText("Prossime Azioni Suggerite")).toBeInTheDocument();
+  });
+
+  it("shows NBA empty state for active deal with no suggestions", () => {
+    render(<DealDetail {...baseProps} />);
+
+    expect(screen.getByText(/Tutto in ordine/)).toBeInTheDocument();
+  });
+
+  it("shows 'Deal concluso' empty state for terminal stage deal", () => {
+    render(<DealDetail {...baseProps} deal={mockLostDeal} />);
+
+    expect(screen.getByText("Deal concluso")).toBeInTheDocument();
   });
 
   it("renders timeline section with add note form", () => {

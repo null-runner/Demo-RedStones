@@ -59,3 +59,41 @@ describe("Sidebar", () => {
     expect(dashboardLink).not.toHaveAttribute("aria-current");
   });
 });
+
+describe("Sidebar — NBA badge", () => {
+  beforeEach(() => {
+    vi.mocked(usePathname).mockReturnValue("/");
+  });
+
+  it("mostra badge numerico quando nbaBadgeCount > 0", () => {
+    render(<Sidebar nbaBadgeCount={3} />);
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("non mostra badge quando nbaBadgeCount = 0", () => {
+    render(<Sidebar nbaBadgeCount={0} />);
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("non mostra badge quando nbaBadgeCount non è passato", () => {
+    render(<Sidebar />);
+    const dashboardLink = screen.getByRole("link", { name: /Dashboard/i });
+    // il link esiste ma non contiene un badge numerico standalone
+    expect(dashboardLink.querySelector("span")).toBeNull();
+  });
+
+  it("mostra 9+ quando nbaBadgeCount >= 10", () => {
+    render(<Sidebar nbaBadgeCount={10} />);
+    expect(screen.getByText("9+")).toBeInTheDocument();
+  });
+
+  it("mostra 9+ quando nbaBadgeCount = 15", () => {
+    render(<Sidebar nbaBadgeCount={15} />);
+    expect(screen.getByText("9+")).toBeInTheDocument();
+  });
+
+  it("mostra il numero esatto per nbaBadgeCount = 9", () => {
+    render(<Sidebar nbaBadgeCount={9} />);
+    expect(screen.getByText("9")).toBeInTheDocument();
+  });
+});
