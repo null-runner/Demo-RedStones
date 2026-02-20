@@ -27,9 +27,12 @@ export const TimelineFeed = forwardRef<TimelineFeedRef, TimelineFeedProps>(funct
   ref,
 ) {
   const [noteText, setNoteText] = useState("");
+  const [optimistic, setOptimistic] = useState<TimelineEntryWithAuthor[]>([]);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const displayEntries = [...optimistic, ...entries];
 
   useImperativeHandle(ref, () => ({
     focusTextarea: () => {
@@ -44,15 +47,34 @@ export const TimelineFeed = forwardRef<TimelineFeedRef, TimelineFeedProps>(funct
   const handleAddNote = () => {
     const content = noteText.trim();
     if (!content) return;
+
+    const tempEntry: TimelineEntryWithAuthor = {
+      id: crypto.randomUUID(),
+      dealId,
+      type: "note",
+      content,
+      previousStage: null,
+      newStage: null,
+      authorId: null,
+      createdAt: new Date(),
+      author: null,
+    };
+
+    setOptimistic((prev) => [tempEntry, ...prev]);
+    const savedText = noteText;
+    setNoteText("");
+
     startTransition(async () => {
       const result = await addNote(dealId, content);
       if (!result.success) {
+        setOptimistic((prev) => prev.filter((e) => e.id !== tempEntry.id));
+        setNoteText(savedText);
         toast.error(result.error);
         return;
       }
-      setNoteText("");
-      router.refresh();
       toast.success("Nota aggiunta");
+      router.refresh();
+      setOptimistic((prev) => prev.filter((e) => e.id !== tempEntry.id));
     });
   };
 
@@ -76,13 +98,13 @@ export const TimelineFeed = forwardRef<TimelineFeedRef, TimelineFeedProps>(funct
       </div>
 
       {/* Timeline entries */}
-      {entries.length === 0 ? (
+      {displayEntries.length === 0 ? (
         <p className="text-muted-foreground py-4 text-center text-sm">
           Nessuna attività registrata ancora.
         </p>
       ) : (
         <div className="relative space-y-3">
-          {entries.map((entry) => (
+          {displayEntries.map((entry) => (
             <TimelineEntry key={entry.id} entry={entry} />
           ))}
         </div>
