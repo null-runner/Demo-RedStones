@@ -1,10 +1,16 @@
+import dynamic from "next/dynamic";
+
 import { dashboardService } from "./_lib/dashboard.service";
 import { prefetchSearchData } from "./_lib/search.actions";
 
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { TutorialOverlay } from "@/components/onboarding/tutorial-overlay";
+
+const TutorialOverlay = dynamic(
+  () => import("@/components/onboarding/tutorial-overlay").then((m) => m.TutorialOverlay),
+  { ssr: false },
+);
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [nbaResult, searchDataset] = await Promise.all([
