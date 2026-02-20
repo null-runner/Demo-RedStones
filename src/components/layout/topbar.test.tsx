@@ -13,9 +13,40 @@ import { Topbar } from "./topbar";
 const emptyDataset = { contacts: [], companies: [], deals: [] };
 
 describe("Topbar", () => {
-  it("renders demo mode badge", () => {
+  it("shows DemoModeBadge when user role is guest", () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: {
+        user: { id: "g1", name: "Demo Guest", email: "guest@demo.redstones.local", role: "guest" },
+        expires: "",
+      },
+      status: "authenticated",
+      update: vi.fn(),
+    });
     render(<Topbar searchDataset={emptyDataset} />);
     expect(screen.getByText("Demo Mode")).toBeInTheDocument();
+  });
+
+  it("does not show DemoModeBadge when user role is admin", () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: {
+        user: { id: "a1", name: "Admin User", email: "admin@test.com", role: "admin" },
+        expires: "",
+      },
+      status: "authenticated",
+      update: vi.fn(),
+    });
+    render(<Topbar searchDataset={emptyDataset} />);
+    expect(screen.queryByText("Demo Mode")).not.toBeInTheDocument();
+  });
+
+  it("does not show DemoModeBadge when unauthenticated", () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: null,
+      status: "unauthenticated",
+      update: vi.fn(),
+    });
+    render(<Topbar searchDataset={emptyDataset} />);
+    expect(screen.queryByText("Demo Mode")).not.toBeInTheDocument();
   });
 
   it("renders search hint with keyboard shortcut", () => {

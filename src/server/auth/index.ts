@@ -15,7 +15,14 @@ import { users } from "@/server/db/schema";
 export async function authorizeCredentials(credentials: { email: string; password: string }) {
   const result = await db.select().from(users).where(eq(users.email, credentials.email)).limit(1);
   const user = result[0];
-  if (!user?.passwordHash) return null;
+  if (!user) return null;
+
+  // Special case: guest user has no password (public demo account)
+  if (user.role === "guest" && !user.passwordHash) {
+    return { id: user.id, email: user.email, name: user.name, role: user.role };
+  }
+
+  if (!user.passwordHash) return null;
   const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
   if (!isValid) return null;
   return { id: user.id, email: user.email, name: user.name, role: user.role };

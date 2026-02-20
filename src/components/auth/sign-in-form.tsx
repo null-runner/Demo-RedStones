@@ -8,6 +8,8 @@ import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v3";
 
+const GUEST_EMAIL = "guest@demo.redstones.local";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -31,11 +33,37 @@ export function SignInForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
   const [formError, setFormError] = useState<string | null>(null);
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: "", password: "" },
   });
+
+  const handleDemoMode = async () => {
+    setIsLoadingDemo(true);
+    try {
+      const resetRes = await fetch("/api/auth/guest", { method: "POST" });
+      if (!resetRes.ok) {
+        setFormError("Errore durante la preparazione della demo. Riprova.");
+        return;
+      }
+      const result = (await signIn("credentials", {
+        email: GUEST_EMAIL,
+        password: "",
+        redirect: false,
+      })) as unknown as { error?: string } | undefined;
+      if (result?.error) {
+        setFormError("Errore di autenticazione demo. Riprova.");
+        return;
+      }
+      router.push("/");
+    } catch {
+      setFormError("Errore di rete. Riprova.");
+    } finally {
+      setIsLoadingDemo(false);
+    }
+  };
 
   const onSubmit = async (data: SignInValues) => {
     setFormError(null);
@@ -101,6 +129,27 @@ export function SignInForm() {
 
           <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? "Accesso in corso..." : "Accedi"}
+          </Button>
+
+          <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background text-muted-foreground px-2">oppure</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={isLoadingDemo || form.formState.isSubmitting}
+            onClick={() => {
+              void handleDemoMode();
+            }}
+          >
+            {isLoadingDemo ? "Preparazione demo in corso..." : "Esplora in Demo Mode"}
           </Button>
         </form>
       </Form>

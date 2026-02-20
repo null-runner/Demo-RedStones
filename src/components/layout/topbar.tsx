@@ -18,7 +18,7 @@ export function Topbar({ searchDataset }: TopbarProps) {
     <header className="flex h-16 flex-shrink-0 items-center justify-between border-b px-6">
       <CommandMenu dataset={searchDataset} />
       <div className="flex items-center gap-3">
-        <DemoModeBadge />
+        {session?.user.role === "guest" && <DemoModeBadge />}
         {session?.user && (
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground flex items-center gap-1.5 text-sm">

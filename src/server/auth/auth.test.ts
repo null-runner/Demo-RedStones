@@ -143,21 +143,67 @@ describe("authorizeCredentials", () => {
     expect(result).toBeNull();
   });
 
-  it("returns null when user has no passwordHash (guest user)", async () => {
+  it("returns null when non-guest user has no passwordHash", async () => {
     mockSelectChain([
       {
-        id: "guest-id",
-        email: "guest@example.com",
-        name: "Guest",
+        id: "member-id",
+        email: "member@example.com",
+        name: "Member",
+        passwordHash: null,
+        role: "member",
+      },
+    ]);
+    const result = await authorizeCredentials({
+      email: "member@example.com",
+      password: "password123",
+    });
+    expect(result).toBeNull();
+  });
+
+  it("returns guest user without bcrypt check when role is guest and passwordHash is null", async () => {
+    mockSelectChain([
+      {
+        id: "guest-uuid",
+        email: "guest@demo.redstones.local",
+        name: "Demo Guest",
         passwordHash: null,
         role: "guest",
       },
     ]);
     const result = await authorizeCredentials({
-      email: "guest@example.com",
-      password: "password123",
+      email: "guest@demo.redstones.local",
+      password: "",
     });
-    expect(result).toBeNull();
+    expect(result).toEqual({
+      id: "guest-uuid",
+      email: "guest@demo.redstones.local",
+      name: "Demo Guest",
+      role: "guest",
+    });
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+  });
+
+  it("returns guest user regardless of password when role is guest and passwordHash is null", async () => {
+    mockSelectChain([
+      {
+        id: "guest-uuid",
+        email: "guest@demo.redstones.local",
+        name: "Demo Guest",
+        passwordHash: null,
+        role: "guest",
+      },
+    ]);
+    const result = await authorizeCredentials({
+      email: "guest@demo.redstones.local",
+      password: "anything",
+    });
+    expect(result).toEqual({
+      id: "guest-uuid",
+      email: "guest@demo.redstones.local",
+      name: "Demo Guest",
+      role: "guest",
+    });
+    expect(bcrypt.compare).not.toHaveBeenCalled();
   });
 
   it("returns null when password is wrong (no user enumeration)", async () => {

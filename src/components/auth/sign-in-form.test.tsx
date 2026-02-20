@@ -8,8 +8,10 @@ vi.mock("next-auth/react", () => ({
   useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
 }));
 
+const mockRouterPush = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockRouterPush }),
   useSearchParams: () => ({ get: () => null }),
 }));
 
@@ -80,5 +82,53 @@ describe("SignInForm", () => {
     render(<SignInForm />);
     const link = screen.getByRole("link", { name: /registrati/i });
     expect(link).toHaveAttribute("href", "/sign-up");
+  });
+
+  it("renders Esplora in Demo Mode button", () => {
+    render(<SignInForm />);
+    expect(screen.getByRole("button", { name: /esplora in demo mode/i })).toBeInTheDocument();
+  });
+
+  it("shows loading text while demo is loading", async () => {
+    const user = userEvent.setup();
+    // fetch returns a pending promise to simulate loading
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockImplementationOnce(() => new Promise(() => undefined));
+
+    render(<SignInForm />);
+    await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /preparazione demo in corso/i }),
+      ).toBeInTheDocument();
+    });
+
+    fetchSpy.mockRestore();
+  });
+
+  it("calls fetch then signIn on demo mode click", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    } as Response);
+    vi.mocked(signIn).mockResolvedValueOnce(undefined as never);
+
+    render(<SignInForm />);
+    await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith("/api/auth/guest", { method: "POST" });
+      expect(signIn).toHaveBeenCalledWith(
+        "credentials",
+        expect.objectContaining({
+          email: "guest@demo.redstones.local",
+          password: "",
+          redirect: false,
+        }),
+      );
+    });
   });
 });
