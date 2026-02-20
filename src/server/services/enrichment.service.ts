@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { eq } from "drizzle-orm";
 
 import { CircuitBreaker } from "@/lib/circuit-breaker";
+import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { companies } from "@/server/db/schema";
 
@@ -78,7 +79,7 @@ async function startEnrichment(
 ): Promise<EnrichmentResult> {
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) {
-    console.warn("[enrichment] GEMINI_API_KEY not set");
+    logger.warn("enrichment", "GEMINI_API_KEY not set");
     return { success: false, error: "api_key_missing" };
   }
 
@@ -143,7 +144,7 @@ async function runEnrichment(companyId: string): Promise<void> {
     });
   } catch (error) {
     const errorReason = getErrorReason(error);
-    console.error(`[enrichment] Failed for ${companyId}: ${errorReason}`);
+    logger.error("enrichment", `Failed for ${companyId}: ${errorReason}`);
     await db
       .update(companies)
       .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })

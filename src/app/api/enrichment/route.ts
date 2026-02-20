@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod/v3";
 
 import { getCurrentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import type { EnrichmentError } from "@/server/services/enrichment.service";
 import { enrichmentService } from "@/server/services/enrichment.service";
 
@@ -22,7 +23,7 @@ const ERROR_STATUS_MAP: Record<EnrichmentError["error"], number> = {
 
 function scheduleBackground(fn: () => Promise<void>): void {
   fn().catch((err: unknown) => {
-    console.error("[enrichment] Background task failed:", err);
+    logger.error("enrichment", "Background task failed", err);
   });
 }
 

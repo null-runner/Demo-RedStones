@@ -8,6 +8,7 @@ import { dealsService } from "./deals.service";
 import { timelineService } from "./timeline.service";
 
 import { requireRole, RBACError } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import type { ActionResult } from "@/lib/types";
 import type { Deal } from "@/server/db/schema";
 
@@ -62,7 +63,7 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
       try {
         await timelineService.recordStageChange(id, previousStage, rest.stage, null);
       } catch (e) {
-        console.error("[timeline] Failed to record stage change:", e);
+        logger.error("timeline", "Failed to record stage change", e);
       }
     }
 
