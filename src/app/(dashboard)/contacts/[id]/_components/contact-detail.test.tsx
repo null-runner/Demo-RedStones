@@ -4,12 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContactWithDetails } from "../../_lib/contacts.service";
 import { ContactDetail } from "./contact-detail";
 
+import { usePermission } from "@/hooks/use-permission";
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock("@/hooks/use-permission", () => ({
-  usePermission: () => true,
+  usePermission: vi.fn(() => true),
 }));
 
 vi.mock("../../_lib/contacts.actions", () => ({
@@ -126,5 +128,16 @@ describe("ContactDetail", () => {
 
     const dealLink = screen.getByRole("link", { name: /deal alpha/i });
     expect(dealLink).toHaveAttribute("href", "/deals/d1");
+  });
+
+  it("hides edit button and tag input when canWrite is false", () => {
+    vi.mocked(usePermission).mockReturnValue(false);
+    renderDetail();
+
+    expect(screen.queryByRole("button", { name: /modifica/i })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Aggiungi tag...")).not.toBeInTheDocument();
+    expect(screen.getByText("sales")).toBeInTheDocument();
+
+    vi.mocked(usePermission).mockReturnValue(true);
   });
 });

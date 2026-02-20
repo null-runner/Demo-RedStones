@@ -4,12 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { CompanyWithDetails } from "../../_lib/companies.service";
 import { CompanyDetail } from "./company-detail";
 
+import { usePermission } from "@/hooks/use-permission";
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock("@/hooks/use-permission", () => ({
-  usePermission: () => true,
+  usePermission: vi.fn(() => true),
 }));
 
 vi.mock("../../_components/company-sheet", () => ({
@@ -142,5 +144,14 @@ describe("CompanyDetail", () => {
     render(<CompanyDetail company={mockEnrichedCompany} />);
 
     expect(screen.getByRole("button", { name: /modifica/i })).toBeInTheDocument();
+  });
+
+  it("hides Modifica button when canWrite is false", () => {
+    vi.mocked(usePermission).mockReturnValue(false);
+    render(<CompanyDetail company={mockEnrichedCompany} />);
+
+    expect(screen.queryByRole("button", { name: /modifica/i })).not.toBeInTheDocument();
+
+    vi.mocked(usePermission).mockReturnValue(true);
   });
 });
