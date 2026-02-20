@@ -5,19 +5,20 @@ import { startOfDay, subDays } from "date-fns";
 
 import type { DateRangeValue } from "@/components/shared/date-range-picker";
 
-const STORAGE_PREFIX = "dateRange:";
+const COOKIE_NAME = "dateRange";
+const MAX_AGE = 60 * 60 * 24 * 365;
 
 function getDefault90Days(): DateRangeValue {
   const now = new Date();
   return { from: subDays(startOfDay(now), 89), to: now };
 }
 
-function readFromStorage(key: string): DateRangeValue | null {
-  if (typeof window === "undefined") return null;
+function readCookie(): DateRangeValue | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|; )dateRange=([^;]*)/);
+  if (!match?.[1]) return null;
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { from: string; to: string };
+    const parsed = JSON.parse(decodeURIComponent(match[1])) as { from: string; to: string };
     const from = new Date(parsed.from);
     const to = new Date(parsed.to);
     if (isNaN(from.getTime()) || isNaN(to.getTime())) return null;
@@ -27,30 +28,25 @@ function readFromStorage(key: string): DateRangeValue | null {
   }
 }
 
-function writeToStorage(key: string, range: DateRangeValue): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(
-      `${STORAGE_PREFIX}${key}`,
-      JSON.stringify({ from: range.from.toISOString(), to: range.to.toISOString() }),
-    );
-  } catch {
-    // localStorage full or disabled — silently ignore
-  }
+function writeCookie(range: DateRangeValue): void {
+  if (typeof document === "undefined") return;
+  const value = encodeURIComponent(
+    JSON.stringify({ from: range.from.toISOString(), to: range.to.toISOString() }),
+  );
+  document.cookie = `${COOKIE_NAME}=${value}; path=/; max-age=${String(MAX_AGE)}; SameSite=Lax`;
 }
 
-export function useDateRange(moduleKey: string): [DateRangeValue, (range: DateRangeValue) => void] {
+export function useDateRange(
+  initialValue?: DateRangeValue,
+): [DateRangeValue, (range: DateRangeValue) => void] {
   const [value, setValue] = useState<DateRangeValue>(() => {
-    return readFromStorage(moduleKey) ?? getDefault90Days();
+    return initialValue ?? readCookie() ?? getDefault90Days();
   });
 
-  const onChange = useCallback(
-    (range: DateRangeValue) => {
-      setValue(range);
-      writeToStorage(moduleKey, range);
-    },
-    [moduleKey],
-  );
+  const onChange = useCallback((range: DateRangeValue) => {
+    setValue(range);
+    writeCookie(range);
+  }, []);
 
   return [value, onChange];
 }

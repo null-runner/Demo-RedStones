@@ -37,9 +37,17 @@ type DealsClientProps = {
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   users: Array<{ id: string; name: string }>;
   stages: string[];
+  initialDateRange: { from: string; to: string };
 };
 
-export function DealsClient({ deals, companies, contacts, users, stages }: DealsClientProps) {
+export function DealsClient({
+  deals,
+  companies,
+  contacts,
+  users,
+  stages,
+  initialDateRange,
+}: DealsClientProps) {
   const router = useRouter();
   const canWrite = usePermission("delete:deals");
   const [query, setQuery] = useState("");
@@ -47,7 +55,10 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [minValue, setMinValue] = useState("");
   const [maxValue, setMaxValue] = useState("");
-  const [dateRange, setDateRange] = useDateRange("deals");
+  const [dateRange, setDateRange] = useDateRange({
+    from: new Date(initialDateRange.from),
+    to: new Date(initialDateRange.to),
+  });
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);

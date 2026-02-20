@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { startOfDay, subDays } from "date-fns";
 
 import { DealsByStageChart } from "./_components/deals-by-stage-chart";
@@ -6,33 +7,29 @@ import { NbaSuggestions } from "./_components/nba-suggestions";
 import { PeriodFilter } from "./_components/period-filter";
 import { StagnantDealsList } from "./_components/stagnant-deals-list";
 import { customDateRange, dashboardService } from "./_lib/dashboard.service";
-import type { PeriodFilter as PeriodFilterType } from "./_lib/dashboard.service";
 
-function parseSearchParams(params: { from?: string; to?: string }): {
-  period: PeriodFilterType;
-  from: Date;
-  to: Date;
-} {
-  const now = new Date();
-  if (params.from && params.to) {
-    const from = new Date(params.from);
-    const to = new Date(params.to);
-    if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-      return { period: customDateRange(from, to), from, to };
+function parseDateRangeCookie(raw: string | undefined): { from: Date; to: Date } {
+  if (raw) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(raw)) as { from: string; to: string };
+      const from = new Date(parsed.from);
+      const to = new Date(parsed.to);
+      if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+        return { from, to };
+      }
+    } catch {
+      // invalid cookie — fall through to default
     }
   }
-  const from = subDays(startOfDay(now), 89);
-  return { period: customDateRange(from, now), from, to: now };
+  const now = new Date();
+  return { from: subDays(startOfDay(now), 89), to: now };
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ from?: string; to?: string }>;
-}) {
-  const params = await searchParams;
-  const hasUrlParams = !!(params.from && params.to);
-  const { period, from, to } = parseSearchParams(params);
+export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const { from, to } = parseDateRangeCookie(cookieStore.get("dateRange")?.value);
+  const period = customDateRange(from, to);
+
   const [{ kpis, dealsByStage, stagnantDeals }, nbaResult] = await Promise.all([
     dashboardService.getDashboardData(period),
     dashboardService.getNbaData(),
@@ -45,7 +42,7 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">KPI e overview pipeline</p>
         </div>
-        <PeriodFilter from={from.toISOString()} to={to.toISOString()} hasUrlParams={hasUrlParams} />
+        <PeriodFilter from={from.toISOString()} to={to.toISOString()} />
       </div>
       <KpiCards kpis={kpis} />
       <div className="grid gap-6 md:grid-cols-2">
