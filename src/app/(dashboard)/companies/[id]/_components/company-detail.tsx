@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import type { CompanyWithDetails } from "../../_lib/companies.service";
+import { EnrichmentSection } from "./enrichment-section";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -15,77 +16,6 @@ type CompanyDetailProps = {
 function formatCurrency(value: string): string {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
     parseFloat(value),
-  );
-}
-
-function EnrichmentFields({ company }: { company: CompanyWithDetails }) {
-  return (
-    <div className="space-y-2 text-sm">
-      {company.enrichmentDescription && (
-        <div>
-          <span className="font-medium">Descrizione: </span>
-          {company.enrichmentDescription}
-        </div>
-      )}
-      {company.enrichmentSector && (
-        <div>
-          <span className="font-medium">Settore: </span>
-          {company.enrichmentSector}
-        </div>
-      )}
-      {company.enrichmentSize && (
-        <div>
-          <span className="font-medium">Dimensione: </span>
-          {company.enrichmentSize}
-        </div>
-      )}
-      {company.enrichmentPainPoints && (
-        <div>
-          <span className="font-medium">Pain Points: </span>
-          {company.enrichmentPainPoints}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EnrichmentSection({ company }: { company: CompanyWithDetails }) {
-  if (company.enrichmentStatus === "not_enriched") {
-    return (
-      <div className="bg-card rounded-lg border p-4">
-        <h2 className="mb-3 text-base font-semibold">Dati Enrichment</h2>
-        <div className="flex flex-col items-center gap-3 py-4 text-center">
-          <p className="text-muted-foreground text-sm">
-            Questa azienda non è ancora stata arricchita con dati AI.
-          </p>
-          <Button variant="outline" disabled>
-            Arricchisci con AI
-          </Button>
-          <p className="text-muted-foreground text-xs">
-            Funzionalità disponibile nella prossima versione
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (company.enrichmentStatus === "partial") {
-    return (
-      <div className="bg-card rounded-lg border p-4">
-        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
-          Dati Enrichment
-          <Badge variant="secondary">Parzialmente arricchita</Badge>
-        </h2>
-        <EnrichmentFields company={company} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-card rounded-lg border p-4">
-      <h2 className="mb-3 text-base font-semibold">Dati Enrichment</h2>
-      <EnrichmentFields company={company} />
-    </div>
   );
 }
 

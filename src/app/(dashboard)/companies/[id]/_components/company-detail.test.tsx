@@ -73,7 +73,7 @@ describe("CompanyDetail", () => {
   it("renders partial enrichment badge and available fields when partial", () => {
     render(<CompanyDetail company={mockPartialCompany} />);
 
-    expect(screen.getByText("Parzialmente arricchita")).toBeInTheDocument();
+    expect(screen.getByText("Dati parziali")).toBeInTheDocument();
     expect(screen.getByText("Dati parziali disponibili")).toBeInTheDocument();
   });
 
