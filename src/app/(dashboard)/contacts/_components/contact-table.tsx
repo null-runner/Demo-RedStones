@@ -19,6 +19,7 @@ type ContactTableProps = {
   sortKey: SortKey;
   sortDirection: SortDirection;
   onSort: (key: SortKey) => void;
+  canWrite?: boolean;
 };
 
 function SortableHeader({
@@ -59,6 +60,7 @@ export function ContactTable({
   sortKey,
   sortDirection,
   onSort,
+  canWrite = true,
 }: ContactTableProps) {
   const columns: Column<ContactWithCompanyAndTags>[] = [
     {
@@ -149,6 +151,8 @@ export function ContactTable({
             variant="ghost"
             size="icon"
             aria-label="Modifica"
+            aria-disabled={!canWrite}
+            className={canWrite ? undefined : "opacity-50"}
             onClick={() => {
               onEdit(contact);
             }}
@@ -159,6 +163,8 @@ export function ContactTable({
             variant="ghost"
             size="icon"
             aria-label="Elimina"
+            aria-disabled={!canWrite}
+            className={canWrite ? undefined : "opacity-50"}
             onClick={() => {
               onDelete(contact.id);
             }}

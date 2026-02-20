@@ -21,9 +21,10 @@ type DealTableProps = {
   deals: Deal[];
   onEdit: (deal: Deal) => void;
   onDelete: (id: string) => void;
+  canWrite?: boolean;
 };
 
-export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
+export function DealTable({ deals, onEdit, onDelete, canWrite = true }: DealTableProps) {
   const router = useRouter();
 
   if (deals.length === 0) {
@@ -73,6 +74,8 @@ export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
                       onEdit(deal);
                     }}
                     aria-label="Modifica"
+                    aria-disabled={!canWrite}
+                    className={canWrite ? undefined : "opacity-50"}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -84,6 +87,8 @@ export function DealTable({ deals, onEdit, onDelete }: DealTableProps) {
                       onDelete(deal.id);
                     }}
                     aria-label="Elimina"
+                    aria-disabled={!canWrite}
+                    className={canWrite ? undefined : "opacity-50"}
                   >
                     <Trash2 className="text-destructive h-4 w-4" />
                   </Button>

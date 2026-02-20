@@ -13,6 +13,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { usePermission } from "@/hooks/use-permission";
+import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Company } from "@/server/db/schema";
 
 type CompaniesClientProps = {
@@ -21,6 +23,7 @@ type CompaniesClientProps = {
 
 export function CompaniesClient({ companies }: CompaniesClientProps) {
   const router = useRouter();
+  const canWrite = usePermission("delete:companies");
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -39,6 +42,10 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
   }, [companies, query]);
 
   const handleEdit = (company: Company) => {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setEditingCompany(company);
     setSheetOpen(true);
   };
@@ -48,6 +55,10 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
   };
 
   const handleNewCompany = () => {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setEditingCompany(null);
     setSheetOpen(true);
   };
@@ -77,10 +88,12 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
         title="Aziende"
         description="Gestisci le aziende nel tuo CRM"
         action={
-          <Button onClick={handleNewCompany}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuova Azienda
-          </Button>
+          canWrite ? (
+            <Button onClick={handleNewCompany}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuova Azienda
+            </Button>
+          ) : undefined
         }
       />
 
@@ -100,9 +113,14 @@ export function CompaniesClient({ companies }: CompaniesClientProps) {
         companies={filtered}
         onEdit={handleEdit}
         onDelete={(id) => {
+          if (!canWrite) {
+            showPermissionDeniedToast();
+            return;
+          }
           setDeletingId(id);
         }}
         onViewDetail={handleViewDetail}
+        canWrite={canWrite}
       />
 
       <CompanySheet

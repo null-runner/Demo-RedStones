@@ -23,7 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePermission } from "@/hooks/use-permission";
 import type { PipelineStage } from "@/lib/constants/pipeline";
+import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Deal } from "@/server/db/schema";
 
 const PERIOD_OPTIONS = [
@@ -42,6 +44,7 @@ type DealsClientProps = {
 
 export function DealsClient({ deals, companies, contacts, users, stages }: DealsClientProps) {
   const router = useRouter();
+  const canWrite = usePermission("delete:deals");
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
@@ -81,11 +84,19 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   }, [deals, query, stageFilter, ownerFilter, minValue, maxValue, periodFilter]);
 
   const handleEdit = (deal: Deal) => {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setEditingDeal(deal);
     setSheetOpen(true);
   };
 
   const handleNewDeal = () => {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setEditingDeal(null);
     setSheetOpen(true);
   };
@@ -93,6 +104,14 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
     if (!open) setEditingDeal(null);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
+    setDeletingId(id);
   };
 
   const handleDeleteConfirm = () => {
@@ -167,10 +186,12 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
                 <List className="h-4 w-4" />
               </Button>
             </div>
-            <Button onClick={handleNewDeal}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuovo Deal
-            </Button>
+            {canWrite && (
+              <Button onClick={handleNewDeal}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuovo Deal
+              </Button>
+            )}
           </div>
         }
       />
@@ -278,9 +299,8 @@ export function DealsClient({ deals, companies, contacts, users, stages }: Deals
         <DealTable
           deals={filtered}
           onEdit={handleEdit}
-          onDelete={(id) => {
-            setDeletingId(id);
-          }}
+          onDelete={handleDeleteClick}
+          canWrite={canWrite}
         />
       )}
 

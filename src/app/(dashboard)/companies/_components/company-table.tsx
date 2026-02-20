@@ -18,6 +18,7 @@ type CompanyTableProps = {
   onEdit: (company: Company) => void;
   onDelete: (id: string) => void;
   onViewDetail?: (id: string) => void;
+  canWrite?: boolean;
 };
 
 function EnrichmentBadge({ status }: { status: Company["enrichmentStatus"] }) {
@@ -27,7 +28,13 @@ function EnrichmentBadge({ status }: { status: Company["enrichmentStatus"] }) {
   return <Badge variant="outline">Not enriched</Badge>;
 }
 
-export function CompanyTable({ companies, onEdit, onDelete, onViewDetail }: CompanyTableProps) {
+export function CompanyTable({
+  companies,
+  onEdit,
+  onDelete,
+  onViewDetail,
+  canWrite = true,
+}: CompanyTableProps) {
   if (companies.length === 0) {
     return (
       <EmptyState
@@ -82,6 +89,8 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetail }: Comp
                       onEdit(company);
                     }}
                     aria-label={`Modifica ${company.name}`}
+                    aria-disabled={!canWrite}
+                    className={canWrite ? undefined : "opacity-50"}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -92,7 +101,12 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetail }: Comp
                       onDelete(company.id);
                     }}
                     aria-label={`Elimina ${company.name}`}
-                    className="text-destructive hover:text-destructive"
+                    aria-disabled={!canWrite}
+                    className={
+                      canWrite
+                        ? "text-destructive hover:text-destructive"
+                        : "text-destructive opacity-50"
+                    }
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

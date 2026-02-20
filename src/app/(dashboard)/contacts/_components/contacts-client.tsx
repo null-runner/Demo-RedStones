@@ -22,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePermission } from "@/hooks/use-permission";
+import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 
 const ITEMS_PER_PAGE = 10;
 const ALL_FILTER = "__all__";
@@ -34,6 +36,7 @@ type ContactsClientProps = {
 
 export function ContactsClient({ contacts, companies, allTags }: ContactsClientProps) {
   const router = useRouter();
+  const canWrite = usePermission("delete:contacts");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -91,16 +94,28 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
   const paginated = sorted.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   function handleNewContact() {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setEditingContact(null);
     setSheetOpen(true);
   }
 
   function handleEdit(contact: ContactWithCompanyAndTags) {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setEditingContact(contact);
     setSheetOpen(true);
   }
 
   function handleDeleteClick(id: string) {
+    if (!canWrite) {
+      showPermissionDeniedToast();
+      return;
+    }
     setDeletingId(id);
     setDeleteDialogOpen(true);
   }
@@ -138,7 +153,7 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
           icon={Users}
           title="Nessun contatto"
           description="Aggiungi il tuo primo contatto per iniziare."
-          action={{ label: "Nuovo Contatto", onClick: handleNewContact }}
+          {...(canWrite && { action: { label: "Nuovo Contatto", onClick: handleNewContact } })}
         />
         <ContactSheet
           open={sheetOpen}
@@ -159,7 +174,7 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
       <PageHeader
         title="Contatti"
         description="Gestisci i tuoi contatti commerciali"
-        action={<Button onClick={handleNewContact}>Nuovo Contatto</Button>}
+        action={canWrite ? <Button onClick={handleNewContact}>Nuovo Contatto</Button> : undefined}
       >
         <Input
           type="search"
@@ -242,6 +257,7 @@ export function ContactsClient({ contacts, companies, allTags }: ContactsClientP
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSort={handleSort}
+        canWrite={canWrite}
       />
 
       {sorted.length > ITEMS_PER_PAGE && (
