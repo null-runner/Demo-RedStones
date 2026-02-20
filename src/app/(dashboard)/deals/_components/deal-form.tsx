@@ -73,6 +73,7 @@ export function DealForm({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedStage = form.watch("stage");
 
   const handleFormSubmit = (data: CreateDealInput) => {

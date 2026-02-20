@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { pipelineStagesService } from "./_lib/pipeline-stages.service";
+import { usersService } from "./_lib/users.service";
 import { PipelineStageList } from "./_components/pipeline-stage-list";
+import { UserManagement } from "./_components/user-management";
 
 import { getCurrentUser } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +17,7 @@ export default async function SettingsPage() {
 
   const stages = await pipelineStagesService.getAll();
   const isAdmin = user?.role === "admin";
+  const allUsers = isAdmin ? await usersService.getAllUsers() : [];
 
   return (
     <div className="container max-w-2xl py-8">
@@ -33,6 +36,20 @@ export default async function SettingsPage() {
           <PipelineStageList stages={stages} isAdmin={isAdmin} />
         </CardContent>
       </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Gestione Utenti</CardTitle>
+            <CardDescription>
+              Invita nuovi utenti al team o rimuovi utenti esistenti.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UserManagement initialUsers={allUsers} currentUserId={user.id} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

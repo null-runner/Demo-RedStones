@@ -69,6 +69,7 @@ export function ContactForm({
         },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedCompanyId = form.watch("companyId");
   const watchedEmail = form.watch("email");
 
