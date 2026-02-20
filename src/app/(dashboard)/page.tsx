@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { startOfDay, subDays } from "date-fns";
 
 import { DealsByStageChart } from "./_components/deals-by-stage-chart";
+import { DealStatusChart } from "./_components/deal-status-chart";
 import { KpiCards } from "./_components/kpi-cards";
 import { NbaSuggestions } from "./_components/nba-suggestions";
 import { PeriodFilter } from "./_components/period-filter";
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
   const { from, to } = parseDateRangeCookie(cookieStore.get("dateRange")?.value);
   const period = customDateRange(from, to);
 
-  const [{ kpis, dealsByStage, stagnantDeals }, nbaResult] = await Promise.all([
+  const [{ kpis, dealsByStage, dealsByStatus, stagnantDeals }, nbaResult] = await Promise.all([
     dashboardService.getDashboardData(period),
     dashboardService.getNbaData(),
   ]);
@@ -47,8 +48,9 @@ export default async function DashboardPage() {
       <KpiCards kpis={kpis} />
       <div className="grid gap-6 md:grid-cols-2">
         <DealsByStageChart data={dealsByStage} />
-        <StagnantDealsList deals={stagnantDeals} />
+        <DealStatusChart data={dealsByStatus} />
       </div>
+      <StagnantDealsList deals={stagnantDeals} />
       <NbaSuggestions suggestions={nbaResult.suggestions} />
     </div>
   );

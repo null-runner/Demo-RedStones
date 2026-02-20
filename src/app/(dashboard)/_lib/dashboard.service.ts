@@ -35,9 +35,17 @@ export type StagnantDeal = {
   value: number;
 };
 
+export type DealStatusItem = {
+  status: string;
+  count: number;
+  totalValue: number;
+  color: string;
+};
+
 export type DashboardData = {
   kpis: DashboardKPIs;
   dealsByStage: DealsByStageItem[];
+  dealsByStatus: DealStatusItem[];
   stagnantDeals: StagnantDeal[];
 };
 
@@ -194,6 +202,33 @@ export function calculateDealsPerStage(allDeals: Deal[]): DealsByStageItem[] {
     .sort((a, b) => b.count - a.count);
 }
 
+export function calculateDealsByStatus(allDeals: Deal[]): DealStatusItem[] {
+  const active = allDeals.filter((d) => !isTerminalStage(d.stage));
+  const won = allDeals.filter((d) => d.stage === STAGE_WON);
+  const lost = allDeals.filter((d) => d.stage === STAGE_LOST);
+
+  return [
+    {
+      status: "Attivi",
+      count: active.length,
+      totalValue: sumCurrency(active.map((d) => d.value)),
+      color: "#3b82f6",
+    },
+    {
+      status: "Vinti",
+      count: won.length,
+      totalValue: sumCurrency(won.map((d) => d.value)),
+      color: "#22c55e",
+    },
+    {
+      status: "Persi",
+      count: lost.length,
+      totalValue: sumCurrency(lost.map((d) => d.value)),
+      color: "#ef4444",
+    },
+  ].filter((item) => item.count > 0);
+}
+
 export function getStagnantDeals(allDeals: Deal[], now: Date = new Date()): StagnantDeal[] {
   const thresholdMs = STAGNANT_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
   const thresholdDate = new Date(now.getTime() - thresholdMs);
@@ -221,6 +256,7 @@ async function getDashboardData(
   return {
     kpis: calculateKPIs(allDeals, now, period),
     dealsByStage: calculateDealsPerStage(periodDeals),
+    dealsByStatus: calculateDealsByStatus(periodDeals),
     stagnantDeals: getStagnantDeals(periodDeals, now),
   };
 }

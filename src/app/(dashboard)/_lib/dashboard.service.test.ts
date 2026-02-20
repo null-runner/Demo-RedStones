@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateKPIs,
   calculateDealsPerStage,
+  calculateDealsByStatus,
   getStagnantDeals,
   getPeriodDateRange,
 } from "./dashboard.service";
@@ -440,6 +441,45 @@ describe("getPeriodDateRange", () => {
   it("last-90-days: prevEnd is strictly before start (no boundary overlap)", () => {
     const { start, prevEnd } = getPeriodDateRange("last-90-days", REF);
     expect(prevEnd.getTime()).toBeLessThan(start.getTime());
+  });
+});
+
+describe("calculateDealsByStatus", () => {
+  it("returns empty array for no deals", () => {
+    expect(calculateDealsByStatus([])).toEqual([]);
+  });
+
+  it("groups deals into Attivi, Vinti, Persi with correct counts and values", () => {
+    const deals: Deal[] = [
+      makeDeal({ id: "1", stage: "Proposta", value: "10000.00" }),
+      makeDeal({ id: "2", stage: "Demo", value: "5000.00" }),
+      makeDeal({ id: "3", stage: "Chiuso Vinto", value: "20000.00" }),
+      makeDeal({ id: "4", stage: "Chiuso Perso", value: "8000.00" }),
+    ];
+    const result = calculateDealsByStatus(deals);
+    expect(result).toEqual([
+      expect.objectContaining({ status: "Attivi", count: 2, totalValue: 15000 }),
+      expect.objectContaining({ status: "Vinti", count: 1, totalValue: 20000 }),
+      expect.objectContaining({ status: "Persi", count: 1, totalValue: 8000 }),
+    ]);
+  });
+
+  it("excludes categories with zero count", () => {
+    const deals: Deal[] = [makeDeal({ id: "1", stage: "Proposta", value: "10000.00" })];
+    const result = calculateDealsByStatus(deals);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(expect.objectContaining({ status: "Attivi", count: 1 }));
+  });
+
+  it("assigns distinct colors to each status", () => {
+    const deals: Deal[] = [
+      makeDeal({ id: "1", stage: "Proposta", value: "1000.00" }),
+      makeDeal({ id: "2", stage: "Chiuso Vinto", value: "1000.00" }),
+      makeDeal({ id: "3", stage: "Chiuso Perso", value: "1000.00" }),
+    ];
+    const result = calculateDealsByStatus(deals);
+    const colors = result.map((r) => r.color);
+    expect(new Set(colors).size).toBe(3);
   });
 });
 
