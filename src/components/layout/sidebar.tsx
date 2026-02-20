@@ -43,7 +43,10 @@ export function Sidebar({ nbaBadgeCount }: SidebarProps) {
                 <Icon className="h-4 w-4" />
                 {label}
                 {href === "/" && nbaBadgeCount !== undefined && nbaBadgeCount > 0 && (
-                  <span className="bg-destructive text-destructive-foreground ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none font-medium">
+                  <span
+                    aria-label={`${String(nbaBadgeCount)} azioni suggerite`}
+                    className="bg-destructive text-destructive-foreground ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none font-medium"
+                  >
                     {nbaBadgeCount >= 10 ? "9+" : String(nbaBadgeCount)}
                   </span>
                 )}

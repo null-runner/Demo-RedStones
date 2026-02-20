@@ -118,6 +118,33 @@ describe("DealDetail", () => {
     expect(screen.getByText("Deal concluso")).toBeInTheDocument();
   });
 
+  it("renders NBA suggestions when provided", () => {
+    const suggestions = [
+      {
+        id: "deal-1-follow_up",
+        type: "follow_up" as const,
+        message: "Invia follow-up — fermo da 10 giorni",
+        entityType: "deal" as const,
+        entityId: mockDeal.id,
+        entityTitle: mockDeal.title,
+        priority: "medium" as const,
+      },
+      {
+        id: "deal-1-add_notes",
+        type: "add_notes" as const,
+        message: "Aggiungi note — nessuna nota su questo deal",
+        entityType: "deal" as const,
+        entityId: mockDeal.id,
+        entityTitle: mockDeal.title,
+        priority: "low" as const,
+      },
+    ];
+    render(<DealDetail {...baseProps} nbaSuggestions={suggestions} />);
+
+    expect(screen.getByText("Invia follow-up — fermo da 10 giorni")).toBeInTheDocument();
+    expect(screen.getByText("Aggiungi note — nessuna nota su questo deal")).toBeInTheDocument();
+  });
+
   it("renders timeline section with add note form", () => {
     render(<DealDetail {...baseProps} />);
 

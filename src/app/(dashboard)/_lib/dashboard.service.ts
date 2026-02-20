@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { getAllSuggestions } from "./nba.service";
 import type { ContactWithLastActivity, NbaResult } from "./nba.service";
 
@@ -205,7 +207,7 @@ async function getDashboardData(
   };
 }
 
-async function getNbaData(): Promise<NbaResult> {
+const getNbaData = cache(async (): Promise<NbaResult> => {
   const [allDeals, allContacts, allTimelineEntries] = await Promise.all([
     db.select().from(deals),
     db.select().from(contacts),
@@ -245,6 +247,6 @@ async function getNbaData(): Promise<NbaResult> {
   });
 
   return getAllSuggestions(activeDeals, contactsWithActivity, entriesByDealId);
-}
+});
 
 export const dashboardService = { getDashboardData, getNbaData };

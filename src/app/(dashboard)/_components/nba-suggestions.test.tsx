@@ -75,10 +75,12 @@ describe("NbaSuggestions", () => {
     expect(screen.getByText("Alta")).toBeInTheDocument();
   });
 
-  it("badge priorità medium è etichettato Media", () => {
+  it("badge priorità medium ha classi CSS yellow", () => {
     const s = makeSuggestion({ priority: "medium" });
     render(<NbaSuggestions suggestions={[s]} />);
-    expect(screen.getByText("Media")).toBeInTheDocument();
+    const badge = screen.getByText("Media");
+    expect(badge.className).toMatch(/bg-yellow-100/);
+    expect(badge.className).toMatch(/text-yellow-800/);
   });
 
   it("badge priorità low è etichettato Bassa", () => {
@@ -94,11 +96,10 @@ describe("NbaSuggestions", () => {
     expect(badge.className).toMatch(/destructive/);
   });
 
-  it("badge low non ha bg-destructive (è outline)", () => {
+  it("badge low ha variant outline", () => {
     const s = makeSuggestion({ priority: "low" });
     render(<NbaSuggestions suggestions={[s]} />);
     const badge = screen.getByText("Bassa");
-    expect(badge).toBeInTheDocument();
-    expect(badge.className).not.toMatch(/bg-destructive/);
+    expect(badge).toHaveAttribute("data-variant", "outline");
   });
 });
