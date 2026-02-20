@@ -1,40 +1,80 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 import type { ContactWithDetails } from "../../_lib/contacts.service";
+import { syncContactTags } from "../../_lib/contacts.actions";
+import { ContactSheet } from "../../_components/contact-sheet";
+import { TagInput } from "../../_components/tag-input";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { usePermission } from "@/hooks/use-permission";
+import { formatEUR, formatRelativeDate } from "@/lib/format";
 
 type ContactDetailProps = {
   contact: ContactWithDetails;
+  companies: Array<{ id: string; name: string }>;
+  allTags: Array<{ id: string; name: string }>;
 };
 
-function formatCurrency(value: string): string {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
-    parseFloat(value),
-  );
-}
+export function ContactDetail({ contact, companies, allTags }: ContactDetailProps) {
+  const router = useRouter();
+  const canWrite = usePermission("update:contacts");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [localTagNames, setLocalTagNames] = useState(() => contact.tags.map((t) => t.name));
+  const [isTagSyncing, startTagTransition] = useTransition();
 
-function formatRelativeDate(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return "oggi";
-  if (diffDays === 1) return "ieri";
-  if (diffDays < 7) return `${String(diffDays)} giorni fa`;
-  return format(date, "dd MMM yyyy");
-}
+  const handleTagAdd = (tagName: string) => {
+    const next = [...localTagNames, tagName];
+    setLocalTagNames(next);
+    startTagTransition(async () => {
+      const result = await syncContactTags(contact.id, next);
+      if (!result.success) {
+        toast.error(result.error);
+        setLocalTagNames(localTagNames);
+      } else {
+        router.refresh();
+      }
+    });
+  };
 
-export function ContactDetail({ contact }: ContactDetailProps) {
+  const handleTagRemove = (tagName: string) => {
+    const next = localTagNames.filter((n) => n !== tagName);
+    setLocalTagNames(next);
+    startTagTransition(async () => {
+      const result = await syncContactTags(contact.id, next);
+      if (!result.success) {
+        toast.error(result.error);
+        setLocalTagNames(localTagNames);
+      } else {
+        router.refresh();
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={`${contact.firstName} ${contact.lastName}`}
         action={
           <div className="flex gap-2">
+            {canWrite && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSheetOpen(true);
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Modifica
+              </Button>
+            )}
             <Button variant="outline" asChild>
               <Link href="/contacts">← Torna ai Contatti</Link>
             </Button>
@@ -111,11 +151,19 @@ export function ContactDetail({ contact }: ContactDetailProps) {
       {/* Tag */}
       <div className="bg-card rounded-lg border p-4">
         <h2 className="mb-3 text-base font-semibold">Tag</h2>
-        {contact.tags.length > 0 ? (
+        {canWrite ? (
+          <TagInput
+            value={localTagNames}
+            allTags={allTags}
+            onAdd={handleTagAdd}
+            onRemove={handleTagRemove}
+            disabled={isTagSyncing}
+          />
+        ) : localTagNames.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {contact.tags.map((tag) => (
-              <Badge key={tag.id} variant="secondary">
-                {tag.name}
+            {localTagNames.map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
               </Badge>
             ))}
           </div>
@@ -130,16 +178,17 @@ export function ContactDetail({ contact }: ContactDetailProps) {
         {contact.deals.length > 0 ? (
           <div className="space-y-3">
             {contact.deals.map((deal) => (
-              <div
+              <Link
                 key={deal.id}
-                className="flex items-center justify-between rounded-md border p-3 text-sm"
+                href={`/deals/${deal.id}`}
+                className="hover:bg-accent flex items-center justify-between rounded-md border p-3 text-sm transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="font-medium">{deal.title}</span>
                   <Badge variant="outline">{deal.stage}</Badge>
                 </div>
-                <span className="text-muted-foreground">{formatCurrency(deal.value)}</span>
-              </div>
+                <span className="text-muted-foreground">{formatEUR(parseFloat(deal.value))}</span>
+              </Link>
             ))}
           </div>
         ) : (
@@ -174,6 +223,17 @@ export function ContactDetail({ contact }: ContactDetailProps) {
           <p className="text-muted-foreground text-sm">Nessuna attività registrata</p>
         )}
       </div>
+
+      <ContactSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        contact={contact}
+        companies={companies}
+        allTags={allTags}
+        onSuccess={() => {
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

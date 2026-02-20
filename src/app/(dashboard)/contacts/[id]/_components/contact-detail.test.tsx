@@ -1,8 +1,27 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ContactWithDetails } from "../../_lib/contacts.service";
 import { ContactDetail } from "./contact-detail";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
+vi.mock("@/hooks/use-permission", () => ({
+  usePermission: () => true,
+}));
+
+vi.mock("../../_lib/contacts.actions", () => ({
+  syncContactTags: vi.fn(),
+}));
+
+const mockCompanies = [{ id: "00000000-0000-0000-0000-000000000010", name: "Acme Corp" }];
+
+const mockTags = [
+  { id: "t1", name: "sales" },
+  { id: "t2", name: "priority" },
+];
 
 const mockContact: ContactWithDetails = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -37,9 +56,14 @@ const mockContact: ContactWithDetails = {
   updatedAt: new Date("2024-01-01"),
 };
 
+function renderDetail(overrides?: Partial<ContactWithDetails>) {
+  const contact = overrides ? { ...mockContact, ...overrides } : mockContact;
+  return render(<ContactDetail contact={contact} companies={mockCompanies} allTags={mockTags} />);
+}
+
 describe("ContactDetail", () => {
   it("renders personal info section: name, email, phone, role", () => {
-    render(<ContactDetail contact={mockContact} />);
+    renderDetail();
 
     expect(screen.getByText("Mario Rossi")).toBeInTheDocument();
     expect(screen.getByText("mario@example.com")).toBeInTheDocument();
@@ -48,47 +72,55 @@ describe("ContactDetail", () => {
   });
 
   it("renders company section with company name", () => {
-    render(<ContactDetail contact={mockContact} />);
+    renderDetail();
 
     expect(screen.getByText("Acme Corp")).toBeInTheDocument();
   });
 
   it("renders deals section with deal cards", () => {
-    render(<ContactDetail contact={mockContact} />);
+    renderDetail();
 
     expect(screen.getByText("Deal Alpha")).toBeInTheDocument();
     expect(screen.getByText("proposal")).toBeInTheDocument();
   });
 
   it("renders empty state for deals when no deals", () => {
-    render(<ContactDetail contact={{ ...mockContact, deals: [] }} />);
+    renderDetail({ deals: [] });
 
     expect(screen.getByText("Nessun deal associato")).toBeInTheDocument();
   });
 
   it("renders recent activity section", () => {
-    render(<ContactDetail contact={mockContact} />);
+    renderDetail();
 
     expect(screen.getByText("Chiamata effettuata")).toBeInTheDocument();
   });
 
-  it("renders tags as badges", () => {
-    render(<ContactDetail contact={mockContact} />);
+  it("renders tag input with existing tags", () => {
+    renderDetail();
 
     expect(screen.getByText("sales")).toBeInTheDocument();
-  });
-
-  it("renders empty state for tags when no tags", () => {
-    render(<ContactDetail contact={{ ...mockContact, tags: [] }} />);
-
-    expect(screen.getByText("Nessun tag")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Aggiungi tag...")).toBeInTheDocument();
   });
 
   it("renders back link to /contacts", () => {
-    render(<ContactDetail contact={mockContact} />);
+    renderDetail();
 
     const link = screen.getByRole("link", { name: /torna ai contatti/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/contacts");
+  });
+
+  it("renders edit button", () => {
+    renderDetail();
+
+    expect(screen.getByRole("button", { name: /modifica/i })).toBeInTheDocument();
+  });
+
+  it("renders deals as links to deal detail", () => {
+    renderDetail();
+
+    const dealLink = screen.getByRole("link", { name: /deal alpha/i });
+    expect(dealLink).toHaveAttribute("href", "/deals/d1");
   });
 });
