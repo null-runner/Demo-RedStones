@@ -10,6 +10,7 @@ const mockCompany = {
   domain: "redstones.it",
   sector: "SaaS",
   description: "Agenzia SaaS",
+  address: "Via Roma 1, Modena",
   enrichmentDescription: null,
   enrichmentSector: null,
   enrichmentSize: null,

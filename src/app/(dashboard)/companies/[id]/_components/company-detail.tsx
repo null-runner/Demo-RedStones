@@ -75,6 +75,12 @@ export function CompanyDetail({ company }: CompanyDetailProps) {
               {company.sector}
             </div>
           )}
+          {company.address && (
+            <div>
+              <span className="font-medium">Indirizzo: </span>
+              {company.address}
+            </div>
+          )}
           {company.description && (
             <div>
               <span className="font-medium">Descrizione: </span>

@@ -36,6 +36,13 @@
       "when": 1771587375743,
       "tag": "0004_fair_trauma",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771667080738,
+      "tag": "0005_closed_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

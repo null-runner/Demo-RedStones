@@ -13,6 +13,7 @@ export const companies = pgTable("companies", {
   domain: text("domain"),
   sector: text("sector"),
   description: text("description"),
+  address: text("address"),
   enrichmentDescription: text("enrichment_description"),
   enrichmentSector: text("enrichment_sector"),
   enrichmentSize: text("enrichment_size"),

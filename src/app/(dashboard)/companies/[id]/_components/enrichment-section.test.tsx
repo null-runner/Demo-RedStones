@@ -25,6 +25,7 @@ function makeCompany(overrides: Partial<CompanyWithDetails> = {}): CompanyWithDe
     domain: "redstones.it",
     sector: null,
     description: null,
+    address: null,
     enrichmentStatus: "not_enriched",
     enrichmentDescription: null,
     enrichmentSector: null,

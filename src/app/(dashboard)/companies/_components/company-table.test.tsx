@@ -12,6 +12,7 @@ const makeCompany = (overrides: Partial<Company> = {}): Company => ({
   domain: "redstones.it",
   sector: "SaaS",
   description: "Agenzia SaaS",
+  address: null,
   enrichmentDescription: null,
   enrichmentSector: null,
   enrichmentSize: null,

@@ -28,6 +28,7 @@ const mockEnrichedCompany: CompanyWithDetails = {
   domain: "redstones.it",
   sector: "SaaS",
   description: "Agenzia di sviluppo software",
+  address: null,
   enrichmentStatus: "enriched",
   enrichmentDescription: "Azienda specializzata in SaaS per PMI italiane",
   enrichmentSector: "Software / SaaS",

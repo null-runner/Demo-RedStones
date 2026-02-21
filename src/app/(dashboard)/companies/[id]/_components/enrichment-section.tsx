@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Sparkles } from "lucide-react";
+import { Pencil, Sparkles, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -339,6 +339,18 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
     }
   }
 
+  const hasDomain = Boolean(company.domain);
+
+  const renderDomainWarning = () => {
+    if (hasDomain) return null;
+    return (
+      <p className="text-muted-foreground flex items-center gap-1 text-xs">
+        <TriangleAlert className="h-3 w-3 shrink-0 text-yellow-600" />
+        Senza dominio i risultati potrebbero essere imprecisi.
+      </p>
+    );
+  };
+
   const renderButton = () => {
     if (state.status === "processing") {
       return (
@@ -401,6 +413,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
             Questa azienda non è ancora stata arricchita con dati AI.
           </p>
           {renderButton()}
+          {renderDomainWarning()}
         </div>
       ) : state.status === "processing" ? (
         <div className="flex flex-col items-center gap-3 py-4 text-center">
@@ -421,7 +434,10 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
       ) : (
         <div className="space-y-4">
           <EnrichmentDataDisplay state={state} />
-          {renderButton()}
+          <div className="flex items-center gap-3">
+            {renderButton()}
+            {renderDomainWarning()}
+          </div>
         </div>
       )}
 
