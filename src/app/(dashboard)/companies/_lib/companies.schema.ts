@@ -12,7 +12,8 @@ export const createCompanySchema = z.object({
     .or(z.literal("")),
   sector: z.string().max(100, "Settore troppo lungo").optional().nullable(),
   description: z.string().max(2000, "Descrizione troppo lunga").optional().nullable(),
-  address: z.string().max(300, "Indirizzo troppo lungo").optional().nullable(),
+  legalAddress: z.string().max(300, "Indirizzo troppo lungo").optional().nullable(),
+  operationalAddress: z.string().max(300, "Indirizzo troppo lungo").optional().nullable(),
 });
 
 export const updateCompanySchema = createCompanySchema.partial().extend({
