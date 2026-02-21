@@ -78,6 +78,24 @@ export function CompanyForm({ initialData, onSubmit, onCancel, isLoading }: Comp
         />
         <FormField
           control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Indirizzo</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Via Roma 1, 41121 Modena (MO)"
+                  {...field}
+                  value={field.value ?? ""}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="sector"
           render={({ field }) => (
             <FormItem>
@@ -107,24 +125,6 @@ export function CompanyForm({ initialData, onSubmit, onCancel, isLoading }: Comp
                   value={field.value ?? ""}
                   disabled={isLoading}
                   rows={3}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Indirizzo</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Via Roma 1, 41121 Modena (MO)"
-                  {...field}
-                  value={field.value ?? ""}
-                  disabled={isLoading}
                 />
               </FormControl>
               <FormMessage />
