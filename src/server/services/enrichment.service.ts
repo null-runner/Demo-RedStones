@@ -188,15 +188,23 @@ async function runEnrichment(companyId: string): Promise<void> {
 }
 
 function buildGeminiPrompt(name: string, domain: string | null): string {
-  return `Sei un analista CRM. Un venditore sta valutando "${name}"${domain ? ` (dominio: ${domain})` : ""} come potenziale cliente.
-Analizza questa azienda e restituisci un JSON con:
+  const domainClause = domain ? ` Il sito aziendale è ${domain}.` : "";
+  return `Sei un analista CRM. Un venditore sta valutando "${name}" come potenziale cliente.${domainClause}
+
+ISTRUZIONI DI RICERCA:
+- Se è presente un dominio, usa ESCLUSIVAMENTE le informazioni trovate su quel sito.
+- Se NON è presente un dominio, cerca online "${name}" e usa SOLO il risultato più pertinente.
+- NON inventare informazioni. Se un dato non è verificabile dalle fonti, restituisci null.
+- NON menzionare nomi di strumenti, piattaforme o tecnologie specifiche (es: Salesforce, HubSpot, SAP) a meno che non siano esplicitamente citati sul sito aziendale.
+
+Restituisci un JSON con:
 {
-  "description": "cosa fa l'azienda, in max 200 caratteri, o null se non trovi info",
+  "description": "cosa fa l'azienda in max 200 caratteri, basandoti solo su ciò che trovi. null se non trovi info",
   "sector": "settore principale (es: SaaS, Manifattura, Retail, Consulenza IT) o null",
-  "estimatedSize": "stima numero dipendenti (es: 1-10, 11-50, 51-200, 200+) o null",
+  "estimatedSize": "stima dipendenti (1-10, 11-50, 51-200, 200+) o null se non verificabile",
   "painPoints": ["sfida operativa 1", "sfida operativa 2"] oppure []
 }
-IMPORTANTE per painPoints: indica le sfide operative e i problemi interni che questa azienda probabilmente affronta nel proprio business quotidiano (es: gestione clienti frammentata, difficoltà di scaling, processi manuali). NON indicare i problemi dei loro clienti.
+Per painPoints: indica sfide operative GENERICHE e realistiche per il settore dell'azienda (es: gestione clienti frammentata, processi manuali). NON inventare sfide specifiche non verificabili. NON indicare i problemi dei loro clienti.
 Rispondi SOLO con il JSON, senza markdown.`;
 }
 
