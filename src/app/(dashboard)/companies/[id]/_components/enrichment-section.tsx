@@ -1,9 +1,10 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Pencil, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { updateEnrichment } from "../../_lib/companies.actions";
 import type { CompanyWithDetails } from "../../_lib/companies.service";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 type EnrichmentState = {
   status: "not_enriched" | "enriched" | "partial" | "processing";
@@ -23,6 +34,13 @@ type EnrichmentState = {
   sector: string | null;
   size: string | null;
   painPoints: string | null;
+};
+
+type EditForm = {
+  description: string;
+  sector: string;
+  size: string;
+  painPoints: string;
 };
 
 type EnrichmentApiResponse =
@@ -40,6 +58,8 @@ type EnrichmentApiResponse =
   | { success: false; error: string };
 
 const POLL_INTERVAL_MS = 3_000;
+
+const SIZE_OPTIONS = ["1-10", "11-50", "51-200", "200+"] as const;
 
 function applyEnrichmentData(
   result: Extract<EnrichmentApiResponse, { success: true; data: unknown }>,
@@ -86,6 +106,90 @@ function EnrichmentDataDisplay({ state }: { state: EnrichmentState }) {
   );
 }
 
+function EnrichmentEditForm({
+  form,
+  onChange,
+  onSave,
+  onCancel,
+  isSaving,
+}: {
+  form: EditForm;
+  onChange: (field: keyof EditForm, value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label htmlFor="enrichment-description">Descrizione</Label>
+        <Textarea
+          id="enrichment-description"
+          value={form.description}
+          onChange={(e) => {
+            onChange("description", e.target.value);
+          }}
+          rows={3}
+          disabled={isSaving}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="enrichment-sector">Settore</Label>
+        <Input
+          id="enrichment-sector"
+          value={form.sector}
+          onChange={(e) => {
+            onChange("sector", e.target.value);
+          }}
+          disabled={isSaving}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="enrichment-size">Dimensione</Label>
+        <Select
+          value={form.size || "_none"}
+          onValueChange={(v) => {
+            onChange("size", v === "_none" ? "" : v);
+          }}
+          disabled={isSaving}
+        >
+          <SelectTrigger id="enrichment-size">
+            <SelectValue placeholder="Seleziona dimensione" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_none">— non specificata</SelectItem>
+            {SIZE_OPTIONS.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {opt} dipendenti
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="enrichment-painpoints">Pain Points (uno per riga)</Label>
+        <Textarea
+          id="enrichment-painpoints"
+          value={form.painPoints}
+          onChange={(e) => {
+            onChange("painPoints", e.target.value);
+          }}
+          rows={4}
+          disabled={isSaving}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={onSave} disabled={isSaving}>
+          {isSaving ? "Salvataggio..." : "Salva"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onCancel} disabled={isSaving}>
+          Annulla
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 type EnrichmentSectionProps = {
   company: CompanyWithDetails;
 };
@@ -98,9 +202,62 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
     size: company.enrichmentSize,
     painPoints: company.enrichmentPainPoints,
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<EditForm>({
+    description: "",
+    sector: "",
+    size: "",
+    painPoints: "",
+  });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isSaving, startTransition] = useTransition();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const toastShownRef = useRef(false);
+
+  const canEdit = state.status === "enriched" || state.status === "partial";
+
+  function startEditing() {
+    setEditForm({
+      description: state.description ?? "",
+      sector: state.sector ?? "",
+      size: state.size ?? "",
+      painPoints: state.painPoints ?? "",
+    });
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+  }
+
+  function handleEditChange(field: keyof EditForm, value: string) {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleSave() {
+    startTransition(async () => {
+      const result = await updateEnrichment({
+        id: company.id,
+        enrichmentDescription: editForm.description.trim() || null,
+        enrichmentSector: editForm.sector.trim() || null,
+        enrichmentSize: editForm.size || null,
+        enrichmentPainPoints: editForm.painPoints.trim() || null,
+      });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      setState({
+        status: result.data.enrichmentStatus,
+        description: result.data.enrichmentDescription,
+        sector: result.data.enrichmentSector,
+        size: result.data.enrichmentSize,
+        painPoints: result.data.enrichmentPainPoints,
+      });
+      setIsEditing(false);
+      toast.success("Dati enrichment aggiornati");
+    });
+  }
 
   useEffect(() => {
     if (state.status !== "processing") return;
@@ -225,6 +382,17 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
         {state.status === "processing" && (
           <Badge className="bg-blue-100 text-blue-800">In elaborazione...</Badge>
         )}
+        {canEdit && !isEditing && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 gap-1 px-2 text-xs"
+            onClick={startEditing}
+          >
+            <Pencil className="h-3 w-3" />
+            Modifica
+          </Button>
+        )}
       </h2>
 
       {state.status === "not_enriched" ? (
@@ -242,6 +410,14 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
           </p>
           {renderButton()}
         </div>
+      ) : isEditing ? (
+        <EnrichmentEditForm
+          form={editForm}
+          onChange={handleEditChange}
+          onSave={handleSave}
+          onCancel={cancelEditing}
+          isSaving={isSaving}
+        />
       ) : (
         <div className="space-y-4">
           <EnrichmentDataDisplay state={state} />

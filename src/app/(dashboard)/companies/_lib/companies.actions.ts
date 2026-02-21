@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
 
-import { createCompanySchema, updateCompanySchema } from "./companies.schema";
+import {
+  createCompanySchema,
+  updateCompanySchema,
+  updateEnrichmentSchema,
+} from "./companies.schema";
 import { companiesService } from "./companies.service";
 
 import { requireRole, RBACError } from "@/lib/auth";
@@ -47,6 +51,29 @@ export async function updateCompany(input: unknown): Promise<ActionResult<Compan
     const company = await companiesService.update(id, rest);
     if (!company) return { success: false, error: "Azienda non trovata" };
     revalidatePath("/companies");
+    revalidatePath(`/companies/${id}`);
+    return { success: true, data: company };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Errore durante l'aggiornamento";
+    return { success: false, error: message };
+  }
+}
+
+export async function updateEnrichment(input: unknown): Promise<ActionResult<Company>> {
+  const parsed = updateEnrichmentSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
+  }
+  try {
+    await requireRole(["admin", "member", "guest"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
+  try {
+    const { id, ...rest } = parsed.data;
+    const company = await companiesService.updateEnrichment(id, rest);
+    if (!company) return { success: false, error: "Azienda non trovata" };
     revalidatePath(`/companies/${id}`);
     return { success: true, data: company };
   } catch (e) {

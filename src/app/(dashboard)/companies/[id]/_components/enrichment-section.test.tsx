@@ -6,12 +6,15 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { CompanyWithDetails } from "../../_lib/companies.service";
 import { EnrichmentSection } from "./enrichment-section";
 
-// Mock sonner — factory must not reference outer variables (hoisting)
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-// Mock fetch
+const mockUpdateEnrichment = vi.fn();
+vi.mock("../../_lib/companies.actions", () => ({
+  updateEnrichment: (...args: unknown[]) => mockUpdateEnrichment(...args) as unknown,
+}));
+
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -46,7 +49,9 @@ function mockFetchResponse(data: unknown, status = 200) {
 describe("EnrichmentSection", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    mockUpdateEnrichment.mockReset();
     vi.mocked(toast.error).mockReset();
+    vi.mocked(toast.success).mockReset();
   });
 
   it("azienda not_enriched mostra bottone Arricchisci con AI", () => {
@@ -281,5 +286,115 @@ describe("EnrichmentSection", () => {
       );
     });
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
+  });
+
+  it("bottone Modifica visibile quando enriched", () => {
+    render(
+      <EnrichmentSection
+        company={makeCompany({
+          enrichmentStatus: "enriched",
+          enrichmentDescription: "Desc",
+          enrichmentSector: "IT",
+          enrichmentSize: "11-50",
+          enrichmentPainPoints: "Pain 1",
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /modifica/i })).toBeInTheDocument();
+  });
+
+  it("bottone Modifica non visibile quando not_enriched", () => {
+    render(<EnrichmentSection company={makeCompany()} />);
+
+    expect(screen.queryByRole("button", { name: /modifica/i })).not.toBeInTheDocument();
+  });
+
+  it("click Modifica mostra form con valori pre-compilati", async () => {
+    const user = userEvent.setup();
+    render(
+      <EnrichmentSection
+        company={makeCompany({
+          enrichmentStatus: "enriched",
+          enrichmentDescription: "Agenzia digitale",
+          enrichmentSector: "SaaS",
+          enrichmentSize: "11-50",
+          enrichmentPainPoints: "Scaling\nProcessi manuali",
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /modifica/i }));
+
+    expect(screen.getByLabelText(/descrizione/i)).toHaveValue("Agenzia digitale");
+    expect(screen.getByLabelText(/settore/i)).toHaveValue("SaaS");
+    expect(screen.getByLabelText(/pain points/i)).toHaveValue("Scaling\nProcessi manuali");
+  });
+
+  it("click Annulla chiude form senza chiamare action", async () => {
+    const user = userEvent.setup();
+    render(
+      <EnrichmentSection
+        company={makeCompany({
+          enrichmentStatus: "enriched",
+          enrichmentDescription: "Desc",
+          enrichmentSector: "IT",
+          enrichmentSize: "11-50",
+          enrichmentPainPoints: "Pain 1",
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /modifica/i }));
+    await user.click(screen.getByRole("button", { name: /annulla/i }));
+
+    expect(screen.queryByLabelText(/descrizione/i)).not.toBeInTheDocument();
+    expect(mockUpdateEnrichment).not.toHaveBeenCalled();
+  });
+
+  it("click Salva chiama updateEnrichment e aggiorna display", async () => {
+    const user = userEvent.setup();
+    mockUpdateEnrichment.mockResolvedValue({
+      success: true,
+      data: {
+        ...makeCompany(),
+        enrichmentStatus: "enriched",
+        enrichmentDescription: "Nuova desc",
+        enrichmentSector: "SaaS",
+        enrichmentSize: "11-50",
+        enrichmentPainPoints: "Pain aggiornato",
+      },
+    });
+
+    render(
+      <EnrichmentSection
+        company={makeCompany({
+          enrichmentStatus: "enriched",
+          enrichmentDescription: "Vecchia desc",
+          enrichmentSector: "IT",
+          enrichmentSize: "11-50",
+          enrichmentPainPoints: "Pain 1",
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /modifica/i }));
+    const descField = screen.getByLabelText(/descrizione/i);
+    await user.clear(descField);
+    await user.type(descField, "Nuova desc");
+    await user.click(screen.getByRole("button", { name: /salva/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateEnrichment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "00000000-0000-0000-0000-000000000001",
+          enrichmentDescription: "Nuova desc",
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Nuova desc")).toBeInTheDocument();
+    });
+    expect(toast.success).toHaveBeenCalledWith("Dati enrichment aggiornati");
   });
 });

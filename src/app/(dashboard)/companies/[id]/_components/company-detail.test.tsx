@@ -18,6 +18,10 @@ vi.mock("../../_components/company-sheet", () => ({
   CompanySheet: () => null,
 }));
 
+vi.mock("./enrichment-section", () => ({
+  EnrichmentSection: () => <div data-testid="enrichment-section" />,
+}));
+
 const mockEnrichedCompany: CompanyWithDetails = {
   id: "00000000-0000-0000-0000-000000000001",
   name: "RedStones Srl",
@@ -48,17 +52,6 @@ const mockNotEnrichedCompany: CompanyWithDetails = {
   deals: [],
 };
 
-const mockPartialCompany: CompanyWithDetails = {
-  ...mockEnrichedCompany,
-  enrichmentStatus: "partial",
-  enrichmentDescription: "Dati parziali disponibili",
-  enrichmentSector: null,
-  enrichmentSize: null,
-  enrichmentPainPoints: null,
-  contacts: [],
-  deals: [],
-};
-
 describe("CompanyDetail", () => {
   it("renders company info section: name, domain, sector, description", () => {
     render(<CompanyDetail company={mockEnrichedCompany} />);
@@ -69,28 +62,10 @@ describe("CompanyDetail", () => {
     expect(screen.getByText("Agenzia di sviluppo software")).toBeInTheDocument();
   });
 
-  it("renders enrichment section with all 4 fields when enriched", () => {
+  it("renders enrichment section", () => {
     render(<CompanyDetail company={mockEnrichedCompany} />);
 
-    expect(screen.getByText("Azienda specializzata in SaaS per PMI italiane")).toBeInTheDocument();
-    expect(screen.getByText("Software / SaaS")).toBeInTheDocument();
-    expect(screen.getByText("11-50 dipendenti")).toBeInTheDocument();
-    expect(screen.getByText("Acquisizione clienti")).toBeInTheDocument();
-    expect(screen.getByText("Retention")).toBeInTheDocument();
-    expect(screen.getByText("Scalabilità")).toBeInTheDocument();
-  });
-
-  it("renders enrichment empty state with CTA when not enriched", () => {
-    render(<CompanyDetail company={mockNotEnrichedCompany} />);
-
-    expect(screen.getByText("Arricchisci con AI")).toBeInTheDocument();
-  });
-
-  it("renders partial enrichment badge and available fields when partial", () => {
-    render(<CompanyDetail company={mockPartialCompany} />);
-
-    expect(screen.getByText("Dati parziali")).toBeInTheDocument();
-    expect(screen.getByText("Dati parziali disponibili")).toBeInTheDocument();
+    expect(screen.getByTestId("enrichment-section")).toBeInTheDocument();
   });
 
   it("renders contacts list with contact names", () => {

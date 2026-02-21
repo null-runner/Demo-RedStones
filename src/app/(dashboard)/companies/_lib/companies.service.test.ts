@@ -288,3 +288,103 @@ describe("companiesService.getById", () => {
     expect(result).toBeNull();
   });
 });
+
+describe("companiesService.updateEnrichment", () => {
+  it("updates enrichment fields and returns company", async () => {
+    const updated = {
+      ...mockCompany,
+      enrichmentDescription: "Agenzia digitale",
+      enrichmentSector: "SaaS",
+      enrichmentSize: "11-50",
+      enrichmentPainPoints: "Scaling\nProcessi manuali",
+      enrichmentStatus: "enriched" as const,
+    };
+    const chain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([updated]),
+    };
+    vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
+
+    const result = await companiesService.updateEnrichment(mockCompany.id, {
+      enrichmentDescription: "Agenzia digitale",
+      enrichmentSector: "SaaS",
+      enrichmentSize: "11-50",
+      enrichmentPainPoints: "Scaling\nProcessi manuali",
+    });
+
+    expect(result).toMatchObject({ enrichmentDescription: "Agenzia digitale" });
+    expect(chain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enrichmentDescription: "Agenzia digitale",
+        enrichmentStatus: "enriched",
+      }),
+    );
+  });
+
+  it("sets status to partial when some fields are null", async () => {
+    const updated = {
+      ...mockCompany,
+      enrichmentDescription: "Agenzia digitale",
+      enrichmentSector: null,
+      enrichmentSize: null,
+      enrichmentPainPoints: null,
+      enrichmentStatus: "partial" as const,
+    };
+    const chain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([updated]),
+    };
+    vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
+
+    await companiesService.updateEnrichment(mockCompany.id, {
+      enrichmentDescription: "Agenzia digitale",
+      enrichmentSector: null,
+      enrichmentSize: null,
+      enrichmentPainPoints: null,
+    });
+
+    expect(chain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "partial" }),
+    );
+  });
+
+  it("sets status to not_enriched when all fields are null", async () => {
+    const chain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ ...mockCompany, enrichmentStatus: "not_enriched" }]),
+    };
+    vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
+
+    await companiesService.updateEnrichment(mockCompany.id, {
+      enrichmentDescription: null,
+      enrichmentSector: null,
+      enrichmentSize: null,
+      enrichmentPainPoints: null,
+    });
+
+    expect(chain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentStatus: "not_enriched" }),
+    );
+  });
+
+  it("returns null when company not found", async () => {
+    const chain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    };
+    vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
+
+    const result = await companiesService.updateEnrichment("nonexistent-id", {
+      enrichmentDescription: "test",
+      enrichmentSector: null,
+      enrichmentSize: null,
+      enrichmentPainPoints: null,
+    });
+
+    expect(result).toBeNull();
+  });
+});

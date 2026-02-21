@@ -2,7 +2,11 @@ import "server-only";
 
 import { asc, desc, eq } from "drizzle-orm";
 
-import type { CreateCompanyInput, UpdateCompanyInput } from "./companies.schema";
+import type {
+  CreateCompanyInput,
+  UpdateCompanyInput,
+  UpdateEnrichmentInput,
+} from "./companies.schema";
 
 import { db } from "@/server/db";
 import { companies, contacts, deals } from "@/server/db/schema";
@@ -88,10 +92,39 @@ async function deleteCompany(id: string): Promise<void> {
   await db.delete(companies).where(eq(companies.id, id));
 }
 
+type EnrichmentFields = Omit<UpdateEnrichmentInput, "id">;
+
+function detectEnrichmentStatus(data: EnrichmentFields): "enriched" | "partial" | "not_enriched" {
+  const fields = [
+    data.enrichmentDescription,
+    data.enrichmentSector,
+    data.enrichmentSize,
+    data.enrichmentPainPoints,
+  ];
+  const filled = fields.filter((f) => f !== null && f !== "").length;
+  if (filled === 0) return "not_enriched";
+  if (filled === fields.length) return "enriched";
+  return "partial";
+}
+
+async function updateEnrichment(id: string, data: EnrichmentFields): Promise<Company | null> {
+  const result = await db
+    .update(companies)
+    .set({
+      ...data,
+      enrichmentStatus: detectEnrichmentStatus(data),
+      updatedAt: new Date(),
+    })
+    .where(eq(companies.id, id))
+    .returning();
+  return result[0] ?? null;
+}
+
 export const companiesService = {
   getAll,
   getById,
   create,
   update,
+  updateEnrichment,
   delete: deleteCompany,
 };
