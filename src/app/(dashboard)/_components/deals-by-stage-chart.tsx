@@ -8,12 +8,24 @@ import type { DealsByStageItem } from "../_lib/dashboard.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEUR } from "@/lib/format";
 
+const STAGE_COLORS: Record<string, string> = {
+  Lead: "#6366f1",
+  Qualificato: "#8b5cf6",
+  Demo: "#3b82f6",
+  Proposta: "#0ea5e9",
+  Negoziazione: "#f59e0b",
+};
+
+const DEFAULT_COLOR = "#64748b";
+
 interface Props {
   data: DealsByStageItem[];
 }
 
+type ChartItem = DealsByStageItem & { fill: string };
+
 interface TooltipPayloadEntry {
-  payload: DealsByStageItem;
+  payload: ChartItem;
 }
 
 interface CustomTooltipProps {
@@ -48,6 +60,11 @@ export function DealsByStageChart({ data }: Props) {
     );
   }
 
+  const chartData: ChartItem[] = data.map((d) => ({
+    ...d,
+    fill: STAGE_COLORS[d.stage] ?? DEFAULT_COLOR,
+  }));
+
   return (
     <Card>
       <CardHeader>
@@ -55,12 +72,12 @@ export function DealsByStageChart({ data }: Props) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data}>
+          <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
