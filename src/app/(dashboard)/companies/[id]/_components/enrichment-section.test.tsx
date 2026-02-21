@@ -70,7 +70,7 @@ describe("EnrichmentSection", () => {
     expect(screen.getByRole("button", { name: /arricchimento in corso/i })).toBeDisabled();
   });
 
-  it("enrichment completato mostra dati e bottone Aggiorna dati", async () => {
+  it("enrichment completato mostra dati e bottone Rigenera con AI", async () => {
     const user = userEvent.setup();
     mockFetchResponse({
       success: true,
@@ -92,7 +92,7 @@ describe("EnrichmentSection", () => {
       expect(screen.getByText("11-50")).toBeInTheDocument();
       expect(screen.getByText("Acquisizione clienti")).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: /aggiorna dati/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /rigenera con ai/i })).toBeInTheDocument();
   });
 
   it("enrichment partial mostra badge Dati parziali e campi mancanti", async () => {
@@ -148,7 +148,7 @@ describe("EnrichmentSection", () => {
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
   });
 
-  it("azienda enriched mostra bottone Aggiorna dati", () => {
+  it("azienda enriched mostra bottone Rigenera con AI", () => {
     render(
       <EnrichmentSection
         company={makeCompany({
@@ -161,11 +161,11 @@ describe("EnrichmentSection", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /aggiorna dati/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /rigenera con ai/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /arricchisci con ai/i })).not.toBeInTheDocument();
   });
 
-  it("click Aggiorna dati apre dialog di conferma", async () => {
+  it("click Rigenera con AI apre dialog di conferma", async () => {
     const user = userEvent.setup();
 
     render(
@@ -174,7 +174,7 @@ describe("EnrichmentSection", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /aggiorna dati/i }));
+    await user.click(screen.getByRole("button", { name: /rigenera con ai/i }));
 
     expect(screen.getByText(/i dati attuali verranno sovrascritti/i)).toBeInTheDocument();
   });
@@ -188,7 +188,7 @@ describe("EnrichmentSection", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /aggiorna dati/i }));
+    await user.click(screen.getByRole("button", { name: /rigenera con ai/i }));
     await user.click(screen.getByRole("button", { name: /annulla/i }));
 
     await waitFor(() => {
@@ -197,7 +197,7 @@ describe("EnrichmentSection", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("click Aggiorna nel dialog chiama fetch con force:true", async () => {
+  it("click Rigenera nel dialog chiama fetch con force:true", async () => {
     const user = userEvent.setup();
     mockFetchResponse({
       success: true,
@@ -222,8 +222,8 @@ describe("EnrichmentSection", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /aggiorna dati/i }));
-    await user.click(screen.getByRole("button", { name: /^aggiorna$/i }));
+    await user.click(screen.getByRole("button", { name: /rigenera con ai/i }));
+    await user.click(screen.getByRole("button", { name: /^rigenera$/i }));
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(

@@ -367,7 +367,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
           setShowConfirmDialog(true);
         }}
       >
-        Aggiorna dati
+        Rigenera con AI
       </Button>
     );
   };
@@ -428,7 +428,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Aggiorna dati enrichment?</DialogTitle>
+            <DialogTitle>Rigenerare dati con AI?</DialogTitle>
             <DialogDescription>I dati attuali verranno sovrascritti.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -446,7 +446,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
                 void handleEnrich(true);
               }}
             >
-              Aggiorna
+              Rigenera
             </Button>
           </DialogFooter>
         </DialogContent>
