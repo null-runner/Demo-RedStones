@@ -1,7 +1,6 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -101,7 +100,6 @@ export function PipelineBoard({
   onLostReasonNeeded,
   stages,
 }: PipelineBoardProps) {
-  const router = useRouter();
   const [, startTransition] = useTransition();
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
 
@@ -146,16 +144,13 @@ export function PipelineBoard({
 
     const oldStage = currentDeal.stage;
 
-    startTransition(() => {
-      addOptimisticMove({ dealId, newStage: targetStage });
-    });
-
     startTransition(async () => {
+      addOptimisticMove({ dealId, newStage: targetStage });
+
       const result = await updateDeal({ id: dealId, stage: targetStage });
 
       if (!result.success) {
         toast.error(`Errore spostamento: ${result.error}`);
-        router.refresh();
         return;
       }
 
@@ -165,19 +160,17 @@ export function PipelineBoard({
           label: "Annulla",
           onClick: () => {
             startTransition(async () => {
+              addOptimisticMove({ dealId, newStage: oldStage });
               const revertResult = await updateDeal({ id: dealId, stage: oldStage });
               if (!revertResult.success) {
                 toast.error(`Errore annullamento: ${revertResult.error}`);
               } else {
                 toast.success(`Deal tornato in ${oldStage}`);
               }
-              router.refresh();
             });
           },
         },
       });
-
-      router.refresh();
     });
   };
 
