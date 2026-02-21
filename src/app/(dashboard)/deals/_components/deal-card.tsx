@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
@@ -15,6 +16,32 @@ type DealCardProps = {
   companyName?: string | undefined;
 };
 
+export const DealCardContent = memo(function DealCardContent({
+  deal,
+  contactName,
+  companyName,
+}: DealCardProps) {
+  return (
+    <Card className="cursor-grab border shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
+      <CardContent className="p-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{deal.title}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{formatEUR(parseFloat(deal.value))}</p>
+          {companyName && (
+            <p className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
+              <Building2 className="h-3 w-3 flex-shrink-0" />
+              {companyName}
+            </p>
+          )}
+          {contactName && (
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">{contactName}</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
 export function DealCard({ deal, contactName, companyName }: DealCardProps) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -24,7 +51,7 @@ export function DealCard({ deal, contactName, companyName }: DealCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
   return (
@@ -39,25 +66,7 @@ export function DealCard({ deal, contactName, companyName }: DealCardProps) {
       role="button"
       tabIndex={0}
     >
-      <Card className="cursor-pointer border shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
-        <CardContent className="p-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{deal.title}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {formatEUR(parseFloat(deal.value))}
-            </p>
-            {companyName && (
-              <p className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
-                <Building2 className="h-3 w-3 flex-shrink-0" />
-                {companyName}
-              </p>
-            )}
-            {contactName && (
-              <p className="text-muted-foreground mt-0.5 truncate text-xs">{contactName}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <DealCardContent deal={deal} contactName={contactName} companyName={companyName} />
     </div>
   );
 }

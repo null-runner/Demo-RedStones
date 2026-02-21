@@ -1,10 +1,12 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  closestCorners,
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
@@ -14,7 +16,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { toast } from "sonner";
 
 import { updateDeal } from "../_lib/deals.actions";
-import { DealCard } from "./deal-card";
+import { DealCard, DealCardContent } from "./deal-card";
 
 import type { PipelineStage } from "@/lib/constants/pipeline";
 import { formatEUR, sumCurrency } from "@/lib/format";
@@ -100,26 +102,36 @@ export function PipelineBoard({
   onLostReasonNeeded,
   stages,
 }: PipelineBoardProps) {
-  const [, startTransition] = useTransition();
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [localDeals, setLocalDeals] = useState(deals);
+  const pendingMoves = useRef(0);
 
-  const [optimisticDeals, addOptimisticMove] = useOptimistic(
-    deals,
-    (state: Deal[], { dealId, newStage }: { dealId: string; newStage: string }) =>
-      state.map((d) => (d.id === dealId ? { ...d, stage: newStage as PipelineStage } : d)),
-  );
+  // Sync local state from props when no optimistic moves are in-flight
+  useEffect(() => {
+    if (pendingMoves.current === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: conditional prop-derived state
+      setLocalDeals(deals);
+    }
+  }, [deals]);
 
-  const columns = buildColumns(optimisticDeals, stages);
+  const columns = buildColumns(localDeals, stages);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
     }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
-    const deal = deals.find((d) => d.id === event.active.id);
+    const deal = localDeals.find((d) => d.id === event.active.id);
     setActiveDeal(deal ?? null);
+  };
+
+  const moveDeal = (dealId: string, newStage: PipelineStage) => {
+    setLocalDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -128,12 +140,12 @@ export function PipelineBoard({
     if (!over) return;
 
     const dealId = active.id as string;
-    const currentDeal = deals.find((d) => d.id === dealId);
+    const currentDeal = localDeals.find((d) => d.id === dealId);
     if (!currentDeal) return;
 
     const targetStage: PipelineStage = stages.includes(over.id as string)
       ? (over.id as PipelineStage)
-      : (deals.find((d) => d.id === over.id)?.stage ?? currentDeal.stage);
+      : (localDeals.find((d) => d.id === over.id)?.stage ?? currentDeal.stage);
 
     if (currentDeal.stage === targetStage) return;
 
@@ -144,34 +156,43 @@ export function PipelineBoard({
 
     const oldStage = currentDeal.stage;
 
-    startTransition(async () => {
-      addOptimisticMove({ dealId, newStage: targetStage });
+    moveDeal(dealId, targetStage);
+    pendingMoves.current += 1;
 
-      const result = await updateDeal({ id: dealId, stage: targetStage });
+    void updateDeal({ id: dealId, stage: targetStage })
+      .then((result) => {
+        if (!result.success) {
+          moveDeal(dealId, oldStage);
+          toast.error(`Errore spostamento: ${result.error}`);
+          return;
+        }
 
-      if (!result.success) {
-        toast.error(`Errore spostamento: ${result.error}`);
-        return;
-      }
-
-      toast(`Deal spostato in ${targetStage}`, {
-        duration: 5000,
-        action: {
-          label: "Annulla",
-          onClick: () => {
-            startTransition(async () => {
-              addOptimisticMove({ dealId, newStage: oldStage });
-              const revertResult = await updateDeal({ id: dealId, stage: oldStage });
-              if (!revertResult.success) {
-                toast.error(`Errore annullamento: ${revertResult.error}`);
-              } else {
-                toast.success(`Deal tornato in ${oldStage}`);
-              }
-            });
+        toast(`Deal spostato in ${targetStage}`, {
+          duration: 5000,
+          action: {
+            label: "Annulla",
+            onClick: () => {
+              moveDeal(dealId, oldStage);
+              pendingMoves.current += 1;
+              void updateDeal({ id: dealId, stage: oldStage })
+                .then((revertResult) => {
+                  if (!revertResult.success) {
+                    moveDeal(dealId, targetStage);
+                    toast.error(`Errore annullamento: ${revertResult.error}`);
+                  } else {
+                    toast.success(`Deal tornato in ${oldStage}`);
+                  }
+                })
+                .finally(() => {
+                  pendingMoves.current -= 1;
+                });
+            },
           },
-        },
+        });
+      })
+      .finally(() => {
+        pendingMoves.current -= 1;
       });
-    });
   };
 
   const activeDealContact = activeDeal
@@ -182,7 +203,12 @@ export function PipelineBoard({
     : undefined;
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto">
         {columns.map((column) => (
           <DroppableColumn
@@ -193,17 +219,24 @@ export function PipelineBoard({
           />
         ))}
       </div>
-      <DragOverlay>
+      <DragOverlay
+        dropAnimation={{
+          duration: 200,
+          easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+        }}
+      >
         {activeDeal ? (
-          <DealCard
-            deal={activeDeal}
-            contactName={
-              activeDealContact
-                ? `${activeDealContact.firstName} ${activeDealContact.lastName}`
-                : undefined
-            }
-            companyName={activeDealCompany}
-          />
+          <div className="scale-[1.03] rotate-[2deg] cursor-grabbing shadow-xl [will-change:transform]">
+            <DealCardContent
+              deal={activeDeal}
+              contactName={
+                activeDealContact
+                  ? `${activeDealContact.firstName} ${activeDealContact.lastName}`
+                  : undefined
+              }
+              companyName={activeDealCompany}
+            />
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>
