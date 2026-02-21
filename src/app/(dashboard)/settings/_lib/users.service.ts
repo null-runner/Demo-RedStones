@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/server/db";
-import { users } from "@/server/db/schema";
+import { deals, users } from "@/server/db/schema";
 
 export type UserRow = {
   id: string;
@@ -70,6 +70,10 @@ async function deleteUser(targetId: string, currentUserId: string): Promise<void
 
     const targetIsAdmin = admins.some((a) => a.id === targetId);
     if (targetIsAdmin && admins.length <= 1) throw new Error("LAST_ADMIN");
+
+    // Explicitly orphan deals before deleting user, rather than relying on FK cascade (SET NULL).
+    // This makes the ownership transfer visible and intentional.
+    await tx.update(deals).set({ ownerId: null }).where(eq(deals.ownerId, targetId));
 
     await tx.delete(users).where(eq(users.id, targetId));
   });

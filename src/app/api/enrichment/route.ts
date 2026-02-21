@@ -19,6 +19,7 @@ const ERROR_STATUS_MAP: Record<EnrichmentError["error"], number> = {
   service_unavailable: 503,
   timeout: 504,
   network_error: 503,
+  enrichment_already_processing: 409,
 };
 
 function scheduleBackground(fn: () => Promise<void>): void {

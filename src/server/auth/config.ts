@@ -5,7 +5,7 @@ export const authConfig = {
   pages: {
     signIn: "/sign-in",
   },
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
   callbacks: {
     jwt({ token, user: _user }) {
       // user is only populated on initial sign-in; undefined on token refresh
@@ -22,8 +22,10 @@ export const authConfig = {
       return token;
     },
     session({ session, token }) {
-      session.user["id"] = token["id"] as string;
-      session.user["role"] = token["role"] as string;
+      const tokenId = token["id"];
+      const tokenRole = token["role"];
+      if (typeof tokenId === "string") session.user["id"] = tokenId;
+      if (typeof tokenRole === "string") session.user["role"] = tokenRole;
       return session;
     },
     authorized({ auth, request: { nextUrl } }) {

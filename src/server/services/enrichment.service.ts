@@ -1,9 +1,10 @@
 import "server-only";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import { CircuitBreaker } from "@/lib/circuit-breaker";
+import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { companies } from "@/server/db/schema";
@@ -33,7 +34,13 @@ export type EnrichmentProcessing = {
 
 export type EnrichmentError = {
   success: false;
-  error: "not_found" | "timeout" | "service_unavailable" | "network_error" | "api_key_missing";
+  error:
+    | "not_found"
+    | "timeout"
+    | "service_unavailable"
+    | "network_error"
+    | "api_key_missing"
+    | "enrichment_already_processing";
 };
 
 export type EnrichmentResult = EnrichmentSuccess | EnrichmentProcessing | EnrichmentError;
@@ -77,7 +84,7 @@ async function startEnrichment(
   companyId: string,
   options: { force?: boolean } = {},
 ): Promise<EnrichmentResult> {
-  const apiKey = process.env["GEMINI_API_KEY"];
+  const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     logger.warn("enrichment", "GEMINI_API_KEY not set");
     return { success: false, error: "api_key_missing" };
@@ -110,16 +117,21 @@ async function startEnrichment(
     };
   }
 
-  await db
+  const result = await db
     .update(companies)
     .set({ enrichmentStatus: "processing", updatedAt: new Date() })
-    .where(eq(companies.id, companyId));
+    .where(and(eq(companies.id, companyId), ne(companies.enrichmentStatus, "processing")))
+    .returning();
+
+  if (result.length === 0) {
+    return { success: false, error: "enrichment_already_processing" };
+  }
 
   return { success: true, status: "processing" };
 }
 
 async function runEnrichment(companyId: string): Promise<void> {
-  const apiKey = process.env["GEMINI_API_KEY"];
+  const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) return;
 
   const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);

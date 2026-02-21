@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
@@ -44,9 +44,16 @@ export const DealCardContent = memo(function DealCardContent({
 
 export function DealCard({ deal, contactName, companyName }: DealCardProps) {
   const router = useRouter();
+  const pointerWasDragging = useRef(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
   });
+
+  useEffect(() => {
+    if (isDragging) {
+      pointerWasDragging.current = true;
+    }
+  }, [isDragging]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -61,10 +68,20 @@ export function DealCard({ deal, contactName, companyName }: DealCardProps) {
       {...attributes}
       {...listeners}
       onClick={() => {
+        if (pointerWasDragging.current) {
+          pointerWasDragging.current = false;
+          return;
+        }
         router.push(`/deals/${deal.id}`);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          router.push(`/deals/${deal.id}`);
+        }
       }}
       role="button"
       tabIndex={0}
+      aria-label={`Apri deal ${deal.title}`}
     >
       <DealCardContent deal={deal} contactName={contactName} companyName={companyName} />
     </div>

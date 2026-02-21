@@ -10,7 +10,7 @@ import { contactsService } from "./contacts.service";
 import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import { db } from "@/server/db";
-import { contactsToTags } from "@/server/db/schema";
+import { contacts, contactsToTags } from "@/server/db/schema";
 import type { Contact } from "@/server/db/schema";
 
 export async function createContact(input: unknown): Promise<ActionResult<Contact>> {
@@ -25,10 +25,34 @@ export async function createContact(input: unknown): Promise<ActionResult<Contac
     return { success: false, error: "Errore di autenticazione" };
   }
   try {
-    const contact = await contactsService.create(parsed.data);
-    for (const tagName of parsed.data.tagNames) {
-      await contactsService.addTagToContact(contact.id, tagName);
-    }
+    const contact = await db.transaction(async (tx) => {
+      let rows: Contact[];
+      try {
+        rows = await tx
+          .insert(contacts)
+          .values({
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
+            email: parsed.data.email || null,
+            phone: parsed.data.phone || null,
+            role: parsed.data.role || null,
+            companyId: parsed.data.companyId ?? null,
+          })
+          .returning();
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("foreign key")) {
+          throw new Error("Azienda selezionata non trovata");
+        }
+        throw e;
+      }
+      const created = rows[0];
+      if (!created) throw new Error("Errore durante la creazione del contatto");
+
+      for (const tagName of parsed.data.tagNames) {
+        await contactsService.addTagToContact(created.id, tagName);
+      }
+      return created;
+    });
     revalidatePath("/contacts");
     return { success: true, data: contact };
   } catch (e) {

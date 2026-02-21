@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "crm-tutorial-completed";
 
@@ -61,6 +61,52 @@ export function TutorialOverlay() {
     }
   }, [step, dismiss]);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (dismissed) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        dismiss();
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Focus first interactive element on mount
+    const timer = setTimeout(() => {
+      if (dialogRef.current) {
+        const first = dialogRef.current.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        first?.focus();
+      }
+    }, 0);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
+    };
+  }, [dismissed, dismiss]);
+
   const isGuest = session?.user.role === "guest";
   if (dismissed || !isGuest) return null;
 
@@ -68,8 +114,15 @@ export function TutorialOverlay() {
   const isLast = step === STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative mx-4 w-full max-w-md rounded-xl border bg-white p-6 shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        ref={dialogRef}
+        className="relative mx-4 w-full max-w-md rounded-xl border bg-white p-6 shadow-xl"
+      >
         <button
           onClick={() => {
             dismiss();

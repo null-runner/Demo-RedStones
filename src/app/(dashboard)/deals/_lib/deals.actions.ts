@@ -1,15 +1,17 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
 
 import { createDealSchema, updateDealSchema } from "./deals.schema";
 import { dealsService } from "./deals.service";
-import { timelineService } from "./timeline.service";
 
 import { requireRole, RBACError } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import type { ActionResult } from "@/lib/types";
+import { db } from "@/server/db";
+import { deals, pipelineStages, timelineEntries } from "@/server/db/schema";
 import type { Deal } from "@/server/db/schema";
 
 export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
@@ -24,6 +26,13 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
     return { success: false, error: "Errore di autenticazione" };
   }
   try {
+    if (parsed.data.stage) {
+      const validStages = await db.select({ name: pipelineStages.name }).from(pipelineStages);
+      const stageNames = validStages.map((s) => s.name);
+      if (!stageNames.includes(parsed.data.stage)) {
+        return { success: false, error: "Stage non valido" };
+      }
+    }
     const deal = await dealsService.create(parsed.data);
     revalidatePath("/deals");
     return { success: true, data: deal };
@@ -38,8 +47,9 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
+  let user;
   try {
-    await requireRole(["admin", "member", "guest"]);
+    user = await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -47,25 +57,55 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
   try {
     const { id, ...rest } = parsed.data;
 
-    // Rileva cambio stage PRIMA dell'update
-    let previousStage: string | undefined;
     if (rest.stage !== undefined) {
-      const currentDeal = await dealsService.getById(id);
-      if (currentDeal && currentDeal.stage !== rest.stage) {
-        previousStage = currentDeal.stage;
+      const validStages = await db.select({ name: pipelineStages.name }).from(pipelineStages);
+      const stageNames = validStages.map((s) => s.name);
+      if (!stageNames.includes(rest.stage)) {
+        return { success: false, error: "Stage non valido" };
       }
     }
 
-    const deal = await dealsService.update(id, rest);
+    const deal = await db.transaction(async (tx) => {
+      const currentRows = await tx.select().from(deals).where(eq(deals.id, id)).limit(1);
+      const currentDeal = currentRows[0];
+      if (!currentDeal) return null;
+
+      const previousStage =
+        rest.stage !== undefined && currentDeal.stage !== rest.stage
+          ? currentDeal.stage
+          : undefined;
+
+      const updatedRows = await tx
+        .update(deals)
+        .set({
+          ...rest,
+          value: rest.value !== undefined ? rest.value.toString() : undefined,
+          updatedAt: new Date(),
+        })
+        .where(eq(deals.id, id))
+        .returning();
+      const updatedDeal = updatedRows[0];
+      if (!updatedDeal) return null;
+
+      if (previousStage !== undefined && rest.stage !== undefined) {
+        try {
+          await tx.insert(timelineEntries).values({
+            dealId: id,
+            type: "stage_change",
+            content: null,
+            previousStage,
+            newStage: rest.stage,
+            authorId: user.id,
+          });
+        } catch (e) {
+          logger.error("timeline", "Failed to record stage change", e);
+        }
+      }
+
+      return updatedDeal;
+    });
+
     if (!deal) return { success: false, error: "Deal non trovato" };
-
-    if (previousStage !== undefined && rest.stage !== undefined) {
-      try {
-        await timelineService.recordStageChange(id, previousStage, rest.stage, null);
-      } catch (e) {
-        logger.error("timeline", "Failed to record stage change", e);
-      }
-    }
 
     revalidatePath("/deals");
     revalidatePath(`/deals/${id}`);

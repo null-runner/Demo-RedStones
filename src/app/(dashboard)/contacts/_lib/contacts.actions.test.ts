@@ -6,6 +6,12 @@ vi.mock("drizzle-orm", async (importOriginal) => {
   return { ...actual, eq: vi.fn() };
 });
 
+vi.mock("@/server/db", () => ({
+  db: {
+    transaction: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/auth", () => ({
   requireRole: vi.fn(),
   RBACError: class RBACError extends Error {
@@ -33,8 +39,11 @@ import { createContact, updateContact, deleteContact } from "./contacts.actions"
 import { contactsService } from "./contacts.service";
 
 import { requireRole, RBACError } from "@/lib/auth";
+import { db } from "@/server/db";
 
 const mockRequireRole = vi.mocked(requireRole);
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const mockTransaction = vi.mocked(db.transaction);
 
 const validContactInput = {
   firstName: "Mario",
@@ -64,7 +73,12 @@ const mockContact = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockRequireRole.mockResolvedValue(undefined);
+  mockRequireRole.mockResolvedValue({
+    id: "u1",
+    role: "admin",
+    name: "Admin",
+    email: "admin@test.com",
+  });
 });
 
 describe("createContact — RBAC", () => {
@@ -72,15 +86,22 @@ describe("createContact — RBAC", () => {
     mockRequireRole.mockRejectedValue(new RBACError());
     const result = await createContact(validContactInput);
     expect(result).toEqual({ success: false, error: "Azione non consentita per il tuo ruolo" });
-    expect(contactsService.create).not.toHaveBeenCalled();
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
   it("proceeds normally when admin calls createContact", async () => {
-    vi.mocked(contactsService.create).mockResolvedValue(mockContact);
+    const txInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([mockContact]),
+      }),
+    });
+    mockTransaction.mockImplementation(async (fn) => {
+      return fn({ insert: txInsert } as never);
+    });
     vi.mocked(contactsService.addTagToContact).mockResolvedValue(undefined as never);
     const result = await createContact(validContactInput);
     expect(result.success).toBe(true);
-    expect(contactsService.create).toHaveBeenCalledOnce();
+    expect(mockTransaction).toHaveBeenCalledOnce();
   });
 });
 

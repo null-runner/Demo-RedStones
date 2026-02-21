@@ -10,6 +10,7 @@ vi.mock("@/server/db", () => ({
         returning: vi.fn().mockResolvedValue([]),
       }),
     }),
+    transaction: vi.fn(),
   },
 }));
 
@@ -97,9 +98,21 @@ describe("generateSeedData", () => {
 });
 
 describe("seedService.resetDatabase", () => {
-  it("calls delete and insert operations", async () => {
+  it("calls delete and insert operations inside a transaction", async () => {
+    const txDelete = vi.fn().mockReturnThis();
+    const txInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockResolvedValue([]),
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    });
+    vi.mocked(db.transaction).mockImplementation(async (fn) => {
+      return fn({ delete: txDelete, insert: txInsert } as never);
+    });
+
     await resetDatabase();
-    expect(db.delete).toHaveBeenCalled();
-    expect(db.insert).toHaveBeenCalled();
+    expect(db.transaction).toHaveBeenCalledOnce();
+    expect(txDelete).toHaveBeenCalled();
+    expect(txInsert).toHaveBeenCalled();
   });
 });

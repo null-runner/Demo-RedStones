@@ -4,15 +4,13 @@ import { companies } from "./companies";
 import { contacts } from "./contacts";
 import { users } from "./users";
 
-import type { PipelineStage } from "@/lib/constants/pipeline";
-
 export const deals = pgTable(
   "deals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     value: numeric("value", { precision: 12, scale: 2 }).notNull().default("0"),
-    stage: text("stage").notNull().$type<PipelineStage>(),
+    stage: text("stage").notNull(),
     contactId: uuid("contact_id").references(() => contacts.id, {
       onDelete: "set null",
     }),

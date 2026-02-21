@@ -8,6 +8,7 @@ vi.mock("@/server/db", () => ({
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
     query: {
       contacts: { findFirst: vi.fn() },
       companies: { findFirst: vi.fn() },
@@ -274,36 +275,40 @@ describe("contactsService.update", () => {
 
 describe("contactsService.delete", () => {
   it("deletes a contact without deals", async () => {
-    // First call: select deals → empty array
-    // Second call: delete contact
-    const selectChain = {
-      from: vi.fn().mockReturnThis(),
+    const txSelect = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    });
+    const txDelete = vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue([]),
-    };
-    vi.mocked(db.select).mockReturnValue(selectChain as unknown as ReturnType<typeof db.select>);
-
-    const deleteChain = {
-      where: vi.fn().mockResolvedValue([]),
-    };
-    vi.mocked(db.delete).mockReturnValue(deleteChain as unknown as ReturnType<typeof db.delete>);
+    });
+    vi.mocked(db.transaction).mockImplementation(async (fn) => {
+      return fn({ select: txSelect, delete: txDelete } as never);
+    });
 
     await expect(
       contactsService.delete("00000000-0000-0000-0000-000000000001"),
     ).resolves.toBeUndefined();
-    expect(deleteChain.where).toHaveBeenCalled();
+    expect(txDelete).toHaveBeenCalled();
   });
 
   it("throws when contact has associated deals", async () => {
     const mockDeal = { id: "deal-1", contactId: "00000000-0000-0000-0000-000000000001" };
-    const selectChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue([mockDeal]),
-    };
-    vi.mocked(db.select).mockReturnValue(selectChain as unknown as ReturnType<typeof db.select>);
+    const txSelect = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([mockDeal]),
+      }),
+    });
+    const txDelete = vi.fn();
+    vi.mocked(db.transaction).mockImplementation(async (fn) => {
+      return fn({ select: txSelect, delete: txDelete } as never);
+    });
 
     await expect(contactsService.delete("00000000-0000-0000-0000-000000000001")).rejects.toThrow(
       "Impossibile eliminare: il contatto ha deal associati",
     );
+    expect(txDelete).not.toHaveBeenCalled();
   });
 });
 

@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import { updateDeal } from "../_lib/deals.actions";
 import { DealCard, DealCardContent } from "./deal-card";
 
-import type { PipelineStage } from "@/lib/constants/pipeline";
 import { formatEUR, sumCurrency } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
 
@@ -26,7 +25,7 @@ type PipelineBoardProps = {
   deals: Deal[];
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
   companies: Array<{ id: string; name: string }>;
-  onLostReasonNeeded: (dealId: string, oldStage: PipelineStage) => void;
+  onLostReasonNeeded: (dealId: string, oldStage: string) => void;
   stages: string[];
 };
 
@@ -130,7 +129,7 @@ export function PipelineBoard({
     setActiveDeal(deal ?? null);
   };
 
-  const moveDeal = (dealId: string, newStage: PipelineStage) => {
+  const moveDeal = (dealId: string, newStage: string) => {
     setLocalDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)));
   };
 
@@ -143,8 +142,8 @@ export function PipelineBoard({
     const currentDeal = localDeals.find((d) => d.id === dealId);
     if (!currentDeal) return;
 
-    const targetStage: PipelineStage = stages.includes(over.id as string)
-      ? (over.id as PipelineStage)
+    const targetStage: string = stages.includes(over.id as string)
+      ? (over.id as string)
       : (localDeals.find((d) => d.id === over.id)?.stage ?? currentDeal.stage);
 
     if (currentDeal.stage === targetStage) return;

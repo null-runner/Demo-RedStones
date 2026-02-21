@@ -33,7 +33,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       async authorize(credentials) {
-        const { email, password } = credentials as { email: string; password: string };
+        const email = typeof credentials["email"] === "string" ? credentials["email"] : "";
+        const password = typeof credentials["password"] === "string" ? credentials["password"] : "";
+        if (!email) return null;
         return authorizeCredentials({ email, password });
       },
     }),

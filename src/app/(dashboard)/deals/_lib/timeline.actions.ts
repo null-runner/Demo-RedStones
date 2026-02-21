@@ -5,6 +5,7 @@ import { z } from "zod/v3";
 
 import { timelineService } from "./timeline.service";
 
+import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import type { TimelineEntry } from "@/server/db/schema";
 
@@ -24,8 +25,15 @@ export async function addNote(
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
+  let user;
   try {
-    const entry = await timelineService.addNote(parsed.data.dealId, parsed.data.content, null);
+    user = await requireRole(["admin", "member", "guest"]);
+  } catch (e) {
+    if (e instanceof RBACError) return { success: false, error: e.message };
+    return { success: false, error: "Errore di autenticazione" };
+  }
+  try {
+    const entry = await timelineService.addNote(parsed.data.dealId, parsed.data.content, user.id);
     revalidatePath(`/deals/${parsed.data.dealId}`);
     return { success: true, data: entry };
   } catch (e) {

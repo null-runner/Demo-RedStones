@@ -20,5 +20,5 @@ export const env = createEnv({
     GEMINI_API_KEY: process.env["GEMINI_API_KEY"],
     NEXT_PUBLIC_APP_URL: process.env["NEXT_PUBLIC_APP_URL"],
   },
-  skipValidation: !!process.env["SKIP_ENV_VALIDATION"],
+  skipValidation: process.env["SKIP_ENV_VALIDATION"] === "1" && process.env["NODE_ENV"] === "test",
 });

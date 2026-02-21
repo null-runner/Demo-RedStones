@@ -26,12 +26,15 @@ describe("requireRole", () => {
     await expect(requireRole(["admin"])).rejects.toBeInstanceOf(RBACError);
   });
 
-  it("does not throw when admin calls requireRole(['admin'])", async () => {
+  it("returns user when admin calls requireRole(['admin'])", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "1", email: "admin@test.com", name: "Admin", role: "admin" },
       expires: "",
     });
-    await expect(requireRole(["admin"])).resolves.toBeUndefined();
+    await expect(requireRole(["admin"])).resolves.toMatchObject({
+      id: "1",
+      role: "admin",
+    });
   });
 
   it("throws RBACError when member calls requireRole(['admin'])", async () => {
@@ -66,12 +69,15 @@ describe("requireRole", () => {
     expect((error as RBACError).message).toBe("Azione non consentita per il tuo ruolo");
   });
 
-  it("does not throw when member calls requireRole(['admin', 'member'])", async () => {
+  it("returns user when member calls requireRole(['admin', 'member'])", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "2", email: "m@test.com", name: "M", role: "member" },
       expires: "",
     });
-    await expect(requireRole(["admin", "member"])).resolves.toBeUndefined();
+    await expect(requireRole(["admin", "member"])).resolves.toMatchObject({
+      id: "2",
+      role: "member",
+    });
   });
 });
 

@@ -6,8 +6,13 @@ vi.mock("drizzle-orm", async (importOriginal) => {
   return {
     ...actual,
     eq: vi.fn((col: unknown, val: unknown) => ({ col, val })),
+    ne: vi.fn((col: unknown, val: unknown) => ({ type: "ne", col, val })),
+    and: vi.fn((...args: unknown[]) => ({ type: "and", args })),
   };
 });
+
+const mockEnv = vi.hoisted(() => ({ GEMINI_API_KEY: "test-api-key" }));
+vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
 const mockGenerateContent = vi.hoisted(() => vi.fn());
 vi.mock("@google/generative-ai", () => ({
@@ -52,10 +57,18 @@ function mockCompanyNotFound() {
   vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
 }
 
-function mockDbUpdate() {
+function mockDbUpdate(returning: unknown[] = [{ id: "00000000-0000-0000-0000-000000000001" }]) {
+  const returningFn = vi.fn().mockResolvedValue(returning);
+  const whereResult = {
+    returning: returningFn,
+    then: (resolve: (v: unknown) => void) => {
+      resolve(undefined);
+    },
+  };
   const chain = {
     set: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue([]),
+    where: vi.fn().mockReturnValue(whereResult),
+    returning: returningFn,
   };
   vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
   return chain;
@@ -72,8 +85,7 @@ function mockGeminiSuccess(partial = false) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.unstubAllEnvs();
-  vi.stubEnv("GEMINI_API_KEY", "test-api-key");
+  mockEnv.GEMINI_API_KEY = "test-api-key";
 });
 
 describe("startEnrichment", () => {
@@ -139,7 +151,7 @@ describe("startEnrichment", () => {
   });
 
   it("returns api_key_missing when GEMINI_API_KEY is empty", async () => {
-    vi.stubEnv("GEMINI_API_KEY", "");
+    mockEnv.GEMINI_API_KEY = "";
     mockCompanyFound();
 
     const result = await enrichmentService.startEnrichment("00000000-0000-0000-0000-000000000001");

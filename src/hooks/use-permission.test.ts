@@ -54,14 +54,14 @@ describe("usePermission", () => {
     expect(result.current).toBe(true);
   });
 
-  it("returns true for guest on manage:settings (demo mode has full access)", () => {
+  it("returns false for guest on manage:settings (guest has no admin access)", () => {
     mockUseSession.mockReturnValue({
       data: { user: { id: "1", role: "guest", name: "", email: "" }, expires: "" },
       status: "authenticated",
       update: vi.fn(),
     });
     const { result } = renderHook(() => usePermission("manage:settings"));
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
   it("returns true for admin on manage:settings", () => {

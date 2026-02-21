@@ -121,4 +121,25 @@ describe("TutorialOverlay", () => {
     const dots = screen.getAllByTestId("step-dot");
     expect(dots.length).toBeGreaterThan(1);
   });
+
+  it("renders with dialog role and aria-modal", () => {
+    mockGuest();
+    render(<TutorialOverlay />);
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+  });
+
+  it("dismisses on Escape key", async () => {
+    mockGuest();
+    const user = userEvent.setup();
+    render(<TutorialOverlay />);
+
+    expect(screen.getByText("Benvenuto in RedStones CRM")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByText("Benvenuto in RedStones CRM")).not.toBeInTheDocument();
+    expect(localStorage.getItem("crm-tutorial-completed")).toBe("true");
+  });
 });

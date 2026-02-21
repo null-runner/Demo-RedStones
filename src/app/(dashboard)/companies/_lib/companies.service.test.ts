@@ -7,6 +7,7 @@ vi.mock("@/server/db", () => ({
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
     query: {
       companies: {
         findFirst: vi.fn(),
@@ -173,71 +174,70 @@ describe("companiesService.update", () => {
 
 describe("companiesService.delete", () => {
   it("deletes company when no contacts or deals", async () => {
-    const contactsChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([]),
-    };
-    const dealsChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([]),
-    };
-    vi.mocked(db.select)
-      .mockReturnValueOnce(contactsChain as unknown as ReturnType<typeof db.select>)
-      .mockReturnValueOnce(dealsChain as unknown as ReturnType<typeof db.select>);
-
-    const deleteChain = {
+    const txSelect = vi.fn().mockImplementation(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    }));
+    const txDelete = vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(undefined),
-    };
-    vi.mocked(db.delete).mockReturnValue(deleteChain as unknown as ReturnType<typeof db.delete>);
+    });
+    vi.mocked(db.transaction).mockImplementation(async (fn) => {
+      return fn({ select: txSelect, delete: txDelete } as never);
+    });
 
     await expect(
       companiesService.delete("00000000-0000-0000-0000-000000000001"),
     ).resolves.toBeUndefined();
-    expect(deleteChain.where).toHaveBeenCalled();
+    expect(txDelete).toHaveBeenCalled();
   });
 
   it("throws when company has contacts", async () => {
-    const contactsChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([{ id: "c1" }]),
-    };
-    const dealsChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([]),
-    };
-    vi.mocked(db.select)
-      .mockReturnValueOnce(contactsChain as unknown as ReturnType<typeof db.select>)
-      .mockReturnValueOnce(dealsChain as unknown as ReturnType<typeof db.select>);
+    let callCount = 0;
+    const txSelect = vi.fn().mockImplementation(() => {
+      callCount++;
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(callCount === 1 ? [{ id: "c1" }] : []),
+          }),
+        }),
+      };
+    });
+    const txDelete = vi.fn();
+    vi.mocked(db.transaction).mockImplementation(async (fn) => {
+      return fn({ select: txSelect, delete: txDelete } as never);
+    });
 
     await expect(companiesService.delete("00000000-0000-0000-0000-000000000001")).rejects.toThrow(
       "Impossibile eliminare",
     );
-    expect(db.delete).not.toHaveBeenCalled();
+    expect(txDelete).not.toHaveBeenCalled();
   });
 
   it("throws when company has deals", async () => {
-    const contactsChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([]),
-    };
-    const dealsChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([{ id: "d1" }]),
-    };
-    vi.mocked(db.select)
-      .mockReturnValueOnce(contactsChain as unknown as ReturnType<typeof db.select>)
-      .mockReturnValueOnce(dealsChain as unknown as ReturnType<typeof db.select>);
+    let callCount = 0;
+    const txSelect = vi.fn().mockImplementation(() => {
+      callCount++;
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(callCount === 2 ? [{ id: "d1" }] : []),
+          }),
+        }),
+      };
+    });
+    const txDelete = vi.fn();
+    vi.mocked(db.transaction).mockImplementation(async (fn) => {
+      return fn({ select: txSelect, delete: txDelete } as never);
+    });
 
     await expect(companiesService.delete("00000000-0000-0000-0000-000000000001")).rejects.toThrow(
       "Impossibile eliminare",
     );
-    expect(db.delete).not.toHaveBeenCalled();
+    expect(txDelete).not.toHaveBeenCalled();
   });
 });
 

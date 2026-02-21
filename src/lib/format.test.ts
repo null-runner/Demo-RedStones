@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { formatEUR, formatRelativeDate } from "./format";
+import { formatEUR, formatRelativeDate, sumCurrency, toCents } from "./format";
 
 describe("formatEUR", () => {
   it("formats number as EUR currency", () => {
@@ -17,6 +17,30 @@ describe("formatEUR", () => {
     const result = formatEUR(NaN);
     expect(result).toMatch(/0/);
     expect(result).not.toContain("NaN");
+  });
+});
+
+describe("toCents", () => {
+  it("converts string value to integer cents", () => {
+    expect(toCents("50.25")).toBe(5025);
+  });
+
+  it("returns 0 for NaN input", () => {
+    expect(toCents("not-a-number")).toBe(0);
+  });
+
+  it("returns 0 for empty string", () => {
+    expect(toCents("")).toBe(0);
+  });
+});
+
+describe("sumCurrency", () => {
+  it("sums valid string values", () => {
+    expect(sumCurrency(["10.50", "20.25"])).toBe(30.75);
+  });
+
+  it("treats NaN values as 0", () => {
+    expect(sumCurrency(["10.00", "invalid", "5.00"])).toBe(15);
   });
 });
 

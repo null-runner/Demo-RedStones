@@ -3,9 +3,8 @@ import "server-only";
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/server/db";
-import { deals, pipelineStages } from "@/server/db/schema";
+import { deals, pipelineStages, timelineEntries } from "@/server/db/schema";
 import type { PipelineStageRow } from "@/server/db/schema";
-import type { PipelineStage } from "@/lib/constants/pipeline";
 
 const PROTECTED_NAMES = ["Chiuso Vinto", "Chiuso Perso"] as const;
 
@@ -64,10 +63,15 @@ async function rename(id: string, newName: string): Promise<PipelineStageRow> {
   }
 
   return db.transaction(async (tx) => {
+    await tx.update(deals).set({ stage: newName }).where(eq(deals.stage, existing.name));
     await tx
-      .update(deals)
-      .set({ stage: newName as PipelineStage })
-      .where(eq(deals.stage, existing.name as PipelineStage));
+      .update(timelineEntries)
+      .set({ previousStage: newName })
+      .where(eq(timelineEntries.previousStage, existing.name));
+    await tx
+      .update(timelineEntries)
+      .set({ newStage: newName })
+      .where(eq(timelineEntries.newStage, existing.name));
     const updated = await tx
       .update(pipelineStages)
       .set({ name: newName })
@@ -100,7 +104,7 @@ async function deleteStage(id: string): Promise<void> {
   if (existing.isProtected) throw new Error("Stage protetto: non può essere eliminato");
 
   const dealWithStage = await db.query.deals.findFirst({
-    where: eq(deals.stage, existing.name as PipelineStage),
+    where: eq(deals.stage, existing.name),
   });
   if (dealWithStage) {
     throw new Error("Impossibile eliminare: lo stage ha deal associati");

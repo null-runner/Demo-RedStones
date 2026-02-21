@@ -945,17 +945,19 @@ export async function resetDatabase(): Promise<void> {
 
   await seedPipelineStages();
 
-  await db.delete(timelineEntries);
-  await db.delete(contactsToTags);
-  await db.delete(deals);
-  await db.delete(contacts);
-  await db.delete(tags);
-  await db.delete(companies);
-  await db.delete(users);
+  await db.transaction(async (tx) => {
+    await tx.delete(timelineEntries);
+    await tx.delete(contactsToTags);
+    await tx.delete(deals);
+    await tx.delete(contacts);
+    await tx.delete(tags);
+    await tx.delete(companies);
+    await tx.delete(users);
 
-  await db.insert(users).values(data.users);
-  await db.insert(companies).values(data.companies);
-  await db.insert(contacts).values(data.contacts);
-  await db.insert(deals).values(data.deals);
-  await db.insert(timelineEntries).values(data.timelineEntries);
+    await tx.insert(users).values(data.users);
+    await tx.insert(companies).values(data.companies);
+    await tx.insert(contacts).values(data.contacts);
+    await tx.insert(deals).values(data.deals);
+    await tx.insert(timelineEntries).values(data.timelineEntries);
+  });
 }

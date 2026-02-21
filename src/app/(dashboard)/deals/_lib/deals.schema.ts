@@ -1,13 +1,11 @@
 import { z } from "zod/v3";
 
-import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
-
 export const createDealSchema = z.object({
   title: z.string().min(1, "Titolo obbligatorio").max(200, "Titolo troppo lungo"),
   value: z.coerce
     .number({ invalid_type_error: "Il valore deve essere >= 0" })
     .min(0, "Il valore deve essere >= 0"),
-  stage: z.enum(PIPELINE_STAGES, { errorMap: () => ({ message: "Stage non valido" }) }),
+  stage: z.string().min(1, "Stage obbligatorio"),
   contactId: z.string().uuid().nullable().optional(),
   companyId: z.string().uuid().nullable().optional(),
   ownerId: z.string().uuid().nullable().optional(),

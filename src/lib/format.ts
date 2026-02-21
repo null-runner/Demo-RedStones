@@ -6,7 +6,9 @@ export function formatEUR(value: number): string {
 
 /** Convert string value to integer cents to avoid floating-point precision issues. */
 export function toCents(value: string): number {
-  return Math.round(parseFloat(value) * 100);
+  const parsed = parseFloat(value);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.round(parsed * 100);
 }
 
 /** Sum an array of string currency values safely using integer cents. */

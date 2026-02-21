@@ -82,14 +82,16 @@ async function getById(id: string): Promise<CompanyWithDetails | null> {
 }
 
 async function deleteCompany(id: string): Promise<void> {
-  const [hasContacts, hasDeals] = await Promise.all([
-    db.select({ id: contacts.id }).from(contacts).where(eq(contacts.companyId, id)).limit(1),
-    db.select({ id: deals.id }).from(deals).where(eq(deals.companyId, id)).limit(1),
-  ]);
-  if ((hasContacts[0] ?? null) !== null || (hasDeals[0] ?? null) !== null) {
-    throw new Error("Impossibile eliminare: l'azienda ha contatti o deal associati");
-  }
-  await db.delete(companies).where(eq(companies.id, id));
+  return db.transaction(async (tx) => {
+    const [hasContacts, hasDeals] = await Promise.all([
+      tx.select({ id: contacts.id }).from(contacts).where(eq(contacts.companyId, id)).limit(1),
+      tx.select({ id: deals.id }).from(deals).where(eq(deals.companyId, id)).limit(1),
+    ]);
+    if ((hasContacts[0] ?? null) !== null || (hasDeals[0] ?? null) !== null) {
+      throw new Error("Impossibile eliminare: l'azienda ha contatti o deal associati");
+    }
+    await tx.delete(companies).where(eq(companies.id, id));
+  });
 }
 
 type EnrichmentFields = Omit<UpdateEnrichmentInput, "id">;

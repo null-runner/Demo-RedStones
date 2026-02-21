@@ -53,7 +53,8 @@ async function getAll(searchQuery?: string): Promise<ContactWithCompanyAndTags[]
   let result: ContactWithCompany[];
 
   if (searchQuery && searchQuery.trim().length > 0) {
-    const q = `%${searchQuery.trim()}%`;
+    const escaped = searchQuery.trim().replace(/[%_\\]/g, "\\$&");
+    const q = `%${escaped}%`;
     result = await baseQuery.where(
       or(
         ilike(sql`${contacts.firstName} || ' ' || ${contacts.lastName}`, q),
@@ -235,13 +236,15 @@ async function update(input: UpdateContactInput): Promise<Contact> {
 }
 
 async function deleteContact(id: string): Promise<void> {
-  const associatedDeals = await db.select().from(deals).where(eq(deals.contactId, id));
+  return db.transaction(async (tx) => {
+    const associatedDeals = await tx.select().from(deals).where(eq(deals.contactId, id));
 
-  if (associatedDeals.length > 0) {
-    throw new Error("Impossibile eliminare: il contatto ha deal associati");
-  }
+    if (associatedDeals.length > 0) {
+      throw new Error("Impossibile eliminare: il contatto ha deal associati");
+    }
 
-  await db.delete(contacts).where(eq(contacts.id, id));
+    await tx.delete(contacts).where(eq(contacts.id, id));
+  });
 }
 
 export const contactsService = {

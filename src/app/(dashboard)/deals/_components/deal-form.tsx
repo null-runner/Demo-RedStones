@@ -151,7 +151,7 @@ export function DealForm({
                     setLostReasonError(null);
                   }
                 }}
-                defaultValue={field.value}
+                value={field.value}
                 disabled={isLoading ?? false}
               >
                 <FormControl>
@@ -223,7 +223,7 @@ export function DealForm({
                 onValueChange={(v) => {
                   field.onChange(v === "_none" ? null : v);
                 }}
-                defaultValue={field.value ?? "_none"}
+                value={field.value ?? "_none"}
                 disabled={isLoading ?? false}
               >
                 <FormControl>
@@ -254,7 +254,7 @@ export function DealForm({
                 onValueChange={(v) => {
                   field.onChange(v === "_none" ? null : v);
                 }}
-                defaultValue={field.value ?? "_none"}
+                value={field.value ?? "_none"}
                 disabled={isLoading ?? false}
               >
                 <FormControl>
@@ -285,7 +285,7 @@ export function DealForm({
                 onValueChange={(v) => {
                   field.onChange(v === "_none" ? null : v);
                 }}
-                defaultValue={field.value ?? "_none"}
+                value={field.value ?? "_none"}
                 disabled={isLoading ?? false}
               >
                 <FormControl>

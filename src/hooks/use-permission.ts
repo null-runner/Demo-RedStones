@@ -50,8 +50,6 @@ const PERMISSIONS: Record<string, PermissionAction[]> = {
     "create:deals",
     "update:deals",
     "delete:deals",
-    "manage:settings",
-    "manage:users",
   ],
 };
 

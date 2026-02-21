@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { useDateRange } from "@/hooks/use-date-range";
 import { usePermission } from "@/hooks/use-permission";
-import type { PipelineStage } from "@/lib/constants/pipeline";
 import { toCents } from "@/lib/format";
 import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Deal } from "@/server/db/schema";
@@ -66,7 +65,7 @@ export function DealsClient({
   const [pendingLostDeal, setPendingLostDeal] = useState<{
     id: string;
     title: string;
-    oldStage: PipelineStage;
+    oldStage: string;
   } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -136,7 +135,7 @@ export function DealsClient({
     });
   };
 
-  const handleLostReasonNeeded = (dealId: string, oldStage: PipelineStage) => {
+  const handleLostReasonNeeded = (dealId: string, oldStage: string) => {
     const deal = deals.find((d) => d.id === dealId);
     if (!deal) return;
     setPendingLostDeal({ id: dealId, title: deal.title, oldStage });

@@ -32,7 +32,12 @@ const mockRequireRole = vi.mocked(requireRole);
 beforeEach(() => {
   vi.clearAllMocks();
   // Default: admin allowed
-  mockRequireRole.mockResolvedValue(undefined);
+  mockRequireRole.mockResolvedValue({
+    id: "u1",
+    role: "admin",
+    name: "Admin",
+    email: "admin@test.com",
+  });
 });
 
 describe("createStage — RBAC", () => {

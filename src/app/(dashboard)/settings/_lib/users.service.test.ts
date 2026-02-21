@@ -117,15 +117,20 @@ describe("usersService.deleteUser", () => {
       }),
     });
     const txDelete = vi.fn();
+    const txUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
     vi.mocked(db.transaction).mockImplementation(async (fn) => {
-      return fn({ select: txSelect, delete: txDelete } as never);
+      return fn({ select: txSelect, delete: txDelete, update: txUpdate } as never);
     });
 
     await expect(usersService.deleteUser("admin-1", "current-user")).rejects.toThrow("LAST_ADMIN");
     expect(txDelete).not.toHaveBeenCalled();
   });
 
-  it("deletes user successfully when conditions are met", async () => {
+  it("deletes user successfully and orphans owned deals", async () => {
     const txSelect = vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ id: "admin-1" }, { id: "admin-2" }]),
@@ -134,11 +139,17 @@ describe("usersService.deleteUser", () => {
     const txDelete = vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(undefined),
     });
+    const txUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
     vi.mocked(db.transaction).mockImplementation(async (fn) => {
-      return fn({ select: txSelect, delete: txDelete } as never);
+      return fn({ select: txSelect, delete: txDelete, update: txUpdate } as never);
     });
 
     await expect(usersService.deleteUser("member-1", "current-user")).resolves.toBeUndefined();
+    expect(txUpdate).toHaveBeenCalled();
     expect(txDelete).toHaveBeenCalled();
   });
 });

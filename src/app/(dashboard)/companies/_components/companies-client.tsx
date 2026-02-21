@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ import { usePermission } from "@/hooks/use-permission";
 import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Company } from "@/server/db/schema";
 
+const ITEMS_PER_PAGE = 10;
+
 type CompaniesClientProps = {
   companies: Company[];
   allTags: Array<{ id: string; name: string }>;
@@ -35,6 +37,8 @@ export function CompaniesClient({ companies, allTags }: CompaniesClientProps) {
   const router = useRouter();
   const canWrite = usePermission("delete:companies");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -44,16 +48,32 @@ export function CompaniesClient({ companies, allTags }: CompaniesClientProps) {
   const [contactSheetOpen, setContactSheetOpen] = useState(false);
   const [contactDefaultCompanyId, setContactDefaultCompanyId] = useState<string | undefined>();
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setCurrentPage(1);
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [query]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return companies;
-    const q = query.toLowerCase();
+    if (!debouncedQuery.trim()) return companies;
+    const q = debouncedQuery.toLowerCase();
     return companies.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         (c.domain?.toLowerCase().includes(q) ?? false) ||
         (c.sector?.toLowerCase().includes(q) ?? false),
     );
-  }, [companies, query]);
+  }, [companies, debouncedQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   const companiesForSelect = useMemo(() => {
     const list = companies.map((c) => ({ id: c.id, name: c.name }));
@@ -140,7 +160,7 @@ export function CompaniesClient({ companies, allTags }: CompaniesClientProps) {
       </div>
 
       <CompanyTable
-        companies={filtered}
+        companies={paginated}
         onEdit={handleEdit}
         onDelete={(id) => {
           if (!canWrite) {
@@ -152,6 +172,37 @@ export function CompaniesClient({ companies, allTags }: CompaniesClientProps) {
         onViewDetail={handleViewDetail}
         canWrite={canWrite}
       />
+
+      {filtered.length > ITEMS_PER_PAGE && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-muted-foreground text-sm">
+            {(currentPage - 1) * ITEMS_PER_PAGE + 1}&ndash;
+            {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} di {filtered.length} aziende
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setCurrentPage((p) => p - 1);
+              }}
+              disabled={currentPage === 1}
+            >
+              Precedente
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setCurrentPage((p) => p + 1);
+              }}
+              disabled={currentPage === totalPages}
+            >
+              Successivo
+            </Button>
+          </div>
+        </div>
+      )}
 
       <CompanySheet
         open={sheetOpen}
