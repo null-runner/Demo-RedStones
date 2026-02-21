@@ -95,15 +95,10 @@ async function deleteCompany(id: string): Promise<void> {
 type EnrichmentFields = Omit<UpdateEnrichmentInput, "id">;
 
 function detectEnrichmentStatus(data: EnrichmentFields): "enriched" | "partial" | "not_enriched" {
-  const fields = [
-    data.enrichmentDescription,
-    data.enrichmentSector,
-    data.enrichmentSize,
-    data.enrichmentPainPoints,
-  ];
-  const filled = fields.filter((f) => f !== null && f !== "").length;
-  if (filled === 0) return "not_enriched";
-  if (filled === fields.length) return "enriched";
+  const hasDescription = data.enrichmentDescription !== null && data.enrichmentDescription !== "";
+  const hasSector = data.enrichmentSector !== null && data.enrichmentSector !== "";
+  if (!hasDescription && !hasSector) return "not_enriched";
+  if (hasDescription && hasSector) return "enriched";
   return "partial";
 }
 

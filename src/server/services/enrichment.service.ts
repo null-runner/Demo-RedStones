@@ -227,12 +227,9 @@ function parseGeminiResponse(text: string): EnrichmentData | null {
 }
 
 function detectStatus(data: EnrichmentData): "enriched" | "partial" {
-  const hasAllFields =
-    data.description !== null &&
-    data.sector !== null &&
-    data.estimatedSize !== null &&
-    data.painPoints.length > 0;
-  return hasAllFields ? "enriched" : "partial";
+  const hasDescription = data.description !== null;
+  const hasSector = data.sector !== null;
+  return hasDescription && hasSector ? "enriched" : "partial";
 }
 
 function getErrorReason(error: unknown): string {
