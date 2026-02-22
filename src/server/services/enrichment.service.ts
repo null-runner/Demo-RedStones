@@ -29,7 +29,7 @@ export type EnrichmentSuccess = {
 
 export type EnrichmentProcessing = {
   success: true;
-  status: "processing";
+  status: "processing" | "not_enriched";
 };
 
 export type EnrichmentError = {
@@ -63,7 +63,7 @@ async function getStatus(companyId: string): Promise<EnrichmentResult> {
   }
 
   if (company.enrichmentStatus === "not_enriched") {
-    return { success: false, error: "not_found" };
+    return { success: true, status: "not_enriched" as const };
   }
 
   return {
