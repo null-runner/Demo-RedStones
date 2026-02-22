@@ -43,11 +43,6 @@ export function SignInForm() {
   const handleDemoMode = async () => {
     setIsLoadingDemo(true);
     try {
-      const resetRes = await fetch("/api/auth/guest", { method: "POST" });
-      if (!resetRes.ok) {
-        setFormError("Errore durante la preparazione della demo. Riprova.");
-        return;
-      }
       const result = await signIn("credentials", {
         email: GUEST_EMAIL,
         password: "",
@@ -57,6 +52,8 @@ export function SignInForm() {
         setFormError("Errore di autenticazione demo. Riprova.");
         return;
       }
+      // Reset guest data after login (best-effort, don't block on failure)
+      await fetch("/api/auth/guest", { method: "POST" }).catch(() => {});
       router.push("/");
     } catch {
       setFormError("Errore di rete. Riprova.");
