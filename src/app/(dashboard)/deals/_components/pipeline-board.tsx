@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { deleteDeal, updateDeal } from "../_lib/deals.actions";
 import { DealCard, DealCardContent } from "./deal-card";
+import { LostReasonDialog } from "./lost-reason-dialog";
 
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { formatEUR, sumCurrency } from "@/lib/format";
@@ -27,7 +28,6 @@ type PipelineBoardProps = {
   deals: Deal[];
   contacts: Array<{ id: string; firstName: string; lastName: string; companyId: string | null }>;
   companies: Array<{ id: string; name: string }>;
-  onLostReasonNeeded: (dealId: string, oldStage: string) => void;
   stages: string[];
 };
 
@@ -99,15 +99,14 @@ function DroppableColumn({
   );
 }
 
-export function PipelineBoard({
-  deals,
-  contacts,
-  companies,
-  onLostReasonNeeded,
-  stages,
-}: PipelineBoardProps) {
+export function PipelineBoard({ deals, contacts, companies, stages }: PipelineBoardProps) {
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [localDeals, setLocalDeals] = useState(deals);
+  const [pendingLostDeal, setPendingLostDeal] = useState<{
+    id: string;
+    title: string;
+    oldStage: string;
+  } | null>(null);
   const pendingMoves = useRef(0);
 
   // Sync local state from props when no optimistic moves are in-flight
@@ -176,12 +175,14 @@ export function PipelineBoard({
 
     if (currentDeal.stage === targetStage) return;
 
+    const oldStage = currentDeal.stage;
+
     if (targetStage === "Chiuso Perso") {
-      onLostReasonNeeded(dealId, currentDeal.stage);
+      moveDeal(dealId, targetStage);
+      pendingMoves.current += 1;
+      setPendingLostDeal({ id: dealId, title: currentDeal.title, oldStage });
       return;
     }
-
-    const oldStage = currentDeal.stage;
 
     moveDeal(dealId, targetStage);
     pendingMoves.current += 1;
@@ -234,6 +235,33 @@ export function PipelineBoard({
     });
   };
 
+  const handleLostReasonConfirm = (reason: string, notes: string | null) => {
+    if (!pendingLostDeal) return;
+    const { id, oldStage } = pendingLostDeal;
+    const lostReasonValue = notes ? `${reason}: ${notes}` : reason;
+    setPendingLostDeal(null);
+
+    void updateDeal({ id, stage: "Chiuso Perso", lostReason: lostReasonValue })
+      .then((result) => {
+        if (!result.success) {
+          moveDeal(id, oldStage);
+          toast.error(`Errore: ${result.error}`);
+          return;
+        }
+        toast.success("Deal spostato in Chiuso Perso");
+      })
+      .finally(() => {
+        pendingMoves.current -= 1;
+      });
+  };
+
+  const handleLostReasonCancel = () => {
+    if (!pendingLostDeal) return;
+    moveDeal(pendingLostDeal.id, pendingLostDeal.oldStage);
+    pendingMoves.current -= 1;
+    setPendingLostDeal(null);
+  };
+
   const activeDealContact = activeDeal?.contactId
     ? contactMap.get(activeDeal.contactId)
     : undefined;
@@ -242,43 +270,51 @@ export function PipelineBoard({
     : undefined;
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto">
-        {columns.map((column) => (
-          <DroppableColumn
-            key={column.stage}
-            column={column}
-            contactMap={contactMap}
-            companyMap={companyMap}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
-      <DragOverlay
-        dropAnimation={{
-          duration: 200,
-          easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
-        }}
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
-        {activeDeal ? (
-          <div className="scale-[1.03] rotate-[2deg] cursor-grabbing shadow-xl [will-change:transform]">
-            <DealCardContent
-              deal={activeDeal}
-              contactName={
-                activeDealContact
-                  ? `${activeDealContact.firstName} ${activeDealContact.lastName}`
-                  : undefined
-              }
-              companyName={activeDealCompany}
+        <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto">
+          {columns.map((column) => (
+            <DroppableColumn
+              key={column.stage}
+              column={column}
+              contactMap={contactMap}
+              companyMap={companyMap}
+              onDelete={handleDelete}
             />
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+          ))}
+        </div>
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+          }}
+        >
+          {activeDeal ? (
+            <div className="scale-[1.03] rotate-[2deg] cursor-grabbing shadow-xl [will-change:transform]">
+              <DealCardContent
+                deal={activeDeal}
+                contactName={
+                  activeDealContact
+                    ? `${activeDealContact.firstName} ${activeDealContact.lastName}`
+                    : undefined
+                }
+                companyName={activeDealCompany}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+      <LostReasonDialog
+        open={!!pendingLostDeal}
+        dealTitle={pendingLostDeal?.title ?? ""}
+        onConfirm={handleLostReasonConfirm}
+        onCancel={handleLostReasonCancel}
+      />
+    </>
   );
 }

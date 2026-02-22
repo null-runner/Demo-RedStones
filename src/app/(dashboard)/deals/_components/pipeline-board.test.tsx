@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../_lib/deals.actions", () => ({
   updateDeal: vi.fn().mockResolvedValue({ success: true }),
+  deleteDeal: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 const defaultStages = [...PIPELINE_STAGES];
@@ -39,15 +40,7 @@ const mockContacts = [
 
 describe("PipelineBoard", () => {
   it("renders 7 columns with correct stage names", () => {
-    render(
-      <PipelineBoard
-        deals={[]}
-        contacts={[]}
-        companies={[]}
-        onLostReasonNeeded={vi.fn()}
-        stages={defaultStages}
-      />,
-    );
+    render(<PipelineBoard deals={[]} contacts={[]} companies={[]} stages={defaultStages} />);
 
     expect(screen.getByText("Lead")).toBeInTheDocument();
     expect(screen.getByText("Qualificato")).toBeInTheDocument();
@@ -60,13 +53,7 @@ describe("PipelineBoard", () => {
 
   it("renders deal card in correct stage column", () => {
     render(
-      <PipelineBoard
-        deals={[mockDeal]}
-        contacts={[]}
-        companies={[]}
-        onLostReasonNeeded={vi.fn()}
-        stages={defaultStages}
-      />,
+      <PipelineBoard deals={[mockDeal]} contacts={[]} companies={[]} stages={defaultStages} />,
     );
 
     const propostaColumn = screen.getByTestId("column-Proposta");
@@ -78,13 +65,7 @@ describe("PipelineBoard", () => {
 
   it("shows formatted value in deal card", () => {
     render(
-      <PipelineBoard
-        deals={[mockDeal]}
-        contacts={[]}
-        companies={[]}
-        onLostReasonNeeded={vi.fn()}
-        stages={defaultStages}
-      />,
+      <PipelineBoard deals={[mockDeal]} contacts={[]} companies={[]} stages={defaultStages} />,
     );
 
     const propostaColumn = screen.getByTestId("column-Proposta");
@@ -99,7 +80,6 @@ describe("PipelineBoard", () => {
         deals={[mockDeal]}
         contacts={mockContacts}
         companies={[]}
-        onLostReasonNeeded={vi.fn()}
         stages={defaultStages}
       />,
     );
@@ -109,13 +89,7 @@ describe("PipelineBoard", () => {
 
   it("renders empty column when no deals in stage", () => {
     render(
-      <PipelineBoard
-        deals={[mockDeal]}
-        contacts={[]}
-        companies={[]}
-        onLostReasonNeeded={vi.fn()}
-        stages={defaultStages}
-      />,
+      <PipelineBoard deals={[mockDeal]} contacts={[]} companies={[]} stages={defaultStages} />,
     );
 
     const leadColumn = screen.getByTestId("column-Lead");
@@ -124,13 +98,7 @@ describe("PipelineBoard", () => {
 
   it("shows deal count and total value in column header", () => {
     render(
-      <PipelineBoard
-        deals={[mockDeal]}
-        contacts={[]}
-        companies={[]}
-        onLostReasonNeeded={vi.fn()}
-        stages={defaultStages}
-      />,
+      <PipelineBoard deals={[mockDeal]} contacts={[]} companies={[]} stages={defaultStages} />,
     );
 
     const propostaColumn = screen.getByTestId("column-Proposta");

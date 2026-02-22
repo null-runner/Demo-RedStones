@@ -6,10 +6,9 @@ import { endOfDay } from "date-fns";
 import { Info, LayoutGrid, List, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteDeal, updateDeal } from "../_lib/deals.actions";
+import { deleteDeal } from "../_lib/deals.actions";
 import { DealSheet } from "./deal-sheet";
 import { DealTable } from "./deal-table";
-import { LostReasonDialog } from "./lost-reason-dialog";
 import { PipelineBoard } from "./pipeline-board";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -63,11 +62,6 @@ export function DealsClient({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [pendingLostDeal, setPendingLostDeal] = useState<{
-    id: string;
-    title: string;
-    oldStage: string;
-  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -134,32 +128,6 @@ export function DealsClient({
       }
       setDeletingId(null);
     });
-  };
-
-  const handleLostReasonNeeded = (dealId: string, oldStage: string) => {
-    const deal = deals.find((d) => d.id === dealId);
-    if (!deal) return;
-    setPendingLostDeal({ id: dealId, title: deal.title, oldStage });
-  };
-
-  const handleLostReasonConfirm = (reason: string, notes: string | null) => {
-    if (!pendingLostDeal) return;
-    const { id } = pendingLostDeal;
-    setPendingLostDeal(null);
-    startTransition(async () => {
-      const lostReasonValue = notes ? `${reason}: ${notes}` : reason;
-      const result = await updateDeal({ id, stage: "Chiuso Perso", lostReason: lostReasonValue });
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Deal spostato in Chiuso Perso");
-      router.refresh();
-    });
-  };
-
-  const handleLostReasonCancel = () => {
-    setPendingLostDeal(null);
   };
 
   return (
@@ -296,7 +264,6 @@ export function DealsClient({
             deals={filtered}
             contacts={contacts}
             companies={companies}
-            onLostReasonNeeded={handleLostReasonNeeded}
             stages={stages}
           />
         </div>
@@ -319,13 +286,6 @@ export function DealsClient({
         onSuccess={() => {
           router.refresh();
         }}
-      />
-
-      <LostReasonDialog
-        open={!!pendingLostDeal}
-        dealTitle={pendingLostDeal?.title ?? ""}
-        onConfirm={handleLostReasonConfirm}
-        onCancel={handleLostReasonCancel}
       />
 
       <ConfirmDialog
