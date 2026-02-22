@@ -16,6 +16,7 @@ export default defineConfig({
     alias: [
       { find: "server-only", replacement: resolve(__dirname, "./src/test/mocks/server-only.ts") },
       { find: /^@\/server\/db$/, replacement: resolve(__dirname, "./src/test/mocks/db.ts") },
+      { find: /^@\/lib\/pusher$/, replacement: resolve(__dirname, "./src/test/mocks/pusher.ts") },
       { find: "@", replacement: resolve(__dirname, "./src") },
     ],
   },

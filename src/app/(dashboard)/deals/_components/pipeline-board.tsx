@@ -18,7 +18,9 @@ import { toast } from "sonner";
 import { updateDeal } from "../_lib/deals.actions";
 import { DealCard, DealCardContent } from "./deal-card";
 
+import { useBoardSync } from "@/hooks/use-board-sync";
 import { formatEUR, sumCurrency } from "@/lib/format";
+import { DEALS_CHANNEL } from "@/lib/pusher-events";
 import type { Deal } from "@/server/db/schema";
 
 type PipelineBoardProps = {
@@ -112,6 +114,23 @@ export function PipelineBoard({
       setLocalDeals(deals);
     }
   }, [deals]);
+
+  // Real-time sync: merge remote changes from Pusher
+  useBoardSync(DEALS_CHANNEL, (event) => {
+    if (pendingMoves.current > 0) return;
+
+    setLocalDeals((prev) => {
+      switch (event.type) {
+        case "deal:updated":
+          return prev.map((d) => (d.id === event.deal.id ? event.deal : d));
+        case "deal:created":
+          if (prev.some((d) => d.id === event.deal.id)) return prev;
+          return [...prev, event.deal];
+        case "deal:deleted":
+          return prev.filter((d) => d.id !== event.dealId);
+      }
+    });
+  });
 
   const contactMap = useMemo(
     () => new Map(contacts.map((c) => [c.id, { firstName: c.firstName, lastName: c.lastName }])),

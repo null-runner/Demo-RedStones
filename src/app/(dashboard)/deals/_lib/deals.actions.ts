@@ -9,6 +9,8 @@ import { dealsService } from "./deals.service";
 
 import { requireRole, RBACError } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { triggerEvent } from "@/lib/pusher";
+import { DEALS_CHANNEL } from "@/lib/pusher-events";
 import type { ActionResult } from "@/lib/types";
 import { db } from "@/server/db";
 import { deals, pipelineStages, timelineEntries } from "@/server/db/schema";
@@ -35,6 +37,7 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
     }
     const deal = await dealsService.create(parsed.data);
     revalidatePath("/deals");
+    await triggerEvent(DEALS_CHANNEL, "deal:created", { type: "deal:created", deal });
     return { success: true, data: deal };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Errore durante la creazione";
@@ -106,12 +109,16 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     });
 
     if (deal === "conflict") {
-      return { success: false, error: "Deal modificato da un altro utente. Ricarica la pagina." };
+      return {
+        success: false,
+        error: "Un collega ha appena modificato questo deal. La board si aggiorna automaticamente.",
+      };
     }
     if (!deal) return { success: false, error: "Deal non trovato" };
 
     revalidatePath("/deals");
     revalidatePath(`/deals/${id}`);
+    await triggerEvent(DEALS_CHANNEL, "deal:updated", { type: "deal:updated", deal });
     return { success: true, data: deal };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Errore durante l'aggiornamento";
@@ -132,6 +139,10 @@ export async function deleteDeal(id: string): Promise<ActionResult<void>> {
     await dealsService.delete(parsed.data);
     revalidatePath("/deals");
     revalidatePath(`/deals/${parsed.data}`);
+    await triggerEvent(DEALS_CHANNEL, "deal:deleted", {
+      type: "deal:deleted",
+      dealId: parsed.data,
+    });
     return { success: true, data: undefined };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Errore durante l'eliminazione";
