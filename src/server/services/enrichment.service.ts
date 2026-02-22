@@ -140,7 +140,8 @@ async function runEnrichment(companyId: string): Promise<void> {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-  const prompt = buildGeminiPrompt(company.name, company.domain ?? null);
+  const address = company.operationalAddress ?? company.legalAddress ?? null;
+  const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
 
   const TIMEOUT_MS = 50_000;
 
@@ -199,13 +200,15 @@ async function runEnrichment(companyId: string): Promise<void> {
     .where(eq(companies.id, companyId));
 }
 
-function buildGeminiPrompt(name: string, domain: string | null): string {
+function buildGeminiPrompt(name: string, domain: string | null, address: string | null): string {
   const domainClause = domain ? ` Il sito aziendale è ${domain}.` : "";
-  return `Sei un analista CRM. Un venditore sta valutando "${name}" come potenziale cliente.${domainClause}
+  const addressClause = address ? ` La sede è in ${address}.` : "";
+  return `Sei un analista CRM. Un venditore sta valutando "${name}" come potenziale cliente.${domainClause}${addressClause}
 
 ISTRUZIONI DI RICERCA:
 - Se è presente un dominio, usa ESCLUSIVAMENTE le informazioni trovate su quel sito.
-- Se NON è presente un dominio, cerca online "${name}" e usa SOLO il risultato più pertinente.
+- Se NON è presente un dominio ma è presente un indirizzo, usa nome + indirizzo per identificare l'azienda corretta ed evitare omonimi.
+- Se NON è presente né dominio né indirizzo, cerca online "${name}" e usa SOLO il risultato più pertinente.
 - NON inventare informazioni. Se un dato non è verificabile dalle fonti, restituisci null.
 - NON menzionare nomi di strumenti, piattaforme o tecnologie specifiche (es: Salesforce, HubSpot, SAP) a meno che non siano esplicitamente citati sul sito aziendale.
 
