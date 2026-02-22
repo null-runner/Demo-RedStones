@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
 
@@ -82,10 +82,10 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
           value: rest.value !== undefined ? rest.value.toString() : undefined,
           updatedAt: new Date(),
         })
-        .where(eq(deals.id, id))
+        .where(and(eq(deals.id, id), eq(deals.updatedAt, currentDeal.updatedAt)))
         .returning();
       const updatedDeal = updatedRows[0];
-      if (!updatedDeal) return null;
+      if (!updatedDeal) return "conflict" as const;
 
       if (previousStage !== undefined && rest.stage !== undefined) {
         try {
@@ -105,6 +105,9 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
       return updatedDeal;
     });
 
+    if (deal === "conflict") {
+      return { success: false, error: "Deal modificato da un altro utente. Ricarica la pagina." };
+    }
     if (!deal) return { success: false, error: "Deal non trovato" };
 
     revalidatePath("/deals");

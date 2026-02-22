@@ -12,7 +12,7 @@ export type SearchDataset = {
   deals: SearchDeal[];
 };
 
-const MAX_RECORDS = 200;
+const MAX_PER_GROUP = 66;
 
 export async function prefetchSearchData(): Promise<SearchDataset> {
   const [rawContacts, rawCompanies, rawDeals] = await Promise.all([
@@ -23,26 +23,25 @@ export async function prefetchSearchData(): Promise<SearchDataset> {
         lastName: contacts.lastName,
         email: contacts.email,
       })
-      .from(contacts),
-    db.select({ id: companies.id, name: companies.name, sector: companies.sector }).from(companies),
-    db.select({ id: deals.id, title: deals.title, value: deals.value }).from(deals),
+      .from(contacts)
+      .limit(MAX_PER_GROUP),
+    db
+      .select({ id: companies.id, name: companies.name, sector: companies.sector })
+      .from(companies)
+      .limit(MAX_PER_GROUP),
+    db
+      .select({ id: deals.id, title: deals.title, value: deals.value })
+      .from(deals)
+      .limit(MAX_PER_GROUP),
   ]);
 
-  const total = rawContacts.length + rawCompanies.length + rawDeals.length;
-  const needsTruncation = total > MAX_RECORDS;
-  const perGroup = Math.floor(MAX_RECORDS / 3);
-
-  const contactSlice = needsTruncation ? rawContacts.slice(0, perGroup) : rawContacts;
-  const companySlice = needsTruncation ? rawCompanies.slice(0, perGroup) : rawCompanies;
-  const dealSlice = needsTruncation ? rawDeals.slice(0, perGroup) : rawDeals;
-
   return {
-    contacts: contactSlice.map((c) => ({
+    contacts: rawContacts.map((c) => ({
       id: c.id,
       name: `${c.firstName} ${c.lastName}`,
       email: c.email,
     })),
-    companies: companySlice.map((c) => ({ id: c.id, name: c.name, sector: c.sector })),
-    deals: dealSlice.map((d) => ({ id: d.id, title: d.title, value: d.value })),
+    companies: rawCompanies.map((c) => ({ id: c.id, name: c.name, sector: c.sector })),
+    deals: rawDeals.map((d) => ({ id: d.id, title: d.title, value: d.value })),
   };
 }

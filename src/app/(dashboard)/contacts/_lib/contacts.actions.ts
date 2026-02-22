@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod/v3";
 
 import { createContactSchema, updateContactSchema } from "./contacts.schema";
@@ -10,7 +10,7 @@ import { contactsService } from "./contacts.service";
 import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import { db } from "@/server/db";
-import { contacts, contactsToTags } from "@/server/db/schema";
+import { contacts, contactsToTags, tags as tagsTable } from "@/server/db/schema";
 import type { Contact } from "@/server/db/schema";
 
 export async function createContact(input: unknown): Promise<ActionResult<Contact>> {
@@ -127,25 +127,48 @@ export async function syncContactTags(
     return { success: false, error: "Errore di autenticazione" };
   }
   try {
-    const current = await db
-      .select({ tagId: contactsToTags.tagId })
-      .from(contactsToTags)
-      .where(eq(contactsToTags.contactId, contactId));
-    const currentIds = new Set(current.map((r) => r.tagId));
+    await db.transaction(async (tx) => {
+      const newNames = tagNames.map((n) => n.trim().toLowerCase()).filter(Boolean);
 
-    const allTagRecords = await contactsService.getAllTags();
-
-    for (const tagName of tagNames) {
-      await contactsService.addTagToContact(contactId, tagName);
-    }
-
-    const newNames = new Set(tagNames.map((n) => n.trim().toLowerCase()));
-    for (const existingTagId of currentIds) {
-      const tagRecord = allTagRecords.find((t) => t.id === existingTagId);
-      if (tagRecord && !newNames.has(tagRecord.name)) {
-        await contactsService.removeTagFromContact(contactId, existingTagId);
+      // Batch: resolve all tag names to IDs (create missing ones)
+      const tagIds: string[] = [];
+      for (const name of newNames) {
+        let tag = await tx.query.tags.findFirst({ where: eq(tagsTable.name, name) });
+        if (!tag) {
+          const inserted = await tx.insert(tagsTable).values({ name }).returning();
+          tag = inserted[0];
+          if (!tag) throw new Error("Errore creazione tag");
+        }
+        tagIds.push(tag.id);
       }
-    }
+
+      // Batch: get current assignments
+      const current = await tx
+        .select({ tagId: contactsToTags.tagId })
+        .from(contactsToTags)
+        .where(eq(contactsToTags.contactId, contactId));
+      const currentIds = new Set(current.map((r) => r.tagId));
+      const newIdSet = new Set(tagIds);
+
+      // Batch insert: new assignments
+      const toAdd = tagIds.filter((id) => !currentIds.has(id));
+      if (toAdd.length > 0) {
+        await tx
+          .insert(contactsToTags)
+          .values(toAdd.map((tagId) => ({ contactId, tagId })))
+          .onConflictDoNothing();
+      }
+
+      // Batch delete: removed assignments
+      const toRemove = [...currentIds].filter((id) => !newIdSet.has(id));
+      if (toRemove.length > 0) {
+        await tx
+          .delete(contactsToTags)
+          .where(
+            and(eq(contactsToTags.contactId, contactId), inArray(contactsToTags.tagId, toRemove)),
+          );
+      }
+    });
 
     revalidatePath("/contacts");
     revalidatePath(`/contacts/${contactId}`);

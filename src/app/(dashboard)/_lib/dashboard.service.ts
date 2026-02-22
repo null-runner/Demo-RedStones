@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { gte, not, inArray as drizzleInArray } from "drizzle-orm";
 
 import { getAllSuggestions } from "./nba.service";
 import type { ContactWithLastActivity, NbaResult } from "./nba.service";
@@ -249,8 +250,10 @@ async function getDashboardData(
   period: PeriodFilter = "current-month",
   now: Date = new Date(),
 ): Promise<DashboardData> {
-  const allDeals = await db.select().from(deals);
-  const { start, end } = resolvePeriod(period, now);
+  const { start, end, prevStart } = resolvePeriod(period, now);
+
+  // Fetch only deals relevant to current + previous period (not entire history)
+  const allDeals = await db.select().from(deals).where(gte(deals.createdAt, prevStart));
   const periodDeals = allDeals.filter((d) => d.createdAt >= start && d.createdAt <= end);
 
   return {
@@ -262,13 +265,27 @@ async function getDashboardData(
 }
 
 const getNbaData = cache(async (): Promise<NbaResult> => {
-  const [allDeals, allContacts, allTimelineEntries] = await Promise.all([
-    db.select().from(deals),
-    db.select().from(contacts),
-    db.select().from(timelineEntries),
-  ]);
+  // Fetch only active deals (not terminal) — avoids loading entire history
+  const activeDeals = await db
+    .select()
+    .from(deals)
+    .where(not(drizzleInArray(deals.stage, TERMINAL_STAGES)));
 
-  const activeDeals = allDeals.filter((d) => !isTerminalStage(d.stage));
+  const activeDealIds = activeDeals.map((d) => d.id);
+  const activeContactIds = activeDeals.map((d) => d.contactId).filter(Boolean) as string[];
+
+  // Fetch only contacts and timeline relevant to active deals
+  const [allContacts, allTimelineEntries] = await Promise.all([
+    activeContactIds.length > 0
+      ? db.select().from(contacts).where(drizzleInArray(contacts.id, activeContactIds))
+      : Promise.resolve([]),
+    activeDealIds.length > 0
+      ? db
+          .select()
+          .from(timelineEntries)
+          .where(drizzleInArray(timelineEntries.dealId, activeDealIds))
+      : Promise.resolve([]),
+  ]);
 
   const entriesByDealId = new Map<string, TimelineEntry[]>();
   for (const entry of allTimelineEntries) {
@@ -278,7 +295,7 @@ const getNbaData = cache(async (): Promise<NbaResult> => {
   }
 
   const dealsByContactId = new Map<string, Deal[]>();
-  for (const deal of allDeals) {
+  for (const deal of activeDeals) {
     if (deal.contactId) {
       const existing = dealsByContactId.get(deal.contactId) ?? [];
       existing.push(deal);

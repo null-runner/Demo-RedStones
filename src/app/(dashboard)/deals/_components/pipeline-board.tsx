@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   closestCorners,
   DndContext,
@@ -45,12 +45,12 @@ function buildColumns(deals: Deal[], stages: string[]): KanbanColumn[] {
 
 function DroppableColumn({
   column,
-  contacts,
-  companies,
+  contactMap,
+  companyMap,
 }: {
   column: KanbanColumn;
-  contacts: Array<{ id: string; firstName: string; lastName: string }>;
-  companies: Array<{ id: string; name: string }>;
+  contactMap: Map<string, { firstName: string; lastName: string }>;
+  companyMap: Map<string, string>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.stage });
 
@@ -76,9 +76,9 @@ function DroppableColumn({
           strategy={verticalListSortingStrategy}
         >
           {column.deals.map((deal) => {
-            const contact = contacts.find((c) => c.id === deal.contactId);
+            const contact = deal.contactId ? contactMap.get(deal.contactId) : undefined;
             const contactName = contact ? `${contact.firstName} ${contact.lastName}` : undefined;
-            const companyName = companies.find((c) => c.id === deal.companyId)?.name;
+            const companyName = deal.companyId ? companyMap.get(deal.companyId) : undefined;
             return (
               <DealCard
                 key={deal.id}
@@ -112,6 +112,12 @@ export function PipelineBoard({
       setLocalDeals(deals);
     }
   }, [deals]);
+
+  const contactMap = useMemo(
+    () => new Map(contacts.map((c) => [c.id, { firstName: c.firstName, lastName: c.lastName }])),
+    [contacts],
+  );
+  const companyMap = useMemo(() => new Map(companies.map((c) => [c.id, c.name])), [companies]);
 
   const columns = buildColumns(localDeals, stages);
 
@@ -194,11 +200,11 @@ export function PipelineBoard({
       });
   };
 
-  const activeDealContact = activeDeal
-    ? contacts.find((c) => c.id === activeDeal.contactId)
+  const activeDealContact = activeDeal?.contactId
+    ? contactMap.get(activeDeal.contactId)
     : undefined;
-  const activeDealCompany = activeDeal
-    ? companies.find((c) => c.id === activeDeal.companyId)?.name
+  const activeDealCompany = activeDeal?.companyId
+    ? companyMap.get(activeDeal.companyId)
     : undefined;
 
   return (
@@ -213,8 +219,8 @@ export function PipelineBoard({
           <DroppableColumn
             key={column.stage}
             column={column}
-            contacts={contacts}
-            companies={companies}
+            contactMap={contactMap}
+            companyMap={companyMap}
           />
         ))}
       </div>

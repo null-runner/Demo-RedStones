@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, uuid } from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, uuid } from "drizzle-orm/pg-core";
 
 import { contacts } from "./contacts";
 import { tags } from "./tags";
@@ -13,5 +13,8 @@ export const contactsToTags = pgTable(
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.contactId, t.tagId] })],
+  (t) => [
+    primaryKey({ columns: [t.contactId, t.tagId] }),
+    index("idx_contacts_to_tags_contact_id").on(t.contactId),
+  ],
 );

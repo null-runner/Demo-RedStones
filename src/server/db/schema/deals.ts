@@ -29,6 +29,8 @@ export const deals = pgTable(
     index("idx_deals_company_id").on(t.companyId),
     index("idx_deals_owner_id").on(t.ownerId),
     index("idx_deals_stage").on(t.stage),
+    index("idx_deals_stage_created").on(t.stage, t.createdAt),
+    index("idx_deals_stage_updated").on(t.stage, t.updatedAt),
   ],
 );
 
