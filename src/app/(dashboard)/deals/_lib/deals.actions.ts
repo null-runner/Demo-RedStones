@@ -68,47 +68,39 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
       }
     }
 
-    const deal = await db.transaction(async (tx) => {
-      const currentRows = await tx.select().from(deals).where(eq(deals.id, id)).limit(1);
-      const currentDeal = currentRows[0];
-      if (!currentDeal) return null;
+    const currentRows = await db.select().from(deals).where(eq(deals.id, id)).limit(1);
+    const currentDeal = currentRows[0];
+    if (!currentDeal) return { success: false, error: "Deal non trovato" };
 
-      const previousStage =
-        rest.stage !== undefined && currentDeal.stage !== rest.stage
-          ? currentDeal.stage
-          : undefined;
+    const previousStage =
+      rest.stage !== undefined && currentDeal.stage !== rest.stage ? currentDeal.stage : undefined;
 
-      const updatedRows = await tx
-        .update(deals)
-        .set({
-          ...rest,
-          value: rest.value !== undefined ? rest.value.toString() : undefined,
-          updatedAt: new Date(),
-        })
-        .where(eq(deals.id, id))
-        .returning();
-      const updatedDeal = updatedRows[0];
-      if (!updatedDeal) return null;
-
-      if (previousStage !== undefined && rest.stage !== undefined) {
-        try {
-          await tx.insert(timelineEntries).values({
-            dealId: id,
-            type: "stage_change",
-            content: null,
-            previousStage,
-            newStage: rest.stage,
-            authorId: user.id,
-          });
-        } catch (e) {
-          logger.error("timeline", "Failed to record stage change", e);
-        }
-      }
-
-      return updatedDeal;
-    });
-
+    const updatedRows = await db
+      .update(deals)
+      .set({
+        ...rest,
+        value: rest.value !== undefined ? rest.value.toString() : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(deals.id, id))
+      .returning();
+    const deal = updatedRows[0];
     if (!deal) return { success: false, error: "Deal non trovato" };
+
+    if (previousStage !== undefined && rest.stage !== undefined) {
+      try {
+        await db.insert(timelineEntries).values({
+          dealId: id,
+          type: "stage_change",
+          content: null,
+          previousStage,
+          newStage: rest.stage,
+          authorId: user.id,
+        });
+      } catch (e) {
+        logger.error("timeline", "Failed to record stage change", e);
+      }
+    }
 
     revalidatePath("/deals");
     revalidatePath(`/deals/${id}`);
