@@ -91,10 +91,8 @@ describe("SignInForm", () => {
 
   it("shows loading text while demo is loading", async () => {
     const user = userEvent.setup();
-    // fetch returns a pending promise to simulate loading
-    const fetchSpy = vi
-      .spyOn(global, "fetch")
-      .mockImplementationOnce(() => new Promise(() => undefined));
+    // signIn returns a pending promise to simulate loading
+    vi.mocked(signIn).mockImplementationOnce(() => new Promise(() => undefined));
 
     render(<SignInForm />);
     await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
@@ -104,16 +102,10 @@ describe("SignInForm", () => {
         screen.getByRole("button", { name: /preparazione demo in corso/i }),
       ).toBeInTheDocument();
     });
-
-    fetchSpy.mockRestore();
   });
 
-  it("calls fetch then signIn on demo mode click and redirects to /", async () => {
+  it("calls signIn then resets guest data and redirects to /", async () => {
     const user = userEvent.setup();
-    vi.spyOn(global, "fetch").mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    } as Response);
     vi.mocked(signIn).mockResolvedValueOnce({
       error: undefined,
       code: undefined,
@@ -121,12 +113,15 @@ describe("SignInForm", () => {
       status: 200,
       url: "",
     });
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    } as Response);
 
     render(<SignInForm />);
     await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/api/auth/guest", { method: "POST" });
       expect(signIn).toHaveBeenCalledWith(
         "credentials",
         expect.objectContaining({
@@ -135,13 +130,14 @@ describe("SignInForm", () => {
           redirect: false,
         }),
       );
+      expect(fetch).toHaveBeenCalledWith("/api/auth/guest", { method: "POST" });
       expect(mockRouterPush).toHaveBeenCalledWith("/");
     });
   });
 
   it("disables form inputs and submit button during demo loading", async () => {
     const user = userEvent.setup();
-    vi.spyOn(global, "fetch").mockImplementationOnce(() => new Promise(() => undefined));
+    vi.mocked(signIn).mockImplementationOnce(() => new Promise(() => undefined));
 
     render(<SignInForm />);
     await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
@@ -153,28 +149,27 @@ describe("SignInForm", () => {
     });
   });
 
-  it("shows error when fetch to /api/auth/guest fails", async () => {
+  it("still redirects when guest reset fails (best-effort)", async () => {
     const user = userEvent.setup();
-    vi.spyOn(global, "fetch").mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ success: false }),
-    } as Response);
+    vi.mocked(signIn).mockResolvedValueOnce({
+      error: undefined,
+      code: undefined,
+      ok: true,
+      status: 200,
+      url: "",
+    });
+    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Reset failed"));
 
     render(<SignInForm />);
     await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/errore durante la preparazione della demo/i)).toBeInTheDocument();
+      expect(mockRouterPush).toHaveBeenCalledWith("/");
     });
   });
 
   it("shows error when signIn returns error during demo mode", async () => {
     const user = userEvent.setup();
-    vi.spyOn(global, "fetch").mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    } as Response);
     vi.mocked(signIn).mockResolvedValueOnce({
       error: "CredentialsSignin",
       ok: false,
@@ -190,9 +185,9 @@ describe("SignInForm", () => {
     });
   });
 
-  it("shows network error when fetch throws during demo mode", async () => {
+  it("shows network error when signIn throws during demo mode", async () => {
     const user = userEvent.setup();
-    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network error"));
+    vi.mocked(signIn).mockRejectedValueOnce(new Error("Network error"));
 
     render(<SignInForm />);
     await user.click(screen.getByRole("button", { name: /esplora in demo mode/i }));
