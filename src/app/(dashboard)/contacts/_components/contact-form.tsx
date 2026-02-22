@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { Info, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -267,7 +267,12 @@ export function ContactForm({
             name="tagNames"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tag</FormLabel>
+                <FormLabel className="flex items-center gap-1">
+                  Tag
+                  <span title="I tag permettono di categorizzare i contatti per facilitare ricerche e segmentazione. Esempi: decision-maker, tecnico, marketing, partner, VIP">
+                    <Info className="text-muted-foreground h-3.5 w-3.5" />
+                  </span>
+                </FormLabel>
                 <FormControl>
                   <TagInput
                     value={field.value}
