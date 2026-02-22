@@ -22,5 +22,9 @@ const pusherInstance = isConfigured
 
 export async function triggerEvent(channel: string, event: string, data: unknown): Promise<void> {
   if (!pusherInstance) return;
-  await pusherInstance.trigger(channel, event, data);
+  try {
+    await pusherInstance.trigger(channel, event, data);
+  } catch {
+    // Best-effort: don't let Pusher failures break mutations
+  }
 }
