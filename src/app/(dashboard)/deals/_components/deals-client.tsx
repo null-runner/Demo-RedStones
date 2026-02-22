@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { endOfDay } from "date-fns";
 import { Info, LayoutGrid, List, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,7 +86,7 @@ export function DealsClient({
       const dealCents = toCents(deal.value);
       if (minValue !== "" && dealCents < toCents(minValue)) return false;
       if (maxValue !== "" && dealCents > toCents(maxValue)) return false;
-      if (deal.createdAt < dateRange.from || deal.createdAt > dateRange.to) return false;
+      if (deal.createdAt < dateRange.from || deal.createdAt > endOfDay(dateRange.to)) return false;
       return true;
     });
   }, [deals, query, stageFilter, ownerFilter, minValue, maxValue, dateRange, companies, users]);
