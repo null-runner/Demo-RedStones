@@ -1,6 +1,18 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const afterCallbacks: Array<() => void | Promise<void>> = [];
+
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return {
+    ...actual,
+    after: (cb: () => void | Promise<void>) => {
+      afterCallbacks.push(cb);
+    },
+  };
+});
+
 vi.mock("@/server/services/enrichment.service", () => ({
   enrichmentService: {
     startEnrichment: vi.fn(),
@@ -35,6 +47,7 @@ function makeGetRequest(companyId: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  afterCallbacks.length = 0;
   vi.mocked(getCurrentUser).mockResolvedValue({
     id: "u1",
     email: "u@t.com",
@@ -91,6 +104,12 @@ describe("POST /api/enrichment", () => {
 
     expect(res.status).toBe(202);
     expect(body).toEqual({ success: true, status: "processing" });
+
+    // Flush after() callbacks registered during the request
+    for (const cb of afterCallbacks) {
+      await cb();
+    }
+
     expect(enrichmentService.runEnrichment).toHaveBeenCalledWith(
       "00000000-0000-0000-0000-000000000001",
     );

@@ -142,7 +142,7 @@ async function runEnrichment(companyId: string): Promise<void> {
   const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null);
 
-  const TIMEOUT_MS = 120_000;
+  const TIMEOUT_MS = 50_000;
 
   let rawResult;
   try {

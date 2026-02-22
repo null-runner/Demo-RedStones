@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod/v3";
 
 import { getCurrentUser } from "@/lib/auth";
-import { logger } from "@/lib/logger";
 import type { EnrichmentError } from "@/server/services/enrichment.service";
 import { enrichmentService } from "@/server/services/enrichment.service";
 
@@ -21,12 +20,6 @@ const ERROR_STATUS_MAP: Record<EnrichmentError["error"], number> = {
   network_error: 503,
   enrichment_already_processing: 409,
 };
-
-function scheduleBackground(fn: () => Promise<void>): void {
-  fn().catch((err: unknown) => {
-    logger.error("enrichment", "Background task failed", err);
-  });
-}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -50,7 +43,7 @@ export async function POST(request: Request) {
     const result = await enrichmentService.startEnrichment(companyId, { force });
 
     if (result.success && result.status === "processing") {
-      scheduleBackground(() => enrichmentService.runEnrichment(companyId));
+      after(() => enrichmentService.runEnrichment(companyId));
       return NextResponse.json(result, { status: 202 });
     }
 
