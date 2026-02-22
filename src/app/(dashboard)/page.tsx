@@ -4,6 +4,7 @@ import { startOfDay, subDays } from "date-fns";
 import { DealsByStageChart } from "./_components/deals-by-stage-chart";
 import { DealStatusChart } from "./_components/deal-status-chart";
 import { KpiCards } from "./_components/kpi-cards";
+import { LostDealsBreakdown } from "./_components/lost-deals-breakdown";
 import { NbaSuggestions } from "./_components/nba-suggestions";
 import { PeriodFilter } from "./_components/period-filter";
 import { StagnantDealsList } from "./_components/stagnant-deals-list";
@@ -31,10 +32,8 @@ export default async function DashboardPage() {
   const { from, to } = parseDateRangeCookie(cookieStore.get("dateRange")?.value);
   const period = customDateRange(from, to);
 
-  const [{ kpis, dealsByStage, dealsByStatus, stagnantDeals }, nbaResult] = await Promise.all([
-    dashboardService.getDashboardData(period),
-    dashboardService.getNbaData(),
-  ]);
+  const [{ kpis, dealsByStage, dealsByStatus, stagnantDeals, lostByReason }, nbaResult] =
+    await Promise.all([dashboardService.getDashboardData(period), dashboardService.getNbaData()]);
 
   return (
     <div className="space-y-6">
@@ -50,6 +49,7 @@ export default async function DashboardPage() {
         <DealsByStageChart data={dealsByStage} />
         <DealStatusChart data={dealsByStatus} />
       </div>
+      <LostDealsBreakdown data={lostByReason} />
       <StagnantDealsList deals={stagnantDeals} />
       <NbaSuggestions suggestions={nbaResult.suggestions} />
     </div>

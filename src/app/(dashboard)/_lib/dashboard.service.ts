@@ -43,11 +43,18 @@ export type DealStatusItem = {
   color: string;
 };
 
+export type LostReasonItem = {
+  reason: string;
+  count: number;
+  totalValue: number;
+};
+
 export type DashboardData = {
   kpis: DashboardKPIs;
   dealsByStage: DealsByStageItem[];
   dealsByStatus: DealStatusItem[];
   stagnantDeals: StagnantDeal[];
+  lostByReason: LostReasonItem[];
 };
 
 export const STAGNANT_THRESHOLD_DAYS = 14;
@@ -246,6 +253,26 @@ export function getStagnantDeals(allDeals: Deal[], now: Date = new Date()): Stag
     .sort((a, b) => b.daysInactive - a.daysInactive);
 }
 
+export function calculateLostByReason(allDeals: Deal[]): LostReasonItem[] {
+  const lostDeals = allDeals.filter((d) => d.stage === STAGE_LOST);
+  const reasonMap = new Map<string, { count: number; totalValue: number }>();
+
+  for (const deal of lostDeals) {
+    const reason = deal.lostReason
+      ? (deal.lostReason.split(":")[0]?.trim() ?? "Non specificato")
+      : "Non specificato";
+    const current = reasonMap.get(reason) ?? { count: 0, totalValue: 0 };
+    reasonMap.set(reason, {
+      count: current.count + 1,
+      totalValue: (Math.round(current.totalValue * 100) + toCents(deal.value)) / 100,
+    });
+  }
+
+  return Array.from(reasonMap.entries())
+    .map(([reason, { count, totalValue }]) => ({ reason, count, totalValue }))
+    .sort((a, b) => b.count - a.count);
+}
+
 async function getDashboardData(
   period: PeriodFilter = "current-month",
   now: Date = new Date(),
@@ -261,6 +288,7 @@ async function getDashboardData(
     dealsByStage: calculateDealsPerStage(periodDeals),
     dealsByStatus: calculateDealsByStatus(periodDeals),
     stagnantDeals: getStagnantDeals(periodDeals, now),
+    lostByReason: calculateLostByReason(periodDeals),
   };
 }
 

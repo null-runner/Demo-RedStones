@@ -4,6 +4,7 @@ import {
   calculateKPIs,
   calculateDealsPerStage,
   calculateDealsByStatus,
+  calculateLostByReason,
   getStagnantDeals,
   getPeriodDateRange,
 } from "./dashboard.service";
@@ -536,5 +537,65 @@ describe("getStagnantDeals", () => {
     ];
     const result = getStagnantDeals(dealsData, NOW);
     expect(result.map((d) => d.daysInactive)).toEqual([30, 20]);
+  });
+});
+
+describe("calculateLostByReason", () => {
+  it("returns empty array when no lost deals", () => {
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Proposta" }),
+      makeDeal({ id: "2", stage: "Chiuso Vinto" }),
+    ];
+    expect(calculateLostByReason(dealsData)).toEqual([]);
+  });
+
+  it("groups lost deals by reason prefix", () => {
+    const dealsData: Deal[] = [
+      makeDeal({
+        id: "1",
+        stage: "Chiuso Perso",
+        lostReason: "Prezzo troppo alto",
+        value: "5000.00",
+      }),
+      makeDeal({
+        id: "2",
+        stage: "Chiuso Perso",
+        lostReason: "Prezzo troppo alto: dettagli",
+        value: "3000.00",
+      }),
+      makeDeal({
+        id: "3",
+        stage: "Chiuso Perso",
+        lostReason: "Concorrente scelto",
+        value: "10000.00",
+      }),
+    ];
+    const result = calculateLostByReason(dealsData);
+    expect(result).toEqual([
+      expect.objectContaining({ reason: "Prezzo troppo alto", count: 2, totalValue: 8000 }),
+      expect.objectContaining({ reason: "Concorrente scelto", count: 1, totalValue: 10000 }),
+    ]);
+  });
+
+  it("labels deals without lostReason as Non specificato", () => {
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Chiuso Perso", lostReason: null, value: "7000.00" }),
+    ];
+    const result = calculateLostByReason(dealsData);
+    expect(result).toEqual([
+      expect.objectContaining({ reason: "Non specificato", count: 1, totalValue: 7000 }),
+    ]);
+  });
+
+  it("sorts by count descending", () => {
+    const dealsData: Deal[] = [
+      makeDeal({ id: "1", stage: "Chiuso Perso", lostReason: "Budget insufficiente" }),
+      makeDeal({ id: "2", stage: "Chiuso Perso", lostReason: "Prezzo troppo alto" }),
+      makeDeal({ id: "3", stage: "Chiuso Perso", lostReason: "Prezzo troppo alto" }),
+      makeDeal({ id: "4", stage: "Chiuso Perso", lostReason: "Prezzo troppo alto" }),
+    ];
+    const result = calculateLostByReason(dealsData);
+    expect(result[0]?.reason).toBe("Prezzo troppo alto");
+    expect(result[0]?.count).toBe(3);
   });
 });
