@@ -55,7 +55,7 @@ const mockLostDeal: DealWithDetails = {
 const baseProps = {
   deal: mockDeal,
   companies: [{ id: "c1", name: "Test" }],
-  contacts: [{ id: "ct1", firstName: "A", lastName: "B" }],
+  contacts: [{ id: "ct1", firstName: "A", lastName: "B", companyId: null }],
   users: [{ id: "u1", name: "Admin" }],
   timelineEntries: [],
   nbaSuggestions: [],

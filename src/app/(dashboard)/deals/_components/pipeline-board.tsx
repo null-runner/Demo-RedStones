@@ -25,7 +25,7 @@ import type { Deal } from "@/server/db/schema";
 
 type PipelineBoardProps = {
   deals: Deal[];
-  contacts: Array<{ id: string; firstName: string; lastName: string }>;
+  contacts: Array<{ id: string; firstName: string; lastName: string; companyId: string | null }>;
   companies: Array<{ id: string; name: string }>;
   onLostReasonNeeded: (dealId: string, oldStage: string) => void;
   stages: string[];

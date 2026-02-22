@@ -33,7 +33,7 @@ import type { Deal } from "@/server/db/schema";
 type DealsClientProps = {
   deals: Deal[];
   companies: Array<{ id: string; name: string }>;
-  contacts: Array<{ id: string; firstName: string; lastName: string }>;
+  contacts: Array<{ id: string; firstName: string; lastName: string; companyId: string | null }>;
   users: Array<{ id: string; name: string }>;
   stages: string[];
   initialDateRange: { from: string; to: string };

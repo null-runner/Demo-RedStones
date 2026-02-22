@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
@@ -34,7 +34,7 @@ export type DealFormSubmitData = CreateDealInput & { lostReason?: string | null 
 type DealFormProps = {
   initialData?: Deal | null;
   companies: Array<{ id: string; name: string }>;
-  contacts: Array<{ id: string; firstName: string; lastName: string }>;
+  contacts: Array<{ id: string; firstName: string; lastName: string; companyId: string | null }>;
   users: Array<{ id: string; name: string }>;
   onSubmit: (data: DealFormSubmitData) => void | Promise<void>;
   onCancel: () => void;
@@ -74,6 +74,13 @@ export function DealForm({
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const watchedStage = form.watch("stage");
+
+  const watchedCompanyId = form.watch("companyId");
+
+  const filteredContacts = useMemo(() => {
+    if (!watchedCompanyId) return contacts;
+    return contacts.filter((c) => c.companyId === watchedCompanyId || c.companyId === null);
+  }, [contacts, watchedCompanyId]);
 
   const handleFormSubmit = (data: CreateDealInput) => {
     if (data.stage === "Chiuso Perso" && !lostReason) {
@@ -221,7 +228,14 @@ export function DealForm({
               <FormLabel>Contatto</FormLabel>
               <Select
                 onValueChange={(v) => {
-                  field.onChange(v === "_none" ? null : v);
+                  const contactId = v === "_none" ? null : v;
+                  field.onChange(contactId);
+                  if (contactId) {
+                    const contact = contacts.find((c) => c.id === contactId);
+                    if (contact?.companyId) {
+                      form.setValue("companyId", contact.companyId);
+                    }
+                  }
                 }}
                 value={field.value ?? "_none"}
                 disabled={isLoading ?? false}
@@ -233,7 +247,7 @@ export function DealForm({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="_none">Nessun contatto</SelectItem>
-                  {contacts.map((c) => (
+                  {filteredContacts.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.firstName} {c.lastName}
                     </SelectItem>
@@ -252,7 +266,21 @@ export function DealForm({
               <FormLabel>Azienda</FormLabel>
               <Select
                 onValueChange={(v) => {
-                  field.onChange(v === "_none" ? null : v);
+                  const companyId = v === "_none" ? null : v;
+                  field.onChange(companyId);
+                  if (companyId) {
+                    const currentContactId = form.getValues("contactId");
+                    if (currentContactId) {
+                      const contact = contacts.find((c) => c.id === currentContactId);
+                      if (
+                        contact &&
+                        contact.companyId !== null &&
+                        contact.companyId !== companyId
+                      ) {
+                        form.setValue("contactId", null);
+                      }
+                    }
+                  }
                 }}
                 value={field.value ?? "_none"}
                 disabled={isLoading ?? false}

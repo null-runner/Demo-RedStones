@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Trash2 } from "lucide-react";
+import { Building2, ShieldX, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -55,6 +55,12 @@ export const DealCardContent = memo(function DealCardContent({
           )}
           {contactName && (
             <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{contactName}</p>
+          )}
+          {deal.stage === "Chiuso Perso" && deal.lostReason && (
+            <p className="text-destructive/70 mt-1 flex items-center gap-1 text-xs">
+              <ShieldX className="h-3 w-3 flex-shrink-0" />
+              <span className="leading-snug">{deal.lostReason}</span>
+            </p>
           )}
         </div>
       </CardContent>

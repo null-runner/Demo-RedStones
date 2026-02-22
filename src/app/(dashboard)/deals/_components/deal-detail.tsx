@@ -23,7 +23,7 @@ import { isTerminalStage } from "@/lib/constants/pipeline";
 type DealDetailProps = {
   deal: DealWithDetails;
   companies: Array<{ id: string; name: string }>;
-  contacts: Array<{ id: string; firstName: string; lastName: string }>;
+  contacts: Array<{ id: string; firstName: string; lastName: string; companyId: string | null }>;
   users: Array<{ id: string; name: string }>;
   timelineEntries: TimelineEntryWithAuthor[];
   nbaSuggestions: NbaSuggestion[];

@@ -75,11 +75,14 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
     const previousStage =
       rest.stage !== undefined && currentDeal.stage !== rest.stage ? currentDeal.stage : undefined;
 
+    const lostReasonValue = previousStage === "Chiuso Perso" ? null : rest.lostReason;
+
     const updatedRows = await db
       .update(deals)
       .set({
         ...rest,
         value: rest.value !== undefined ? rest.value.toString() : undefined,
+        lostReason: lostReasonValue,
         updatedAt: new Date(),
       })
       .where(eq(deals.id, id))

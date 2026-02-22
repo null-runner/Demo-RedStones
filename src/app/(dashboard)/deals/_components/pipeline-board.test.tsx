@@ -29,7 +29,12 @@ const mockDeal: Deal = {
 };
 
 const mockContacts = [
-  { id: "00000000-0000-0000-0000-000000000099", firstName: "Mario", lastName: "Rossi" },
+  {
+    id: "00000000-0000-0000-0000-000000000099",
+    firstName: "Mario",
+    lastName: "Rossi",
+    companyId: null,
+  },
 ];
 
 describe("PipelineBoard", () => {
