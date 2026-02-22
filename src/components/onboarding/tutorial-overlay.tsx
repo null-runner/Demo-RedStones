@@ -12,9 +12,9 @@ interface TutorialStep {
 
 const STEPS: TutorialStep[] = [
   {
-    title: "Benvenuto in RedStones CRM",
+    title: "Ciao Jacopo / Team RedStones!",
     description:
-      "Questo è un CRM demo per la gestione pipeline e arricchimento dati. Ti guideremo nelle funzionalità principali.",
+      "Questo CRM è stato costruito su misura come proposta per voi. Vi guideremo nelle funzionalità principali: pipeline, enrichment AI e analytics.",
   },
   {
     title: "Dashboard & KPI",

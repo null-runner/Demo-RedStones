@@ -50,20 +50,20 @@ describe("TutorialOverlay", () => {
   it("renders for guest users who haven't seen tutorial", () => {
     mockGuest();
     render(<TutorialOverlay />);
-    expect(screen.getByText("Benvenuto in RedStones CRM")).toBeInTheDocument();
+    expect(screen.getByText("Ciao Jacopo / Team RedStones!")).toBeInTheDocument();
   });
 
   it("does not render for non-guest users", () => {
     mockAdmin();
     render(<TutorialOverlay />);
-    expect(screen.queryByText("Benvenuto in RedStones CRM")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ciao Jacopo / Team RedStones!")).not.toBeInTheDocument();
   });
 
   it("does not render if tutorial was already completed", () => {
     localStorage.setItem("crm-tutorial-completed", "true");
     mockGuest();
     render(<TutorialOverlay />);
-    expect(screen.queryByText("Benvenuto in RedStones CRM")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ciao Jacopo / Team RedStones!")).not.toBeInTheDocument();
   });
 
   it("shows skip button that dismisses overlay", async () => {
@@ -75,7 +75,7 @@ describe("TutorialOverlay", () => {
     expect(skipBtn).toBeInTheDocument();
 
     await user.click(skipBtn);
-    expect(screen.queryByText("Benvenuto in RedStones CRM")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ciao Jacopo / Team RedStones!")).not.toBeInTheDocument();
     expect(localStorage.getItem("crm-tutorial-completed")).toBe("true");
   });
 
@@ -85,13 +85,13 @@ describe("TutorialOverlay", () => {
     render(<TutorialOverlay />);
 
     // Step 1: Welcome
-    expect(screen.getByText("Benvenuto in RedStones CRM")).toBeInTheDocument();
+    expect(screen.getByText("Ciao Jacopo / Team RedStones!")).toBeInTheDocument();
 
     // Click next
     await user.click(screen.getByRole("button", { name: /avanti/i }));
 
     // Step 2: should show different content
-    expect(screen.queryByText("Benvenuto in RedStones CRM")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ciao Jacopo / Team RedStones!")).not.toBeInTheDocument();
   });
 
   it("completes tutorial on last step", async () => {
@@ -135,11 +135,11 @@ describe("TutorialOverlay", () => {
     const user = userEvent.setup();
     render(<TutorialOverlay />);
 
-    expect(screen.getByText("Benvenuto in RedStones CRM")).toBeInTheDocument();
+    expect(screen.getByText("Ciao Jacopo / Team RedStones!")).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 
-    expect(screen.queryByText("Benvenuto in RedStones CRM")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ciao Jacopo / Team RedStones!")).not.toBeInTheDocument();
     expect(localStorage.getItem("crm-tutorial-completed")).toBe("true");
   });
 });
