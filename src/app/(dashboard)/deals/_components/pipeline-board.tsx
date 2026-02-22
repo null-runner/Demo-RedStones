@@ -15,7 +15,7 @@ import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 
-import { updateDeal } from "../_lib/deals.actions";
+import { deleteDeal, updateDeal } from "../_lib/deals.actions";
 import { DealCard, DealCardContent } from "./deal-card";
 
 import { useBoardSync } from "@/hooks/use-board-sync";
@@ -49,10 +49,12 @@ function DroppableColumn({
   column,
   contactMap,
   companyMap,
+  onDelete,
 }: {
   column: KanbanColumn;
   contactMap: Map<string, { firstName: string; lastName: string }>;
   companyMap: Map<string, string>;
+  onDelete: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.stage });
 
@@ -87,6 +89,7 @@ function DroppableColumn({
                 deal={deal}
                 contactName={contactName}
                 companyName={companyName}
+                onDelete={onDelete}
               />
             );
           })}
@@ -219,6 +222,18 @@ export function PipelineBoard({
       });
   };
 
+  const handleDelete = (dealId: string) => {
+    setLocalDeals((prev) => prev.filter((d) => d.id !== dealId));
+    void deleteDeal(dealId).then((result) => {
+      if (!result.success) {
+        setLocalDeals(deals);
+        toast.error(result.error);
+      } else {
+        toast.success("Deal eliminato");
+      }
+    });
+  };
+
   const activeDealContact = activeDeal?.contactId
     ? contactMap.get(activeDeal.contactId)
     : undefined;
@@ -240,6 +255,7 @@ export function PipelineBoard({
             column={column}
             contactMap={contactMap}
             companyMap={companyMap}
+            onDelete={handleDelete}
           />
         ))}
       </div>

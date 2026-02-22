@@ -2,10 +2,11 @@
 
 import { memo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { Building2, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatEUR } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
@@ -14,27 +15,50 @@ type DealCardProps = {
   deal: Deal;
   contactName?: string | undefined;
   companyName?: string | undefined;
+  onDelete?: ((id: string) => void) | undefined;
 };
 
 export const DealCardContent = memo(function DealCardContent({
   deal,
   contactName,
   companyName,
+  onDelete,
 }: DealCardProps) {
   return (
-    <Card className="cursor-grab border shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
+    <Card className="group cursor-grab border shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
       <CardContent className="p-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{deal.title}</p>
-          <p className="text-muted-foreground mt-1 text-xs">{formatEUR(parseFloat(deal.value))}</p>
-          {companyName && (
-            <p className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
-              <Building2 className="h-3 w-3 flex-shrink-0" />
-              {companyName}
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{deal.title}</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {formatEUR(parseFloat(deal.value))}
             </p>
-          )}
-          {contactName && (
-            <p className="text-muted-foreground mt-0.5 truncate text-xs">{contactName}</p>
+            {companyName && (
+              <p className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
+                <Building2 className="h-3 w-3 flex-shrink-0" />
+                {companyName}
+              </p>
+            )}
+            {contactName && (
+              <p className="text-muted-foreground mt-0.5 truncate text-xs">{contactName}</p>
+            )}
+          </div>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive h-6 w-6 flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+              aria-label={`Elimina ${deal.title}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(deal.id);
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           )}
         </div>
       </CardContent>
@@ -42,7 +66,7 @@ export const DealCardContent = memo(function DealCardContent({
   );
 });
 
-export function DealCard({ deal, contactName, companyName }: DealCardProps) {
+export function DealCard({ deal, contactName, companyName, onDelete }: DealCardProps) {
   const router = useRouter();
   const pointerWasDragging = useRef(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -83,7 +107,12 @@ export function DealCard({ deal, contactName, companyName }: DealCardProps) {
       tabIndex={0}
       aria-label={`Apri deal ${deal.title}`}
     >
-      <DealCardContent deal={deal} contactName={contactName} companyName={companyName} />
+      <DealCardContent
+        deal={deal}
+        contactName={contactName}
+        companyName={companyName}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
