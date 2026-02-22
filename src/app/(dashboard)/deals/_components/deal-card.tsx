@@ -25,40 +25,36 @@ export const DealCardContent = memo(function DealCardContent({
   onDelete,
 }: DealCardProps) {
   return (
-    <Card className="group cursor-grab border shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
+    <Card className="group relative cursor-grab border shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
       <CardContent className="p-3">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{deal.title}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {formatEUR(parseFloat(deal.value))}
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 absolute top-1.5 right-1.5 h-5 w-5 transition-colors"
+            aria-label={`Elimina ${deal.title}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(deal.id);
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+        <div className={onDelete ? "pr-5" : ""}>
+          <p className="text-sm leading-snug font-medium">{deal.title}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{formatEUR(parseFloat(deal.value))}</p>
+          {companyName && (
+            <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
+              <Building2 className="h-3 w-3 flex-shrink-0" />
+              <span className="leading-snug">{companyName}</span>
             </p>
-            {companyName && (
-              <p className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
-                <Building2 className="h-3 w-3 flex-shrink-0" />
-                {companyName}
-              </p>
-            )}
-            {contactName && (
-              <p className="text-muted-foreground mt-0.5 truncate text-xs">{contactName}</p>
-            )}
-          </div>
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive hover:text-destructive h-6 w-6 flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-              aria-label={`Elimina ${deal.title}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(deal.id);
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+          )}
+          {contactName && (
+            <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{contactName}</p>
           )}
         </div>
       </CardContent>
