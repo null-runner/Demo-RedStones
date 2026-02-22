@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Building2, Pencil, Trash2 } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -21,9 +22,54 @@ type CompanyTableProps = {
   canWrite?: boolean;
 };
 
-function EnrichmentBadge({ status }: { status: Company["enrichmentStatus"] }) {
+const POLL_INTERVAL_MS = 3_000;
+
+function EnrichmentBadge({
+  status: initialStatus,
+  companyId,
+}: {
+  status: Company["enrichmentStatus"];
+  companyId: string;
+}) {
+  const [status, setStatus] = useState(initialStatus);
+
+  // Sync with server props when they change (e.g. page navigation)
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
+  // Poll enrichment API only while processing
+  useEffect(() => {
+    if (status !== "processing") return;
+
+    const interval = setInterval(() => {
+      fetch(`/api/enrichment?companyId=${companyId}`)
+        .then((res) =>
+          res.ok ? (res.json() as Promise<{ success: boolean; status?: string }>) : null,
+        )
+        .then((data) => {
+          if (data?.success && data.status && data.status !== "processing") {
+            setStatus(data.status as Company["enrichmentStatus"]);
+          }
+        })
+        .catch(() => {
+          // ignore network errors, keep polling
+        });
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [status, companyId]);
+
   if (status === "enriched")
     return <Badge className="border-blue-200 bg-blue-100 text-blue-800">Enriched</Badge>;
+  if (status === "processing")
+    return (
+      <Badge className="animate-pulse border-amber-200 bg-amber-100 text-amber-800">
+        Enrichment in corso...
+      </Badge>
+    );
   if (status === "partial") return <Badge variant="secondary">Partial</Badge>;
   return <Badge variant="outline">Not enriched</Badge>;
 }
@@ -78,7 +124,7 @@ export function CompanyTable({
               <TableCell className="text-muted-foreground">{company.domain ?? "—"}</TableCell>
               <TableCell className="text-muted-foreground">{company.sector ?? "—"}</TableCell>
               <TableCell>
-                <EnrichmentBadge status={company.enrichmentStatus} />
+                <EnrichmentBadge status={company.enrichmentStatus} companyId={company.id} />
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
