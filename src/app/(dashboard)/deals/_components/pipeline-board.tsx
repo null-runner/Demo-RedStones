@@ -167,6 +167,23 @@ export function PipelineBoard({
     setLocalDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)));
   };
 
+  const moveDealToPosition = (dealId: string, newStage: string, overId: string) => {
+    setLocalDeals((prev) => {
+      const deal = prev.find((d) => d.id === dealId);
+      if (!deal) return prev;
+      const movedDeal = { ...deal, stage: newStage };
+      const without = prev.filter((d) => d.id !== dealId);
+      // If dropped on the column itself, append at end
+      if (stages.includes(overId)) return [...without, movedDeal];
+      // Insert at the position of the target deal
+      const overIndex = without.findIndex((d) => d.id === overId);
+      if (overIndex === -1) return [...without, movedDeal];
+      const result = [...without];
+      result.splice(overIndex, 0, movedDeal);
+      return result;
+    });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDeal(null);
     const { active, over } = event;
@@ -199,13 +216,13 @@ export function PipelineBoard({
     const oldStage = currentDeal.stage;
 
     if (targetStage === "Chiuso Perso") {
-      moveDeal(dealId, targetStage);
+      moveDealToPosition(dealId, targetStage, over.id as string);
       pendingMoves.current += 1;
       setPendingLostDeal({ id: dealId, title: currentDeal.title, oldStage });
       return;
     }
 
-    moveDeal(dealId, targetStage);
+    moveDealToPosition(dealId, targetStage, over.id as string);
     pendingMoves.current += 1;
 
     void updateDeal({ id: dealId, stage: targetStage })
