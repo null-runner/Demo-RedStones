@@ -205,7 +205,7 @@ async function runEnrichment(companyId: string): Promise<string | null> {
       .update(companies)
       .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
       .where(eq(companies.id, companyId));
-    return `json_parse: could not parse Gemini response`;
+    return `json_parse: could not parse Gemini response. Raw: ${text.slice(0, 500)}`;
   }
 
   const status = detectStatus(data);
@@ -249,20 +249,32 @@ Rispondi SOLO con il JSON, senza markdown.`;
 
 function parseGeminiResponse(text: string): EnrichmentData | null {
   try {
+    // Try direct parse first (clean JSON response)
     const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned) as Record<string, unknown>;
-
-    return {
-      description: typeof parsed["description"] === "string" ? parsed["description"] : null,
-      sector: typeof parsed["sector"] === "string" ? parsed["sector"] : null,
-      estimatedSize: typeof parsed["estimatedSize"] === "string" ? parsed["estimatedSize"] : null,
-      painPoints: Array.isArray(parsed["painPoints"])
-        ? (parsed["painPoints"] as string[]).filter((p) => typeof p === "string")
-        : [],
-    };
+    return extractEnrichmentData(parsed);
   } catch {
-    return null;
+    // Grounding may add text around JSON — extract first { ... } block
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+      return extractEnrichmentData(parsed);
+    } catch {
+      return null;
+    }
   }
+}
+
+function extractEnrichmentData(parsed: Record<string, unknown>): EnrichmentData {
+  return {
+    description: typeof parsed["description"] === "string" ? parsed["description"] : null,
+    sector: typeof parsed["sector"] === "string" ? parsed["sector"] : null,
+    estimatedSize: typeof parsed["estimatedSize"] === "string" ? parsed["estimatedSize"] : null,
+    painPoints: Array.isArray(parsed["painPoints"])
+      ? (parsed["painPoints"] as string[]).filter((p) => typeof p === "string")
+      : [],
+  };
 }
 
 function detectStatus(data: EnrichmentData): "enriched" | "partial" {
