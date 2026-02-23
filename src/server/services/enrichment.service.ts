@@ -153,7 +153,10 @@ async function runEnrichment(companyId: string): Promise<string | null> {
   if (!company) return "Company not found";
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    tools: [{ googleSearchRetrieval: {} }],
+  });
   const address = company.operationalAddress ?? company.legalAddress ?? null;
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
 
