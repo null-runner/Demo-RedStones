@@ -58,7 +58,6 @@ type EnrichmentApiResponse =
   | { success: false; error: string };
 
 const POLL_INTERVAL_MS = 3_000;
-const MAX_CLIENT_RETRIES = 2;
 
 const SIZE_OPTIONS = ["1-10", "11-50", "51-200", "200+"] as const;
 
@@ -214,7 +213,6 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
   const [isSaving, startTransition] = useTransition();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const toastShownRef = useRef(false);
-  const retryCountRef = useRef(0);
 
   const canEdit = state.status === "enriched" || state.status === "partial";
 
@@ -294,30 +292,13 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
             return;
           }
           if (result.status === "not_enriched") {
-            if (retryCountRef.current < MAX_CLIENT_RETRIES) {
-              retryCountRef.current += 1;
-              console.info(
-                `[Enrichment] Server failed, auto-retrying (${String(retryCountRef.current)}/${String(MAX_CLIENT_RETRIES)})...`,
-              );
-              fetch("/api/enrichment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ companyId: company.id, force: true }),
-              }).catch((err: unknown) => {
-                console.error("[Enrichment] Auto-retry fetch failed:", err);
-              });
-              return;
-            }
             stopPoll();
-            console.error("[Enrichment] Server failed after all client retries");
-            retryCountRef.current = 0;
             setState((prev) => ({ ...prev, status: "not_enriched" }));
             toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
             return;
           }
           if (result.status !== "processing" && "data" in result) {
             stopPoll();
-            retryCountRef.current = 0;
             setState(applyEnrichmentData(result));
             if (!toastShownRef.current) {
               toastShownRef.current = true;
@@ -341,7 +322,6 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
   }, [state.status, company.id]);
 
   async function handleEnrich(force = false) {
-    if (!force) retryCountRef.current = 0;
     console.info("[Enrichment] Starting enrichment for", company.name, force ? "(force)" : "");
     setState((prev) => ({ ...prev, status: "processing" }));
     try {
@@ -352,22 +332,23 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
       });
       const result = (await response.json()) as EnrichmentApiResponse;
 
-      if (result.success && result.status === "processing") {
-        return;
-      }
-
       if (result.success && "data" in result) {
         setState(applyEnrichmentData(result));
+        toast.success("Arricchimento completato!");
         return;
       }
 
-      console.error("[Enrichment] Failed:", "error" in result ? result.error : result.status);
+      if (result.success && result.status === "not_enriched") {
+        console.error("[Enrichment] Server enrichment failed (returned not_enriched)");
+      } else if (!result.success) {
+        console.error("[Enrichment] Failed:", result.error);
+      }
       setState((prev) => ({ ...prev, status: "not_enriched" }));
-      toast.error("Arricchimento non riuscito: servizio temporaneamente non disponibile.");
+      toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
     } catch (error) {
       console.error("[Enrichment] Network error:", error);
       setState((prev) => ({ ...prev, status: "not_enriched" }));
-      toast.error("Arricchimento non riuscito: servizio temporaneamente non disponibile.");
+      toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
     }
   }
 

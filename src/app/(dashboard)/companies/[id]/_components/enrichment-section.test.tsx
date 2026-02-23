@@ -129,7 +129,7 @@ describe("EnrichmentSection", () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining("temporaneamente non disponibile"),
+        expect.stringContaining("Riprova tra qualche secondo"),
       );
     });
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
@@ -144,7 +144,7 @@ describe("EnrichmentSection", () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining("temporaneamente non disponibile"),
+        expect.stringContaining("Riprova tra qualche secondo"),
       );
     });
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();
@@ -284,7 +284,7 @@ describe("EnrichmentSection", () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining("temporaneamente non disponibile"),
+        expect.stringContaining("Riprova tra qualche secondo"),
       );
     });
     expect(screen.getByRole("button", { name: /arricchisci con ai/i })).not.toBeDisabled();

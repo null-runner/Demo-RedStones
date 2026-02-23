@@ -1,4 +1,4 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod/v3";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -42,13 +42,19 @@ export async function POST(request: Request) {
     const { companyId, force } = parsed.data;
     const result = await enrichmentService.startEnrichment(companyId, { force });
 
-    if (result.success && result.status === "processing") {
-      after(() => enrichmentService.runEnrichment(companyId));
-      return NextResponse.json(result, { status: 202 });
+    if (!result.success) {
+      return NextResponse.json(result, { status: ERROR_STATUS_MAP[result.error] });
     }
 
-    const status = result.success ? 200 : ERROR_STATUS_MAP[result.error];
-    return NextResponse.json(result, { status });
+    if (result.status !== "processing") {
+      return NextResponse.json(result, { status: 200 });
+    }
+
+    // Run enrichment inline (not in after()) for reliable execution on Vercel
+    await enrichmentService.runEnrichment(companyId);
+    const finalResult = await enrichmentService.getStatus(companyId);
+    const status = finalResult.success ? 200 : ERROR_STATUS_MAP[finalResult.error];
+    return NextResponse.json(finalResult, { status });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
