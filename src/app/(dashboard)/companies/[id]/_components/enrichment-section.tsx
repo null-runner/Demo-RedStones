@@ -54,7 +54,7 @@ type EnrichmentApiResponse =
         painPoints: string[];
       };
     }
-  | { success: true; status: "processing" }
+  | { success: true; status: "processing" | "not_enriched" }
   | { success: false; error: string };
 
 const POLL_INTERVAL_MS = 3_000;
@@ -291,7 +291,16 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
             setState((prev) => ({ ...prev, status: "not_enriched" }));
             return;
           }
-          if (result.status !== "processing") {
+          if (result.status === "not_enriched") {
+            console.error(
+              "[Enrichment] Server-side enrichment failed, status reset to not_enriched",
+            );
+            stopPoll();
+            setState((prev) => ({ ...prev, status: "not_enriched" }));
+            toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
+            return;
+          }
+          if (result.status !== "processing" && "data" in result) {
             stopPoll();
             setState(applyEnrichmentData(result));
             if (!toastShownRef.current) {
@@ -316,6 +325,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
   }, [state.status, company.id]);
 
   async function handleEnrich(force = false) {
+    console.info("[Enrichment] Starting enrichment for", company.name, force ? "(force)" : "");
     setState((prev) => ({ ...prev, status: "processing" }));
     try {
       const response = await fetch("/api/enrichment", {
@@ -329,12 +339,12 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
         return;
       }
 
-      if (result.success) {
+      if (result.success && "data" in result) {
         setState(applyEnrichmentData(result));
         return;
       }
 
-      console.error("[Enrichment] Failed:", result.error);
+      console.error("[Enrichment] Failed:", "error" in result ? result.error : result.status);
       setState((prev) => ({ ...prev, status: "not_enriched" }));
       toast.error("Arricchimento non riuscito: servizio temporaneamente non disponibile.");
     } catch (error) {
