@@ -292,7 +292,7 @@ export function DealsClient({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="modified">Ultima modifica</SelectItem>
-                <SelectItem value="value">Valore (&darr;)</SelectItem>
+                <SelectItem value="value">Valore ({"\u2193"})</SelectItem>
                 <SelectItem value="oldest">Più vecchio</SelectItem>
                 <SelectItem value="custom">Personalizzato</SelectItem>
               </SelectContent>

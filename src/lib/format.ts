@@ -1,7 +1,11 @@
-const EUR_FORMATTER = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
-
 export function formatEUR(value: number): string {
-  return EUR_FORMATTER.format(Number.isNaN(value) ? 0 : value);
+  const num = Number.isNaN(value) ? 0 : value;
+  const fixed = num.toFixed(2);
+  const dotIdx = fixed.indexOf(".");
+  const intPart = fixed.slice(0, dotIdx);
+  const decPart = fixed.slice(dotIdx + 1);
+  const withDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${withDots},${decPart} \u20AC`;
 }
 
 /** Convert string value to integer cents to avoid floating-point precision issues. */
