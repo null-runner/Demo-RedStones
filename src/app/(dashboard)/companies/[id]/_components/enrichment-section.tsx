@@ -276,6 +276,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
       fetch(`/api/enrichment?companyId=${company.id}`)
         .then((res) => {
           if (!res.ok) {
+            console.error("[Enrichment] Poll failed: HTTP", res.status);
             stopPoll();
             setState((prev) => ({ ...prev, status: "not_enriched" }));
             return null;
@@ -285,6 +286,7 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
         .then((result) => {
           if (!result) return;
           if (!result.success) {
+            console.error("[Enrichment] Poll error:", result.error);
             stopPoll();
             setState((prev) => ({ ...prev, status: "not_enriched" }));
             return;
@@ -298,7 +300,8 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
             }
           }
         })
-        .catch(() => {
+        .catch((error: unknown) => {
+          console.error("[Enrichment] Poll network error:", error);
           stopPoll();
           setState((prev) => ({ ...prev, status: "not_enriched" }));
         });
@@ -331,9 +334,11 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
         return;
       }
 
+      console.error("[Enrichment] Failed:", result.error);
       setState((prev) => ({ ...prev, status: "not_enriched" }));
       toast.error("Arricchimento non riuscito: servizio temporaneamente non disponibile.");
-    } catch {
+    } catch (error) {
+      console.error("[Enrichment] Network error:", error);
       setState((prev) => ({ ...prev, status: "not_enriched" }));
       toast.error("Arricchimento non riuscito: servizio temporaneamente non disponibile.");
     }
