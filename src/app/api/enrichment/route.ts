@@ -50,8 +50,16 @@ export async function POST(request: Request) {
       return NextResponse.json(result, { status: 200 });
     }
 
-    // Run enrichment inline (not in after()) for reliable execution on Vercel
-    const runError = await enrichmentService.runEnrichment(companyId);
+    // Run enrichment inline with auto-retry on empty/failed results
+    const MAX_ATTEMPTS = 2;
+    let runError: string | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      runError = await enrichmentService.runEnrichment(companyId);
+      if (!runError) break;
+      if (attempt < MAX_ATTEMPTS && runError.startsWith("empty_result")) {
+        await enrichmentService.startEnrichment(companyId, { force: true });
+      }
+    }
     if (runError) {
       return NextResponse.json(
         { success: false, error: "enrichment_failed", detail: runError },
