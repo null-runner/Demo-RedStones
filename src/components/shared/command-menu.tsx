@@ -45,9 +45,11 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
   const [query, setQuery] = useState("");
   const router = useRouter();
 
-  const [isMac] = useState(
-    () => typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent),
-  );
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: client-only navigator check avoids hydration mismatch
+    setIsMac(/mac/i.test(navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -83,9 +85,7 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
         }}
       >
         <span>Cerca...</span>
-        <kbd className="bg-muted rounded px-1.5 py-0.5 text-xs" suppressHydrationWarning>
-          {isMac ? "⌘K" : "Ctrl+K"}
-        </kbd>
+        <kbd className="bg-muted rounded px-1.5 py-0.5 text-xs">{isMac ? "⌘K" : "Ctrl+K"}</kbd>
       </button>
 
       <CommandDialog
