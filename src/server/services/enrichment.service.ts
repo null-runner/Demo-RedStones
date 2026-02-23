@@ -143,7 +143,7 @@ async function runEnrichment(companyId: string): Promise<void> {
   const address = company.operationalAddress ?? company.legalAddress ?? null;
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
 
-  const TIMEOUT_MS = 50_000;
+  const TIMEOUT_MS = 25_000;
 
   const MAX_RETRIES = 2;
   let rawResult: Awaited<ReturnType<typeof model.generateContent>> | undefined;
@@ -160,10 +160,11 @@ async function runEnrichment(companyId: string): Promise<void> {
       break;
     } catch (error) {
       const errorReason = getErrorReason(error);
+      const detail = error instanceof Error ? error.message : String(error);
       if (attempt < MAX_RETRIES) {
         logger.warn(
           "enrichment",
-          `Attempt ${String(attempt)} failed for ${companyId}: ${errorReason}, retrying...`,
+          `Attempt ${String(attempt)} failed for ${companyId}: ${errorReason} — ${detail}, retrying...`,
         );
         await new Promise((r) => {
           setTimeout(r, 2000);
@@ -172,7 +173,7 @@ async function runEnrichment(companyId: string): Promise<void> {
       }
       logger.error(
         "enrichment",
-        `Failed for ${companyId} after ${String(MAX_RETRIES)} attempts: ${errorReason}`,
+        `Failed for ${companyId} after ${String(MAX_RETRIES)} attempts: ${errorReason} — ${detail}`,
       );
       await db
         .update(companies)
