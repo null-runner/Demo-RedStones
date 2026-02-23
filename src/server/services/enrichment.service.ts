@@ -208,6 +208,15 @@ async function runEnrichment(companyId: string): Promise<string | null> {
     return `json_parse: could not parse Gemini response. Raw: ${text.slice(0, 500)}`;
   }
 
+  if (isEmptyEnrichment(data)) {
+    logger.warn("enrichment", `Empty enrichment for ${companyId}, discarding`);
+    await db
+      .update(companies)
+      .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return "empty_result: all fields returned null";
+  }
+
   const status = detectStatus(data);
 
   await db
@@ -275,6 +284,15 @@ function extractEnrichmentData(parsed: Record<string, unknown>): EnrichmentData 
       ? (parsed["painPoints"] as string[]).filter((p) => typeof p === "string")
       : [],
   };
+}
+
+function isEmptyEnrichment(data: EnrichmentData): boolean {
+  return (
+    data.description === null &&
+    data.sector === null &&
+    data.estimatedSize === null &&
+    data.painPoints.length === 0
+  );
 }
 
 function detectStatus(data: EnrichmentData): "enriched" | "partial" {
