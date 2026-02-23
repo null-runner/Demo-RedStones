@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type Tool } from "@google/generative-ai";
 import { and, eq, ne } from "drizzle-orm";
 
 import { CircuitBreaker } from "@/lib/circuit-breaker";
@@ -154,9 +154,11 @@ async function runEnrichment(companyId: string): Promise<string | null> {
 
   const GEMINI_MODEL = "gemini-2.5-flash";
   const genAI = new GoogleGenerativeAI(apiKey);
+  // SDK types only know googleSearchRetrieval (deprecated), but API requires googleSearch
+  const googleSearchTool = { googleSearch: {} } as unknown as Tool;
   const model = genAI.getGenerativeModel({
     model: GEMINI_MODEL,
-    tools: [{ googleSearchRetrieval: {} }],
+    tools: [googleSearchTool],
   });
   const address = company.operationalAddress ?? company.legalAddress ?? null;
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
