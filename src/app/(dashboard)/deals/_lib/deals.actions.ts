@@ -13,8 +13,14 @@ import { triggerEvent } from "@/lib/pusher";
 import { DEALS_CHANNEL } from "@/lib/pusher-events";
 import type { ActionResult } from "@/lib/types";
 import { db } from "@/server/db";
-import { deals, pipelineStages, timelineEntries } from "@/server/db/schema";
+import { deals, pipelineStages, timelineEntries, users } from "@/server/db/schema";
 import type { Deal } from "@/server/db/schema";
+
+// JWT sessions may outlive seed resets — verify the user still exists in DB
+async function resolveAuthorId(userId: string): Promise<string | null> {
+  const rows = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0] ? userId : null;
+}
 
 export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
   const parsed = createDealSchema.safeParse(input);
@@ -39,13 +45,14 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
     const deal = await dealsService.create(parsed.data);
 
     try {
+      const authorId = await resolveAuthorId(user.id);
       await db.insert(timelineEntries).values({
         dealId: deal.id,
         type: "stage_change",
         content: null,
         previousStage: null,
         newStage: deal.stage,
-        authorId: user.id,
+        authorId,
       });
     } catch (e) {
       logger.error("timeline", "Failed to record deal creation", e);
@@ -107,13 +114,14 @@ export async function updateDeal(input: unknown): Promise<ActionResult<Deal>> {
 
     if (previousStage !== undefined && rest.stage !== undefined) {
       try {
+        const authorId = await resolveAuthorId(user.id);
         await db.insert(timelineEntries).values({
           dealId: id,
           type: "stage_change",
           content: null,
           previousStage,
           newStage: rest.stage,
-          authorId: user.id,
+          authorId,
         });
       } catch (e) {
         logger.error("timeline", "Failed to record stage change", e);

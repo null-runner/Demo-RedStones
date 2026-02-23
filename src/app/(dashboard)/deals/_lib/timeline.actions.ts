@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v3";
+import { eq } from "drizzle-orm";
 
 import { timelineService } from "./timeline.service";
 
 import { requireRole, RBACError } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
+import { db } from "@/server/db";
+import { users } from "@/server/db/schema";
 import type { TimelineEntry } from "@/server/db/schema";
 
 const addNoteSchema = z.object({
@@ -33,7 +36,13 @@ export async function addNote(
     return { success: false, error: "Errore di autenticazione" };
   }
   try {
-    const entry = await timelineService.addNote(parsed.data.dealId, parsed.data.content, user.id);
+    const [userExists] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    const authorId = userExists ? user.id : null;
+    const entry = await timelineService.addNote(parsed.data.dealId, parsed.data.content, authorId);
     revalidatePath(`/deals/${parsed.data.dealId}`);
     return { success: true, data: entry };
   } catch (e) {
