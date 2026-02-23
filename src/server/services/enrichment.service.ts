@@ -281,26 +281,40 @@ async function runEnrichment(companyId: string): Promise<string | null> {
 }
 
 function buildGeminiPrompt(name: string, domain: string | null, address: string | null): string {
-  const domainClause = domain ? ` Il sito aziendale è ${domain}.` : "";
-  const addressClause = address ? ` La sede è in ${address}.` : "";
-  return `Sei un analista CRM. Un venditore sta valutando "${name}" come potenziale cliente.${domainClause}${addressClause}
+  if (domain) {
+    return `You are a CRM analyst. Research the company "${name}" at the website ${domain} and provide structured data.
 
-ISTRUZIONI DI RICERCA:
-- Se è presente un dominio, usa ESCLUSIVAMENTE le informazioni trovate su quel sito.
-- Se NON è presente un dominio ma è presente un indirizzo, usa nome + indirizzo per identificare l'azienda corretta ed evitare omonimi.
-- Se NON è presente né dominio né indirizzo, cerca online "${name}" e usa SOLO il risultato più pertinente.
-- NON inventare informazioni. Se un dato non è verificabile dalle fonti, restituisci null.
-- NON menzionare nomi di strumenti, piattaforme o tecnologie specifiche (es: Salesforce, HubSpot, SAP) a meno che non siano esplicitamente citati sul sito aziendale.
+CRITICAL: Visit and use ONLY information from ${domain} — ignore any other company with a similar name.
 
-Restituisci un JSON con:
+Return a JSON object:
 {
-  "description": "cosa fa l'azienda in max 200 caratteri, basandoti solo su ciò che trovi. null se non trovi info",
-  "sector": "settore principale (es: SaaS, Manifattura, Retail, Consulenza IT) o null",
-  "estimatedSize": "stima dipendenti (1-10, 11-50, 51-200, 200+) o null se non verificabile",
-  "painPoints": ["sfida operativa 1", "sfida operativa 2"] oppure []
+  "description": "what the company does in max 200 chars (in Italian). null if not found",
+  "sector": "main sector in Italian (e.g. SaaS, Manifattura, Retail, Consulenza IT, Sviluppo Software). null if not found",
+  "estimatedSize": "employee estimate (1-10, 11-50, 51-200, 200+) or null",
+  "painPoints": ["generic operational challenge 1 in Italian", "challenge 2"] or []
 }
-Per painPoints: indica sfide operative GENERICHE e realistiche per il settore dell'azienda (es: gestione clienti frammentata, processi manuali). NON inventare sfide specifiche non verificabili. NON indicare i problemi dei loro clienti.
-Rispondi SOLO con il JSON, senza markdown.`;
+
+For painPoints: list realistic, generic operational challenges for the company sector (in Italian). Do NOT invent specific unverifiable claims. Do NOT list problems of THEIR clients.
+Respond ONLY with the JSON, no markdown.`;
+  }
+
+  const addressClause = address ? ` The company is located at ${address}.` : "";
+  return `You are a CRM analyst. Research the company "${name}" and provide structured data.${addressClause}
+
+INSTRUCTIONS:
+- Search for "${name}"${address ? ` at ${address}` : ""} and use ONLY the most relevant result.
+- Do NOT invent information. If a field cannot be verified, return null.
+
+Return a JSON object:
+{
+  "description": "what the company does in max 200 chars (in Italian). null if not found",
+  "sector": "main sector in Italian (e.g. SaaS, Manifattura, Retail, Consulenza IT, Sviluppo Software). null if not found",
+  "estimatedSize": "employee estimate (1-10, 11-50, 51-200, 200+) or null",
+  "painPoints": ["generic operational challenge 1 in Italian", "challenge 2"] or []
+}
+
+For painPoints: list realistic, generic operational challenges for the company sector (in Italian). Do NOT invent specific unverifiable claims. Do NOT list problems of THEIR clients.
+Respond ONLY with the JSON, no markdown.`;
 }
 
 function parseGeminiResponse(text: string): EnrichmentData | null {
