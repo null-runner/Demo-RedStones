@@ -41,6 +41,7 @@ function mockCompanyFound(enrichmentStatus = "not_enriched") {
         enrichmentSector: enrichmentStatus !== "not_enriched" ? "SaaS" : null,
         enrichmentSize: enrichmentStatus !== "not_enriched" ? "11-50" : null,
         enrichmentPainPoints: enrichmentStatus !== "not_enriched" ? "pain1\npain2" : null,
+        updatedAt: new Date(),
       },
     ]),
   };

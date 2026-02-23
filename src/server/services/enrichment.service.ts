@@ -51,6 +51,8 @@ export const enrichmentService = {
   getStatus,
 };
 
+const STALE_PROCESSING_MS = 2 * 60 * 1000;
+
 async function getStatus(companyId: string): Promise<EnrichmentResult> {
   const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
   const company = rows[0];
@@ -59,6 +61,18 @@ async function getStatus(companyId: string): Promise<EnrichmentResult> {
   }
 
   if (company.enrichmentStatus === "processing") {
+    const age = Date.now() - company.updatedAt.getTime();
+    if (age > STALE_PROCESSING_MS) {
+      logger.warn(
+        "enrichment",
+        `Stale processing detected for ${companyId} (${String(Math.round(age / 1000))}s), resetting`,
+      );
+      await db
+        .update(companies)
+        .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
+        .where(eq(companies.id, companyId));
+      return { success: true, status: "not_enriched" as const };
+    }
     return { success: true, status: "processing" };
   }
 
@@ -139,51 +153,32 @@ async function runEnrichment(companyId: string): Promise<void> {
   if (!company) return;
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const address = company.operationalAddress ?? company.legalAddress ?? null;
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
 
-  const TIMEOUT_MS = 25_000;
+  const TIMEOUT_MS = 45_000;
 
-  const MAX_RETRIES = 2;
-  let rawResult: Awaited<ReturnType<typeof model.generateContent>> | undefined;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      rawResult = await geminiBreaker.execute(() => {
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error("ENRICHMENT_TIMEOUT"));
-          }, TIMEOUT_MS);
-        });
-        return Promise.race([model.generateContent(prompt), timeoutPromise]);
+  let rawResult: Awaited<ReturnType<typeof model.generateContent>>;
+  try {
+    rawResult = await geminiBreaker.execute(() => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("ENRICHMENT_TIMEOUT"));
+        }, TIMEOUT_MS);
       });
-      break;
-    } catch (error) {
-      const errorReason = getErrorReason(error);
-      const detail = error instanceof Error ? error.message : String(error);
-      if (attempt < MAX_RETRIES) {
-        logger.warn(
-          "enrichment",
-          `Attempt ${String(attempt)} failed for ${companyId}: ${errorReason} — ${detail}, retrying...`,
-        );
-        await new Promise((r) => {
-          setTimeout(r, 2000);
-        });
-        continue;
-      }
-      logger.error(
-        "enrichment",
-        `Failed for ${companyId} after ${String(MAX_RETRIES)} attempts: ${errorReason} — ${detail}`,
-      );
-      await db
-        .update(companies)
-        .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
-        .where(eq(companies.id, companyId));
-      return;
-    }
+      return Promise.race([model.generateContent(prompt), timeoutPromise]);
+    });
+  } catch (error) {
+    const errorReason = getErrorReason(error);
+    const detail = error instanceof Error ? error.message : String(error);
+    logger.error("enrichment", `Failed for ${companyId}: ${errorReason} — ${detail}`);
+    await db
+      .update(companies)
+      .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return;
   }
-
-  if (!rawResult) return;
 
   let text: string;
   try {
