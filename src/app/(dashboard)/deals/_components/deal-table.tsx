@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Pencil, Trash2, TrendingUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2, TrendingUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatEUR } from "@/lib/format";
+import { PIPELINE_STAGES } from "@/lib/constants/pipeline";
+import { formatEUR, toCents } from "@/lib/format";
 import type { Deal } from "@/server/db/schema";
+
+type SortKey = "title" | "stage" | "value" | "createdAt";
+type SortDir = "asc" | "desc";
+
+const stageOrder = new Map<string, number>(PIPELINE_STAGES.map((s, i) => [s, i]));
 
 type DealTableProps = {
   deals: Deal[];
@@ -27,6 +34,33 @@ type DealTableProps = {
 
 export function DealTable({ deals, onEdit, onDelete, canWrite = true }: DealTableProps) {
   const router = useRouter();
+  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "title" ? "asc" : "desc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...deals].sort((a, b) => {
+      switch (sortKey) {
+        case "title":
+          return dir * a.title.localeCompare(b.title, "it");
+        case "stage":
+          return dir * ((stageOrder.get(a.stage) ?? 99) - (stageOrder.get(b.stage) ?? 99));
+        case "value":
+          return dir * (toCents(a.value) - toCents(b.value));
+        case "createdAt":
+          return dir * (a.createdAt.getTime() - b.createdAt.getTime());
+      }
+    });
+  }, [deals, sortKey, sortDir]);
 
   if (deals.length === 0) {
     return (
@@ -43,15 +77,38 @@ export function DealTable({ deals, onEdit, onDelete, canWrite = true }: DealTabl
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Titolo</TableHead>
-            <TableHead>Stage</TableHead>
-            <TableHead>Valore</TableHead>
-            <TableHead>Data Creazione</TableHead>
+            {(
+              [
+                ["title", "Titolo"],
+                ["stage", "Stage"],
+                ["value", "Valore"],
+                ["createdAt", "Data Creazione"],
+              ] as const
+            ).map(([key, label]) => {
+              const active = sortKey === key;
+              const Icon = active ? (sortDir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+              return (
+                <TableHead key={key}>
+                  <button
+                    type="button"
+                    className="hover:text-foreground inline-flex items-center gap-1"
+                    onClick={() => {
+                      toggleSort(key);
+                    }}
+                  >
+                    {label}
+                    <Icon
+                      className={`h-3.5 w-3.5 ${active ? "text-foreground" : "text-muted-foreground"}`}
+                    />
+                  </button>
+                </TableHead>
+              );
+            })}
             <TableHead className="w-[100px]">Azioni</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {deals.map((deal) => (
+          {sorted.map((deal) => (
             <TableRow
               key={deal.id}
               className="cursor-pointer"
