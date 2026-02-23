@@ -84,7 +84,8 @@ export function generateSeedData(): SeedData {
     ristrutturazioneDebito: crypto.randomUUID(),
   };
 
-  const guestUserId = crypto.randomUUID();
+  // Fixed UUID so the guest session JWT stays valid after seed reset
+  const guestUserId = "00000000-0000-4000-8000-000000000001";
 
   const seedUsers: NewUser[] = [
     {
