@@ -50,14 +50,18 @@ export async function POST(request: Request) {
       return NextResponse.json(result, { status: 200 });
     }
 
-    // Run enrichment inline with auto-retry on empty/failed results
-    const MAX_ATTEMPTS = 2;
+    // Run enrichment inline with auto-retry on recoverable failures
+    const MAX_ATTEMPTS = 3;
+    const RETRYABLE_PREFIXES = ["empty_result", "json_parse", "response_parse"];
     let runError: string | null = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       runError = await enrichmentService.runEnrichment(companyId);
       if (!runError) break;
-      if (attempt < MAX_ATTEMPTS && runError.startsWith("empty_result")) {
+      const isRetryable = RETRYABLE_PREFIXES.some((p) => runError?.startsWith(p));
+      if (attempt < MAX_ATTEMPTS && isRetryable) {
         await enrichmentService.startEnrichment(companyId, { force: true });
+      } else if (!isRetryable) {
+        break;
       }
     }
     if (runError) {

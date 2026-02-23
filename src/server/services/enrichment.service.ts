@@ -11,7 +11,7 @@ import { companies } from "@/server/db/schema";
 
 const geminiBreaker = new CircuitBreaker({
   failureThreshold: 3,
-  resetTimeoutMs: 2 * 60 * 1000,
+  resetTimeoutMs: 30_000,
 });
 
 export type EnrichmentData = {
