@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     }
     const finalResult = await enrichmentService.getStatus(companyId);
     const status = finalResult.success ? 200 : ERROR_STATUS_MAP[finalResult.error];
-    return NextResponse.json(finalResult, { status });
+    return NextResponse.json({ ...finalResult, _model: "gemini-2.5-flash+search" }, { status });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

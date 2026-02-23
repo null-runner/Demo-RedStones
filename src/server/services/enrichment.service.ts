@@ -152,13 +152,15 @@ async function runEnrichment(companyId: string): Promise<string | null> {
   const company = rows[0];
   if (!company) return "Company not found";
 
+  const GEMINI_MODEL = "gemini-2.5-flash";
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL,
     tools: [{ googleSearchRetrieval: {} }],
   });
   const address = company.operationalAddress ?? company.legalAddress ?? null;
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
+  logger.info("enrichment", `Calling ${GEMINI_MODEL} (with Google Search) for "${company.name}"`);
 
   const TIMEOUT_MS = 45_000;
 
