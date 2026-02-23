@@ -144,31 +144,30 @@ async function startEnrichment(
   return { success: true, status: "processing" };
 }
 
-async function runEnrichment(companyId: string): Promise<string | null> {
-  const apiKey = env.GEMINI_API_KEY;
-  if (!apiKey) return "GEMINI_API_KEY not configured";
+const GEMINI_MODEL = "gemini-2.5-flash";
+const TIMEOUT_MS = 45_000;
 
-  const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
-  const company = rows[0];
-  if (!company) return "Company not found";
+type GeminiCallResult =
+  | {
+      success: true;
+      data: Awaited<
+        ReturnType<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>
+      >;
+    }
+  | { success: false; error: string; isQuotaError: boolean };
 
-  const GEMINI_MODEL = "gemini-2.5-flash";
+async function callGemini(
+  apiKey: string,
+  prompt: string,
+  companyName: string,
+): Promise<GeminiCallResult> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  // SDK types only know googleSearchRetrieval (deprecated), but API requires googleSearch
   const googleSearchTool = { googleSearch: {} } as unknown as Tool;
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    tools: [googleSearchTool],
-  });
-  const address = company.operationalAddress ?? company.legalAddress ?? null;
-  const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
-  logger.info("enrichment", `Calling ${GEMINI_MODEL} (with Google Search) for "${company.name}"`);
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL, tools: [googleSearchTool] });
+  logger.info("enrichment", `Calling ${GEMINI_MODEL} (with Google Search) for "${companyName}"`);
 
-  const TIMEOUT_MS = 45_000;
-
-  let rawResult: Awaited<ReturnType<typeof model.generateContent>>;
   try {
-    rawResult = await geminiBreaker.execute(() => {
+    const data = await geminiBreaker.execute(() => {
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
           reject(new Error("ENRICHMENT_TIMEOUT"));
@@ -176,15 +175,48 @@ async function runEnrichment(companyId: string): Promise<string | null> {
       });
       return Promise.race([model.generateContent(prompt), timeoutPromise]);
     });
+    return { success: true, data };
   } catch (error) {
-    const errorReason = getErrorReason(error);
     const detail = error instanceof Error ? error.message : String(error);
-    logger.error("enrichment", `Failed for ${companyId}: ${errorReason} — ${detail}`);
+    const isQuotaError = detail.includes("429") || detail.includes("quota");
+    return { success: false, error: `${getErrorReason(error)}: ${detail}`, isQuotaError };
+  }
+}
+
+async function runEnrichment(companyId: string): Promise<string | null> {
+  const apiKeys = [env.GEMINI_API_KEY, env.GEMINI_API_KEY_BACKUP].filter(Boolean);
+  if (apiKeys.length === 0) return "GEMINI_API_KEY not configured";
+
+  const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+  const company = rows[0];
+  if (!company) return "Company not found";
+
+  const address = company.operationalAddress ?? company.legalAddress ?? null;
+  const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
+
+  let rawResult: Awaited<
+    ReturnType<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>
+  > | null = null;
+  let lastError = "";
+
+  for (const key of apiKeys) {
+    const result = await callGemini(key, prompt, company.name);
+    if (result.success) {
+      rawResult = result.data;
+      break;
+    }
+    lastError = result.error;
+    if (!result.isQuotaError) break;
+    logger.warn("enrichment", `Quota exceeded, trying backup key for "${company.name}"`);
+  }
+
+  if (!rawResult) {
+    logger.error("enrichment", `Failed for ${companyId}: ${lastError}`);
     await db
       .update(companies)
       .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
       .where(eq(companies.id, companyId));
-    return `${errorReason}: ${detail}`;
+    return lastError;
   }
 
   let text: string;
