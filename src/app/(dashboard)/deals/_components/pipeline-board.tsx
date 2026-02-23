@@ -12,7 +12,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 
 import { deleteDeal, updateDeal } from "../_lib/deals.actions";
@@ -29,6 +29,7 @@ type PipelineBoardProps = {
   contacts: Array<{ id: string; firstName: string; lastName: string; companyId: string | null }>;
   companies: Array<{ id: string; name: string }>;
   stages: string[];
+  onManualReorder?: () => void;
 };
 
 type KanbanColumn = {
@@ -99,7 +100,13 @@ function DroppableColumn({
   );
 }
 
-export function PipelineBoard({ deals, contacts, companies, stages }: PipelineBoardProps) {
+export function PipelineBoard({
+  deals,
+  contacts,
+  companies,
+  stages,
+  onManualReorder,
+}: PipelineBoardProps) {
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [localDeals, setLocalDeals] = useState(deals);
   const [pendingLostDeal, setPendingLostDeal] = useState<{
@@ -173,7 +180,21 @@ export function PipelineBoard({ deals, contacts, companies, stages }: PipelineBo
       ? (over.id as string)
       : (localDeals.find((d) => d.id === over.id)?.stage ?? currentDeal.stage);
 
-    if (currentDeal.stage === targetStage) return;
+    if (currentDeal.stage === targetStage) {
+      const overId = over.id as string;
+      const columnDeals = localDeals.filter((d) => d.stage === targetStage);
+      const oldIndex = columnDeals.findIndex((d) => d.id === dealId);
+      const newIndex = columnDeals.findIndex((d) => d.id === overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+
+      const reordered = arrayMove(columnDeals, oldIndex, newIndex);
+      setLocalDeals((prev) => {
+        const others = prev.filter((d) => d.stage !== targetStage);
+        return [...others, ...reordered];
+      });
+      onManualReorder?.();
+      return;
+    }
 
     const oldStage = currentDeal.stage;
 

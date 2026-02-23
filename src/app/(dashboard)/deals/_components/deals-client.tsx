@@ -30,6 +30,8 @@ import { toCents } from "@/lib/format";
 import { showPermissionDeniedToast } from "@/lib/rbac-toast";
 import type { Deal } from "@/server/db/schema";
 
+type DealSortMode = "modified" | "value" | "oldest" | "custom";
+
 type DealsClientProps = {
   deals: Deal[];
   companies: Array<{ id: string; name: string }>;
@@ -58,6 +60,7 @@ export function DealsClient({
     from: new Date(initialDateRange.from),
     to: new Date(initialDateRange.to),
   });
+  const [sortBy, setSortBy] = useState<DealSortMode>("modified");
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
@@ -65,7 +68,7 @@ export function DealsClient({
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
-    return deals.filter((deal) => {
+    const result = deals.filter((deal) => {
       if (query.trim()) {
         const q = query.toLowerCase();
         const companyName = companies.find((c) => c.id === deal.companyId)?.name ?? "";
@@ -83,7 +86,31 @@ export function DealsClient({
       if (deal.createdAt < dateRange.from || deal.createdAt > endOfDay(dateRange.to)) return false;
       return true;
     });
-  }, [deals, query, stageFilter, ownerFilter, minValue, maxValue, dateRange, companies, users]);
+
+    if (sortBy === "custom") return result;
+
+    return [...result].sort((a, b) => {
+      switch (sortBy) {
+        case "value":
+          return toCents(b.value) - toCents(a.value);
+        case "modified":
+          return b.updatedAt.getTime() - a.updatedAt.getTime();
+        case "oldest":
+          return a.createdAt.getTime() - b.createdAt.getTime();
+      }
+    });
+  }, [
+    deals,
+    query,
+    stageFilter,
+    ownerFilter,
+    minValue,
+    maxValue,
+    dateRange,
+    companies,
+    users,
+    sortBy,
+  ]);
 
   const handleEdit = (deal: Deal) => {
     if (!canWrite) {
@@ -174,7 +201,7 @@ export function DealsClient({
 
       {/* Filtri */}
       <div className="bg-muted/50 mt-6 flex-shrink-0 rounded-lg border p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           <div className="space-y-1">
             <Label className="flex items-center gap-1 text-xs">
               Cerca
@@ -252,6 +279,25 @@ export function DealsClient({
             <Label className="text-xs">Periodo</Label>
             <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Ordina per</Label>
+            <Select
+              value={sortBy}
+              onValueChange={(v) => {
+                setSortBy(v as DealSortMode);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="modified">Ultima modifica</SelectItem>
+                <SelectItem value="value">Valore (&darr;)</SelectItem>
+                <SelectItem value="oldest">Più vecchio</SelectItem>
+                <SelectItem value="custom">Personalizzato</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="mt-2 text-right">
           <span className="text-muted-foreground text-sm">{filtered.length} deal</span>
@@ -265,6 +311,9 @@ export function DealsClient({
             contacts={contacts}
             companies={companies}
             stages={stages}
+            onManualReorder={() => {
+              setSortBy("custom");
+            }}
           />
         </div>
       ) : (
