@@ -284,7 +284,10 @@ export function DealsClient({
         contacts={contacts}
         users={users}
         onSuccess={() => {
-          router.refresh();
+          // Delay refresh so Pusher real-time update shows first without a flash
+          setTimeout(() => {
+            router.refresh();
+          }, 2000);
         }}
       />
 

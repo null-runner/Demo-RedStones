@@ -21,8 +21,9 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
   }
+  let user;
   try {
-    await requireRole(["admin", "member", "guest"]);
+    user = await requireRole(["admin", "member", "guest"]);
   } catch (e) {
     if (e instanceof RBACError) return { success: false, error: e.message };
     return { success: false, error: "Errore di autenticazione" };
@@ -36,6 +37,20 @@ export async function createDeal(input: unknown): Promise<ActionResult<Deal>> {
       }
     }
     const deal = await dealsService.create(parsed.data);
+
+    try {
+      await db.insert(timelineEntries).values({
+        dealId: deal.id,
+        type: "stage_change",
+        content: null,
+        previousStage: null,
+        newStage: deal.stage,
+        authorId: user.id,
+      });
+    } catch (e) {
+      logger.error("timeline", "Failed to record deal creation", e);
+    }
+
     revalidatePath("/deals");
     await triggerEvent(DEALS_CHANNEL, "deal:created", { type: "deal:created", deal });
     return { success: true, data: deal };

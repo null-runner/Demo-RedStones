@@ -44,6 +44,8 @@ function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
     );
   }
 
+  const isCreation = !entry.previousStage && entry.newStage;
+
   return (
     <div className="flex gap-3 text-sm">
       <div className="bg-muted flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full">
@@ -51,10 +53,18 @@ function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
       </div>
       <div className="flex-1 space-y-0.5">
         <p className="text-muted-foreground">
-          Stage cambiato da{" "}
-          <span className="text-foreground font-medium">{entry.previousStage}</span>
-          {" → "}
-          <span className="text-foreground font-medium">{entry.newStage}</span>
+          {isCreation ? (
+            <>
+              Deal creato in <span className="text-foreground font-medium">{entry.newStage}</span>
+            </>
+          ) : (
+            <>
+              Stage cambiato da{" "}
+              <span className="text-foreground font-medium">{entry.previousStage}</span>
+              {" → "}
+              <span className="text-foreground font-medium">{entry.newStage}</span>
+            </>
+          )}
         </p>
         <p className="text-muted-foreground text-xs">
           <span>{authorName}</span>
