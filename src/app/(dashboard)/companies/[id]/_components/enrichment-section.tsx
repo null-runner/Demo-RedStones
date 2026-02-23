@@ -330,19 +330,19 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ companyId: company.id, force }),
       });
-      const result = (await response.json()) as EnrichmentApiResponse;
+      const result = (await response.json()) as Record<string, unknown>;
 
-      if (result.success && "data" in result) {
-        setState(applyEnrichmentData(result));
+      if (
+        result["success"] === true &&
+        "data" in result &&
+        (result["status"] === "enriched" || result["status"] === "partial")
+      ) {
+        setState(applyEnrichmentData(result as Extract<EnrichmentApiResponse, { data: unknown }>));
         toast.success("Arricchimento completato!");
         return;
       }
 
-      if (result.success && result.status === "not_enriched") {
-        console.error("[Enrichment] Server enrichment failed (returned not_enriched)");
-      } else if (!result.success) {
-        console.error("[Enrichment] Failed:", result.error);
-      }
+      console.error("[Enrichment] Server error:", JSON.stringify(result));
       setState((prev) => ({ ...prev, status: "not_enriched" }));
       toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
     } catch (error) {

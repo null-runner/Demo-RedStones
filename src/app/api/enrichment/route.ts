@@ -51,7 +51,13 @@ export async function POST(request: Request) {
     }
 
     // Run enrichment inline (not in after()) for reliable execution on Vercel
-    await enrichmentService.runEnrichment(companyId);
+    const runError = await enrichmentService.runEnrichment(companyId);
+    if (runError) {
+      return NextResponse.json(
+        { success: false, error: "enrichment_failed", detail: runError },
+        { status: 502 },
+      );
+    }
     const finalResult = await enrichmentService.getStatus(companyId);
     const status = finalResult.success ? 200 : ERROR_STATUS_MAP[finalResult.error];
     return NextResponse.json(finalResult, { status });

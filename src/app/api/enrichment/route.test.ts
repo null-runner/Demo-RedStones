@@ -88,7 +88,7 @@ describe("POST /api/enrichment", () => {
       success: true,
       status: "processing",
     });
-    vi.mocked(enrichmentService.runEnrichment).mockResolvedValue();
+    vi.mocked(enrichmentService.runEnrichment).mockResolvedValue(null);
     vi.mocked(enrichmentService.getStatus).mockResolvedValue({
       success: true,
       status: "enriched",

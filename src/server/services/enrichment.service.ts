@@ -144,16 +144,16 @@ async function startEnrichment(
   return { success: true, status: "processing" };
 }
 
-async function runEnrichment(companyId: string): Promise<void> {
+async function runEnrichment(companyId: string): Promise<string | null> {
   const apiKey = env.GEMINI_API_KEY;
-  if (!apiKey) return;
+  if (!apiKey) return "GEMINI_API_KEY not configured";
 
   const rows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
   const company = rows[0];
-  if (!company) return;
+  if (!company) return "Company not found";
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const address = company.operationalAddress ?? company.legalAddress ?? null;
   const prompt = buildGeminiPrompt(company.name, company.domain ?? null, address);
 
@@ -177,18 +177,19 @@ async function runEnrichment(companyId: string): Promise<void> {
       .update(companies)
       .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
       .where(eq(companies.id, companyId));
-    return;
+    return `${errorReason}: ${detail}`;
   }
 
   let text: string;
   try {
     text = rawResult.response.text();
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
     await db
       .update(companies)
       .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
       .where(eq(companies.id, companyId));
-    return;
+    return `response_parse: ${detail}`;
   }
 
   const data = parseGeminiResponse(text);
@@ -197,7 +198,7 @@ async function runEnrichment(companyId: string): Promise<void> {
       .update(companies)
       .set({ enrichmentStatus: "not_enriched", updatedAt: new Date() })
       .where(eq(companies.id, companyId));
-    return;
+    return `json_parse: could not parse Gemini response`;
   }
 
   const status = detectStatus(data);
@@ -213,6 +214,7 @@ async function runEnrichment(companyId: string): Promise<void> {
       updatedAt: new Date(),
     })
     .where(eq(companies.id, companyId));
+  return null;
 }
 
 function buildGeminiPrompt(name: string, domain: string | null, address: string | null): string {
