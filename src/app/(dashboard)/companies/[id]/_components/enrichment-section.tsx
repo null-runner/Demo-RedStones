@@ -344,7 +344,11 @@ export function EnrichmentSection({ company }: EnrichmentSectionProps) {
 
       console.error("[Enrichment] Server error:", JSON.stringify(result));
       setState((prev) => ({ ...prev, status: "not_enriched" }));
-      toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
+      if (result["error"] === "demo_quota_exceeded") {
+        toast.error("Quota demo giornaliera superata. Riprova domani.");
+      } else {
+        toast.error("Arricchimento non riuscito. Riprova tra qualche secondo.");
+      }
     } catch (error) {
       console.error("[Enrichment] Network error:", error);
       setState((prev) => ({ ...prev, status: "not_enriched" }));

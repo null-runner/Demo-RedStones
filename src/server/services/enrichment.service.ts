@@ -1,7 +1,7 @@
 import "server-only";
 
 import { GoogleGenerativeAI, type Tool } from "@google/generative-ai";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, gte, ne, sql } from "drizzle-orm";
 
 import { CircuitBreaker } from "@/lib/circuit-breaker";
 import { env } from "@/lib/env";
@@ -40,7 +40,8 @@ export type EnrichmentError = {
     | "service_unavailable"
     | "network_error"
     | "api_key_missing"
-    | "enrichment_already_processing";
+    | "enrichment_already_processing"
+    | "demo_quota_exceeded";
 };
 
 export type EnrichmentResult = EnrichmentSuccess | EnrichmentProcessing | EnrichmentError;
@@ -112,6 +113,19 @@ async function startEnrichment(
 
   const force = options.force ?? false;
 
+  // Demo quota: limit enrichment calls per day
+  if (!force) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const countRows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(companies)
+      .where(and(gte(companies.updatedAt, today), ne(companies.enrichmentStatus, "not_enriched")));
+    if ((countRows[0]?.count ?? 0) >= DAILY_ENRICHMENT_LIMIT) {
+      return { success: false, error: "demo_quota_exceeded" };
+    }
+  }
+
   if (!force && company.enrichmentStatus === "processing") {
     return { success: true, status: "processing" };
   }
@@ -144,7 +158,8 @@ async function startEnrichment(
   return { success: true, status: "processing" };
 }
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3-flash-preview";
+const DAILY_ENRICHMENT_LIMIT = 10;
 const TIMEOUT_MS = 45_000;
 
 type GeminiCallResult =

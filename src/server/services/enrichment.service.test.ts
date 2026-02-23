@@ -28,32 +28,36 @@ import { enrichmentService } from "./enrichment.service";
 import { db } from "@/server/db";
 
 function mockCompanyFound(enrichmentStatus = "not_enriched") {
+  const companyRow = {
+    id: "00000000-0000-0000-0000-000000000001",
+    name: "RedStones Srl",
+    domain: "red-stones.it",
+    enrichmentStatus,
+    enrichmentDescription: enrichmentStatus !== "not_enriched" ? "Desc esistente" : null,
+    enrichmentSector: enrichmentStatus !== "not_enriched" ? "SaaS" : null,
+    enrichmentSize: enrichmentStatus !== "not_enriched" ? "11-50" : null,
+    enrichmentPainPoints: enrichmentStatus !== "not_enriched" ? "pain1\npain2" : null,
+    updatedAt: new Date(),
+  };
+  // .where() is both thenable (count query, no .limit()) and chainable (.limit() for company query)
+  const whereResult = Object.assign(Promise.resolve([{ count: 0 }]), {
+    limit: vi.fn().mockResolvedValue([companyRow]),
+  });
   const chain = {
     from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue([
-      {
-        id: "00000000-0000-0000-0000-000000000001",
-        name: "RedStones Srl",
-        domain: "red-stones.it",
-        enrichmentStatus,
-        enrichmentDescription: enrichmentStatus !== "not_enriched" ? "Desc esistente" : null,
-        enrichmentSector: enrichmentStatus !== "not_enriched" ? "SaaS" : null,
-        enrichmentSize: enrichmentStatus !== "not_enriched" ? "11-50" : null,
-        enrichmentPainPoints: enrichmentStatus !== "not_enriched" ? "pain1\npain2" : null,
-        updatedAt: new Date(),
-      },
-    ]),
+    where: vi.fn().mockReturnValue(whereResult),
   };
   vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
   return chain;
 }
 
 function mockCompanyNotFound() {
+  const whereResult = Object.assign(Promise.resolve([{ count: 0 }]), {
+    limit: vi.fn().mockResolvedValue([]),
+  });
   const chain = {
     from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue([]),
+    where: vi.fn().mockReturnValue(whereResult),
   };
   vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
 }
