@@ -37,7 +37,7 @@ function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
           <p className="text-muted-foreground text-xs">
             <span>{authorName}</span>
             {" · "}
-            <span>{relativeDate}</span>
+            <span suppressHydrationWarning>{relativeDate}</span>
           </p>
         </div>
       </div>
@@ -69,7 +69,7 @@ function TimelineEntry({ entry }: { entry: TimelineEntryWithAuthor }) {
         <p className="text-muted-foreground text-xs">
           <span>{authorName}</span>
           {" · "}
-          <span>{relativeDate}</span>
+          <span suppressHydrationWarning>{relativeDate}</span>
         </p>
       </div>
     </div>

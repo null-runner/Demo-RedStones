@@ -208,7 +208,7 @@ export function ContactDetail({ contact, companies, allTags }: ContactDetailProp
                     </p>
                   )}
                 </div>
-                <span className="text-muted-foreground flex-shrink-0">
+                <span className="text-muted-foreground flex-shrink-0" suppressHydrationWarning>
                   {formatRelativeDate(entry.createdAt)}
                 </span>
               </div>
