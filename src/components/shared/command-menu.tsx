@@ -13,6 +13,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { formatEUR } from "@/lib/format";
 
 export function filterResults(
   query: string,
@@ -36,12 +37,6 @@ export function filterResults(
     deals: filterGroup(dataset.deals, (d) => d.title),
   };
 }
-
-const currencyFormatter = new Intl.NumberFormat("it-IT", {
-  style: "currency",
-  currency: "EUR",
-  maximumFractionDigits: 0,
-});
 
 type CommandMenuProps = { dataset: SearchDataset };
 
@@ -88,7 +83,9 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
         }}
       >
         <span>Cerca...</span>
-        <kbd className="bg-muted rounded px-1.5 py-0.5 text-xs">{isMac ? "⌘K" : "Ctrl+K"}</kbd>
+        <kbd className="bg-muted rounded px-1.5 py-0.5 text-xs" suppressHydrationWarning>
+          {isMac ? "⌘K" : "Ctrl+K"}
+        </kbd>
       </button>
 
       <CommandDialog
@@ -166,7 +163,7 @@ export function CommandMenu({ dataset }: CommandMenuProps) {
                       <div className="flex flex-col">
                         <span>{d.title}</span>
                         <span className="text-muted-foreground text-xs">
-                          {currencyFormatter.format(parseFloat(d.value))}
+                          {formatEUR(parseFloat(d.value))}
                         </span>
                       </div>
                     </CommandItem>
